@@ -1,0 +1,24 @@
+{
+  "name": "overwork-workspace",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Overwork marketplace - Full-stack application",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend",
+    "test": "npm run test --prefix backend && npm run test --prefix frontend",
+    "lint": "npm run lint --prefix backend && npm run lint --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  },
+  "author": "Onvework Team",
+  "license": "MIT",
+  "dependencies": {
+    "@heroicons/react": "^1.0.6"
+  }
+}
