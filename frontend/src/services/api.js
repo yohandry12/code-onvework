@@ -251,6 +251,16 @@ export const apiService = {
       const query = new URLSearchParams(params).toString();
       return apiClient.get(`/recommendations/admin?${query}`);
     },
+    getAllCandidatesRecommendations: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return apiClient.get(`/candidates/recommendations?${query}`);
+    },
+    getCandidateRecommendations: (candidateId, params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return apiClient.get(
+        `/candidates/${candidateId}/recommendations?${query}`
+      );
+    },
   },
 
   settings: {

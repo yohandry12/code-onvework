@@ -38,6 +38,7 @@ import SettingsPage from "./pages/SettingsPage";
 import ManageUsers from "./pages/admin/ManageUsers";
 import AdminRecommendations from "./pages/Admin/AdminRecommendations";
 import AdminUserDetails from "./pages/Admin/AdminUserDetails";
+import RecommendationsList from "./pages/RecommendationsList";
 import Unauthorized from "./pages/Unauthorized";
 // --- LAYOUTS ET COMPOSANTS ---
 import Header from "./components/Layout/Header";
@@ -107,6 +108,7 @@ function AppRoutes() {
           <Route path="/jobs" element={<Jobs />} />
           <Route path="/jobs/:id" element={<JobDetail />} />
           <Route path="/talents" element={<AllTalents />} />
+          <Route path="/recommendations" element={<RecommendationsList />} />
 
           {/* Routes protégées pour Clients & Candidats */}
           <Route
