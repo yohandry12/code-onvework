@@ -765,7 +765,7 @@ module.exports = function (io) {
     }
   );
 
-  // --- GET /api/jobs/my-jobs/history - Récupère l'historique des missions terminées d'un client ---
+  // --- GET /api/jobs/my-jobs/history - Récupère l'historique des missions terminées ou expirées d'un client ---
   router.get(
     "/my-jobs/history",
     authenticateToken,
@@ -779,41 +779,110 @@ module.exports = function (io) {
         const limitNum = parseInt(limit, 10);
         const offset = (pageNum - 1) * limitNum;
 
-        // Le filtre pour la requête Sequelize (équivalent de votre `filter` Mongoose)
-        const whereClause = {
-          clientId: clientId,
-          status: "filled", // On ne récupère que les missions terminées
-        };
-
-        // `findAndCountAll` est l'équivalent optimisé de `find()` + `countDocuments()`
-        const { count, rows: jobs } = await Job.findAndCountAll({
-          where: whereClause,
-          order: [["updatedAt", "DESC"]], // Tri par date de mise à jour (Sequelize)
-          limit: limitNum,
-          offset: offset,
-          // Équivalent de `.select()` : on ne choisit que les colonnes nécessaires
+        // Récupérer toutes les missions pour calculer les expirées
+        const allJobs = await Job.findAll({
+          where: { clientId },
           attributes: [
-            "id", // Toujours inclure l'id
+            "id",
             "title",
             "status",
             "createdAt",
             "updatedAt",
             "applicationCount",
-            "budgetMin", // Budget est maintenant séparé en min/max/currency
+            "budgetMin",
             "budgetMax",
             "budgetCurrency",
+            "durationValue",
+            "durationUnit",
           ],
+          order: [["updatedAt", "DESC"]],
+          raw: true,
         });
 
-        const totalPages = Math.ceil(count / limitNum);
+        // Fonction pour vérifier si une mission a expiré
+        const calculateJobStatus = (job) => {
+          // Si statut est "filled", c'est terminé
+          if (job.status === "filled") {
+            return {
+              status: "filled",
+              displayStatus: "Terminée",
+              isExpired: false,
+            };
+          }
+
+          // Vérifier si la mission a expiré
+          if (
+            job.durationValue &&
+            job.durationUnit &&
+            job.durationUnit !== "projet"
+          ) {
+            const createdDate = new Date(job.createdAt);
+            let expirationDate = new Date(createdDate);
+
+            // Calculer la date d'expiration selon la durée
+            switch (job.durationUnit) {
+              case "heures":
+                expirationDate.setHours(
+                  createdDate.getHours() + job.durationValue
+                );
+                break;
+              case "jours":
+                expirationDate.setDate(
+                  createdDate.getDate() + job.durationValue
+                );
+                break;
+              case "semaines":
+                expirationDate.setDate(
+                  createdDate.getDate() + job.durationValue * 7
+                );
+                break;
+              case "mois":
+                expirationDate.setMonth(
+                  createdDate.getMonth() + job.durationValue
+                );
+                break;
+            }
+
+            // Vérifier si la mission est expirée
+            if (new Date() > expirationDate) {
+              return {
+                status: "expired",
+                displayStatus: "Expirée",
+                isExpired: true,
+              };
+            }
+          }
+
+          // Retourner null si ce n'est ni terminée ni expirée (pour filtrer)
+          return null;
+        };
+
+        // Enrichir et filtrer : garder UNIQUEMENT terminées et expirées
+        const filteredJobs = allJobs
+          .map((job) => {
+            const statusInfo = calculateJobStatus(job);
+            if (!statusInfo) return null; // Filtrer les missions qui ne sont ni terminées ni expirées
+
+            return {
+              ...job,
+              displayStatus: statusInfo.displayStatus,
+              hasExpired: statusInfo.isExpired,
+            };
+          })
+          .filter((job) => job !== null);
+
+        // Appliquer la pagination sur les missions filtrées
+        const paginatedJobs = filteredJobs.slice(offset, offset + limitNum);
+        const totalResults = filteredJobs.length;
+        const totalPages = Math.ceil(totalResults / limitNum);
 
         res.json({
-          success: true, // Bonne pratique d'inclure un statut de succès
-          jobs,
+          success: true,
+          jobs: paginatedJobs,
           pagination: {
             currentPage: pageNum,
             totalPages,
-            totalResults: count, // Renommé `totalJobs` en `totalResults` pour la cohérence
+            totalResults,
           },
         });
       } catch (error) {
@@ -938,8 +1007,17 @@ module.exports = function (io) {
       const t = await sequelize.transaction();
       try {
         const { jobId } = req.params;
-        const { employeeId, message } = req.body;
+        const { employeeId, message, rating } = req.body;
         const employerId = req.user.id;
+
+        // Validation de la note (1-5 étoiles)
+        if (!rating || rating < 1 || rating > 5 || !Number.isInteger(rating)) {
+          await t.rollback();
+          return res.status(400).json({
+            success: false,
+            error: "La note doit être un nombre entier entre 1 et 5.",
+          });
+        }
 
         // 1. & 2. Vérifier job et permissions
         const job = await Job.findByPk(jobId, { transaction: t });
@@ -970,6 +1048,7 @@ module.exports = function (io) {
             employeeId: employeeId,
             employerId: employerId,
             message,
+            rating: parseInt(rating, 10),
           },
           { transaction: t }
         );

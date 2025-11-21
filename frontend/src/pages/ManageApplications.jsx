@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import JobsHeader from "../components/UI/JobsHeader";
+import StarRating from "../components/UI/StarRating";
 import { apiService } from "../services/api";
 import {
   Search,
@@ -95,6 +96,7 @@ export default function ManageApplications() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [showRecommendation, setShowRecommendation] = useState(null);
   const [recommendationMessage, setRecommendationMessage] = useState("");
+  const [recommendationRating, setRecommendationRating] = useState(0);
 
   // --- NOUVEL ÉTAT POUR LES STATISTIQUES ---
   const [headerStats, setHeaderStats] = useState({
@@ -216,12 +218,24 @@ export default function ManageApplications() {
   };
   const handleRecommend = async (jobId, employeeId) => {
     try {
+      // Validation : la note doit être entre 1 et 5
+      if (
+        !recommendationRating ||
+        recommendationRating < 1 ||
+        recommendationRating > 5
+      ) {
+        alert("Veuillez sélectionner une note entre 1 et 5 étoiles");
+        return;
+      }
+
       await apiService.post(`/jobs/${jobId}/recommend`, {
         employeeId: String(employeeId),
         message: recommendationMessage,
+        rating: recommendationRating,
       });
       // Vider et fermer la modale
       setRecommendationMessage("");
+      setRecommendationRating(0);
       setShowRecommendation(null);
       // Rafraîchir les données avec la bonne fonction
       fetchApplications(currentPage, searchTerm, filterStatus);
@@ -700,31 +714,62 @@ export default function ManageApplications() {
       {showRecommendation && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-rose-50 to-blue-50">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-gray-900">
-                  Recommandation
+                <h2 className="text-xl font-bold bg-gradient-to-r from-rose-600 to-blue-600 bg-clip-text text-transparent">
+                  Évaluer et recommander
                 </h2>
                 <button
-                  onClick={() => setShowRecommendation(null)}
+                  onClick={() => {
+                    setShowRecommendation(null);
+                    setRecommendationMessage("");
+                    setRecommendationRating(0);
+                  }}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
                 >
                   <X className="w-6 h-6" />
                 </button>
               </div>
             </div>
-            <div className="p-6">
-              <textarea
-                value={recommendationMessage}
-                onChange={(e) => setRecommendationMessage(e.target.value)}
-                placeholder="Décrivez les qualités du candidat..."
-                className="w-full border border-gray-300 rounded-lg p-4 min-h-[150px] focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="p-6 space-y-6">
+              {/* Section Notation */}
+              <div className="space-y-3">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Votre évaluation
+                </label>
+                <div className="bg-gradient-to-r from-yellow-50 to-amber-50 p-4 rounded-lg border border-yellow-100">
+                  <StarRating
+                    rating={recommendationRating}
+                    onRatingChange={setRecommendationRating}
+                    size={7}
+                  />
+                </div>
+              </div>
+
+              {/* Section Message */}
+              <div className="space-y-3">
+                <label className="block text-sm font-semibold text-gray-700">
+                  Votre avis sur le candidat
+                </label>
+                <textarea
+                  value={recommendationMessage}
+                  onChange={(e) => setRecommendationMessage(e.target.value)}
+                  placeholder="Décrivez les qualités du candidat, ses points forts, son implication..."
+                  className="w-full border border-gray-300 rounded-lg p-4 min-h-[150px] focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+                <p className="text-xs text-gray-500">
+                  {recommendationMessage.length}/500 caractères
+                </p>
+              </div>
             </div>
-            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
               <button
-                onClick={() => setShowRecommendation(null)}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium"
+                onClick={() => {
+                  setShowRecommendation(null);
+                  setRecommendationMessage("");
+                  setRecommendationRating(0);
+                }}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
               >
                 Annuler
               </button>
@@ -735,8 +780,10 @@ export default function ManageApplications() {
                     showRecommendation.employeeId
                   );
                 }}
-                disabled={!recommendationMessage.trim()}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                disabled={
+                  !recommendationMessage.trim() || !recommendationRating
+                }
+                className="px-6 py-2 bg-gradient-to-r from-rose-600 to-blue-600 text-white rounded-lg hover:from-rose-700 hover:to-blue-700 font-medium disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed transition-all"
               >
                 Envoyer
               </button>

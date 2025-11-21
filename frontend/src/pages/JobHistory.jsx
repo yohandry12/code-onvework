@@ -47,7 +47,16 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 };
 
 // Helper pour afficher des badges de statut colorés
-const StatusBadge = ({ status }) => {
+const StatusBadge = ({ status, hasExpired }) => {
+  // Si la mission a expiré, afficher "Expirée"
+  if (hasExpired) {
+    return (
+      <span className="px-3 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">
+        Expirée
+      </span>
+    );
+  }
+
   const statusStyles = {
     published: "bg-blue-100 text-blue-800",
     filled: "bg-green-100 text-green-800",
@@ -168,7 +177,10 @@ export default function JobHistory() {
                       {new Date(job.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <StatusBadge status={job.status} />
+                      <StatusBadge
+                        status={job.status}
+                        hasExpired={job.hasExpired}
+                      />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
                       {job.applicationCount}

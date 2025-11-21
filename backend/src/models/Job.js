@@ -70,7 +70,7 @@ module.exports = (sequelize) => {
         allowNull: false,
       },
       budgetCurrency: {
-        type: DataTypes.STRING(3),
+        type: DataTypes.STRING(4),
         defaultValue: "EUR",
         field: "budget_currency",
       },
