@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { apiService } from "../services/api";
 import { useDebounce } from "../hooks/useDebounce";
 import ApplicationForm from "../pages/ApplicationForm";
+import Toast from "../components/UI/Toast";
 import {
   MagnifyingGlassIcon,
   BriefcaseIcon,
@@ -279,6 +280,7 @@ const Jobs = () => {
   const [error, setError] = useState("");
 
   const [activeJobToApply, setActiveJobToApply] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const jobCategories = [
     { label: "Développement", value: "development" },
@@ -308,7 +310,6 @@ const Jobs = () => {
           if (!allFilters[key]) delete allFilters[key];
         });
         const response = await apiService.jobs.getAll(allFilters);
-
         if (response.success) {
           setJobs((prev) =>
             isNewSearch ? response.jobs : [...prev, ...response.jobs]
@@ -422,9 +423,20 @@ const Jobs = () => {
           client={activeJobToApply.client}
           onClose={() => setActiveJobToApply(null)}
           onSubmitted={() => {
+            // Fermer le formulaire
             setActiveJobToApply(null);
-            alert("Candidature envoyée !");
+            // Afficher un toast de succès en haut à gauche
+            setToast({ type: "success", message: "Candidature envoyée !" });
           }}
+        />
+      )}
+
+      {/* Toast global (top-left) */}
+      {toast && (
+        <Toast
+          toast={toast}
+          onClose={() => setToast(null)}
+          duration={4000}
         />
       )}
     </div>
