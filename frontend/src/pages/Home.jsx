@@ -247,19 +247,19 @@ const Home = () => {
       {/* HERO avec fond image et overlay beige apaisant */}
       <section
         className="relative flex flex-col items-center justify-center text-center bg-cover bg-center bg-no-repeat bg-fixed min-h-[85vh] px-6 py-24"
-        style={{ backgroundImage: `url(${homeIllustration})` }}
+        style={{ backgroundImage: `linear-gradient(rgb(15 15 15 / 50%), rgb(0 0 0 / 50%)), url(${homeIllustration})` }}
       >
         {/* Overlay doux */}
         {/* <div className="absolute inset-0 bg-white/70"></div> */}
 
         {/* Contenu */}
         <div className="relative z-10 max-w-2xl mx-auto">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6 text-gray-900">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6 text-gray-200">
             Suivez vos <br className="sm:hidden" />{" "}
             <span className="text-amber-600">rêves professionnels</span>
           </h1>
 
-          <p className="text-base md:text-lg text-gray-700 max-w-2xl mx-auto mb-8">
+          <p className="text-base md:text-lg text-gray-200 max-w-2xl mx-auto mb-8">
             Trouvez la mission idéale dans un cadre de confiance et de
             bienveillance.
           </p>
