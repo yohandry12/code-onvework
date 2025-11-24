@@ -40,6 +40,7 @@ import AdminRecommendations from "./pages/Admin/AdminRecommendations";
 import AdminUserDetails from "./pages/Admin/AdminUserDetails";
 import RecommendationsList from "./pages/RecommendationsList";
 import Unauthorized from "./pages/Unauthorized";
+import ApiDocumentation from "./pages/ApiDocumentation";
 // --- LAYOUTS ET COMPOSANTS ---
 import Header from "./components/Layout/Header";
 import Footer from "./components/Layout/Footer";
@@ -109,6 +110,7 @@ function AppRoutes() {
           <Route path="/jobs/:id" element={<JobDetail />} />
           <Route path="/talents" element={<AllTalents />} />
           <Route path="/recommendations" element={<RecommendationsList />} />
+          <Route path="/docs" element={<ApiDocumentation />} />
 
           {/* Routes protégées pour Clients & Candidats */}
           <Route

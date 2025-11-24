@@ -5,11 +5,18 @@ const {
   Job,
   User,
   ClientProfile,
+  CandidateProfile,
   sequelize,
 } = require("../models"); // Importer les modèles nécessaires
 const { authenticateToken } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
 const activitiesRouter = require("./activities");
+const {
+  sendCandidateAcceptedEmail,
+  sendMissionCompletedByCandidateEmail,
+  sendMissionApprovedCandidateEmail,
+  sendMissionApprovedClientEmail,
+} = require("../services/mailService");
 
 module.exports = function (io) {
   const router = express.Router();
@@ -73,6 +80,73 @@ module.exports = function (io) {
       }
 
       await t.commit();
+
+      // --- ENVOI DES EMAILS SELON LE STATUT ---
+      try {
+        if (status === "accepted") {
+          // Récupérer les infos du candidat et du job
+          const candidate = await User.findByPk(application.candidateId, {
+            include: [{ model: CandidateProfile, as: "profile" }],
+          });
+
+          if (candidate && candidate.email) {
+            // Calculer la durée en format lisible
+            const duration = job.durationValue
+              ? `${job.durationValue} ${
+                  job.durationUnit === "days"
+                    ? "jour(s)"
+                    : job.durationUnit === "weeks"
+                    ? "semaine(s)"
+                    : "mois"
+                }`
+              : "Durée non spécifiée";
+
+            await sendCandidateAcceptedEmail(
+              candidate.email,
+              candidate.profile?.firstName || candidate.firstName || "Candidat",
+              job.title,
+              clientUser.profile?.firstName || clientUser.firstName || "Client",
+              duration,
+              job.createdAt // Utiliser la date de création comme date de début
+            );
+          }
+        } else if (status === "completed") {
+          // Envoyer les emails de validation de mission complétée
+          const candidate = await User.findByPk(application.candidateId, {
+            include: [{ model: CandidateProfile, as: "profile" }],
+          });
+          const client = await User.findByPk(job.clientId, {
+            include: [{ model: ClientProfile, as: "profile" }],
+          });
+
+          // Email au candidat
+          if (candidate && candidate.email) {
+            await sendMissionApprovedCandidateEmail(
+              candidate.email,
+              candidate.profile?.firstName || candidate.firstName || "Candidat",
+              job.title,
+              client?.profile?.firstName || client?.firstName || "Client",
+              new Date()
+            );
+          }
+
+          // Email au client
+          if (client && client.email) {
+            await sendMissionApprovedClientEmail(
+              client.email,
+              client.profile?.firstName || client.firstName || "Client",
+              candidate?.profile?.firstName ||
+                candidate?.firstName ||
+                "Candidat",
+              job.title,
+              new Date()
+            );
+          }
+        }
+      } catch (emailError) {
+        logger.error("Erreur lors de l'envoi des emails:", emailError);
+        // Ne pas bloquer la réponse si l'email échoue
+      }
 
       // --- LOGIQUE DE NOTIFICATION (inchangée) ---
       const candidateId = application.candidateId.toString();
@@ -241,6 +315,117 @@ module.exports = function (io) {
     } catch (err) {
       logger.error("Erreur lors du retrait de la candidature:", err);
       res.status(500).json({ success: false, error: "Erreur serveur." });
+    }
+  });
+
+  // --- POST /api/applications/:id/mark-completed (Candidat marque la mission comme terminée) ---
+  router.post("/:id/mark-completed", authenticateToken, async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+      const { id } = req.params;
+      const candidateUser = req.user;
+
+      // 1. Trouver la candidature
+      const application = await Application.findByPk(id);
+      if (!application) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Candidature introuvable" });
+      }
+
+      // 2. Vérifier que c'est bien le candidat qui effectue l'action
+      if (application.candidateId !== candidateUser.id) {
+        return res
+          .status(403)
+          .json({
+            success: false,
+            error: "Vous n'êtes pas autorisé à effectuer cette action.",
+          });
+      }
+
+      // 3. Vérifier que la candidature est acceptée
+      if (application.status !== "accepted") {
+        return res
+          .status(400)
+          .json({
+            success: false,
+            error:
+              "Seules les missions acceptées peuvent être marquées comme terminées.",
+          });
+      }
+
+      // 4. Mettre à jour le statut et ajouter la date de complétion par le candidat
+      application.status = "completed_by_candidate";
+      application.completedByCandidate_at = new Date();
+
+      // Ajouter une entrée à l'historique
+      const historyEntry = {
+        event: "completed_by_candidate",
+        user: candidateUser.id,
+        details: "Le candidat a marqué la mission comme terminée.",
+        timestamp: new Date(),
+      };
+      application.history = [...(application.history || []), historyEntry];
+
+      await application.save({ transaction: t });
+      await t.commit();
+
+      // --- ENVOI D'EMAIL AU CLIENT ---
+      try {
+        const client = await User.findByPk(job.clientId, {
+          include: [{ model: ClientProfile, as: "profile" }],
+        });
+
+        if (client && client.email) {
+          await sendMissionCompletedByCandidateEmail(
+            client.email,
+            client.profile?.firstName || client.firstName || "Client",
+            `${candidateUser.profile?.firstName || ""} ${
+              candidateUser.profile?.lastName || ""
+            }`.trim() || "Candidat",
+            job.title,
+            application.completedByCandidate_at
+          );
+        }
+      } catch (emailError) {
+        logger.error(
+          "Erreur lors de l'envoi de l'email de fin de mission:",
+          emailError
+        );
+        // Ne pas bloquer la réponse si l'email échoue
+      }
+
+      // 5. Notifier le client en temps réel via Socket.IO
+      const job = await application.getJob();
+      if (job && job.clientId) {
+        io.to(`user-${job.clientId}`).emit("mission-completed-by-candidate", {
+          jobId: job.id,
+          jobTitle: job.title,
+          applicationId: application.id,
+          candidateName: `${candidateUser.profile?.firstName || ""} ${
+            candidateUser.profile?.lastName || ""
+          }`.trim(),
+          completionDate: application.completedByCandidate_at,
+        });
+      }
+
+      logger.info(
+        `Candidat ${candidateUser.id} a marqué la mission ${application.id} comme terminée`
+      );
+
+      res.json({
+        success: true,
+        message:
+          "Mission marquée comme terminée. En attente de la validation du client.",
+        application,
+      });
+    } catch (err) {
+      await t.rollback();
+      logger.error(
+        "Erreur lors du marquage de la mission comme terminée:",
+        err
+      );
+      res.status(500).json({ success: false, error: "Erreur serveur" });
     }
   });
 

@@ -4,6 +4,7 @@ import { apiService } from "../services/api";
 import ApplicationStats from "../components/ApplicationStats";
 import ApplicationCard from "../components/ApplicationCard";
 import WithdrawConfirmModal from "../components/WithdrawConfirmModal";
+import MissionCompletionModal from "../components/UI/MissionCompletionModal";
 import EmptyState from "../components/EmptyState";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 
@@ -17,6 +18,11 @@ const MyApplications = () => {
     jobTitle: "",
   });
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [completionModal, setCompletionModal] = useState({
+    isOpen: false,
+    applicationId: null,
+    jobTitle: "",
+  });
 
   // Charger les candidatures au montage
   useEffect(() => {
@@ -161,6 +167,13 @@ const MyApplications = () => {
                         onWithdraw={() =>
                           handleOpenWithdrawModal(app.id, app.job?.title || "")
                         }
+                        onComplete={() =>
+                          setCompletionModal({
+                            isOpen: true,
+                            applicationId: app.id,
+                            jobTitle: app.job?.title || "",
+                          })
+                        }
                       />
                     ))}
                   </AnimatePresence>
@@ -179,6 +192,39 @@ const MyApplications = () => {
         onCancel={() =>
           setWithdrawModal({ isOpen: false, applicationId: null, jobTitle: "" })
         }
+      />
+
+      {/* Mission Completion Modal */}
+      <MissionCompletionModal
+        isOpen={completionModal.isOpen}
+        onClose={() =>
+          setCompletionModal({
+            isOpen: false,
+            applicationId: null,
+            jobTitle: "",
+          })
+        }
+        applicationId={completionModal.applicationId}
+        jobTitle={completionModal.jobTitle}
+        onSuccess={() => {
+          // Rafraîchir les candidatures
+          const fetchApplications = async () => {
+            try {
+              const response = await apiService.applications.getByUser();
+              if (response.success && Array.isArray(response.data)) {
+                setApplications(response.data);
+              }
+            } catch (error) {
+              console.error("Erreur lors du rechargement:", error);
+            }
+          };
+          fetchApplications();
+          setCompletionModal({
+            isOpen: false,
+            applicationId: null,
+            jobTitle: "",
+          });
+        }}
       />
     </motion.div>
   );

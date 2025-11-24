@@ -28,6 +28,7 @@ const settingsRoutes = require("./routes/settings");
 const activitiesRoutesFactory = require("./routes/activities");
 const adminJobRoutes = require("./routes/adminJob");
 const candidatesRoutes = require("./routes/candidates");
+const citiesRoutes = require("./routes/cities");
 const startNotifyUpcomingDeadlines = require("./tasks/notifyUpcomingDeadlines");
 const aiRoutes = require("./routes/ai");
 // --- 🌍 CORS ---
@@ -100,6 +101,7 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/activities", activitiesRoutesFactory(io));
 app.use("/api/admin/jobs", adminJobRoutes(io));
 app.use("/api/candidates", candidatesRoutes);
+app.use("/api/cities", citiesRoutes);
 app.use("/api/ai", aiRoutes);
 // Sert les fichiers statiques du dossier 'uploads'
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

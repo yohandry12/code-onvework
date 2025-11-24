@@ -112,6 +112,7 @@ module.exports = (sequelize) => {
   class CandidateProfile extends Model {}
   CandidateProfile.init(
     {
+      cityId: { type: DataTypes.INTEGER, field: "city_id", allowNull: true },
       userId: { type: DataTypes.INTEGER, primaryKey: true, field: "user_id" },
       firstName: {
         type: DataTypes.STRING,
@@ -254,6 +255,16 @@ module.exports = (sequelize) => {
     onDelete: "CASCADE",
   });
   CandidateProfile.belongsTo(User, { foreignKey: "userId" });
+
+  // Association vers la table `cities` (sera liée si le modèle City est défini)
+  CandidateProfile.associate = function (models) {
+    if (models.City) {
+      CandidateProfile.belongsTo(models.City, {
+        foreignKey: "city_id",
+        as: "city",
+      });
+    }
+  };
 
   // Un utilisateur a UN profil client
   User.hasOne(ClientProfile, {

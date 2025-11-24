@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import JobsHeader from "../components/UI/JobsHeader";
 import StarRating from "../components/UI/StarRating";
+import MissionApprovalModal from "../components/UI/MissionApprovalModal";
 import { apiService } from "../services/api";
 import {
   Search,
@@ -97,6 +98,10 @@ export default function ManageApplications() {
   const [showRecommendation, setShowRecommendation] = useState(null);
   const [recommendationMessage, setRecommendationMessage] = useState("");
   const [recommendationRating, setRecommendationRating] = useState(0);
+  const [approvalModal, setApprovalModal] = useState({
+    isOpen: false,
+    application: null,
+  });
 
   // --- NOUVEL ÉTAT POUR LES STATISTIQUES ---
   const [headerStats, setHeaderStats] = useState({
@@ -176,11 +181,24 @@ export default function ManageApplications() {
     }
   };
 
-  const handleMarkAsCompleted = async (jobId, candidateId) => {
+  const handleMarkAsCompleted = async (
+    jobId,
+    candidateId,
+    applicationId,
+    jobTitle,
+    candidateName
+  ) => {
     try {
-      await apiService.jobs.updateStatus(jobId, "filled");
-      fetchApplications(currentPage, searchTerm, filterStatus);
-      setShowRecommendation({ jobId, employeeId: candidateId });
+      // Ouvrir la modal d'approbation au lieu de la recommandation
+      setApprovalModal({
+        isOpen: true,
+        application: {
+          id: applicationId,
+          jobId: jobId,
+          jobTitle: jobTitle,
+          candidateName: candidateName,
+        },
+      });
     } catch (err) {
       console.error("Erreur:", err);
     }
@@ -323,7 +341,6 @@ export default function ManageApplications() {
               </select>
             </div>
           </div>
-
           <div className="hidden md:grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 border-b text-xs font-medium text-gray-500 uppercase">
             <div className="col-span-3">Candidat</div>
             <div className="col-span-3">Mission Concernée</div>
@@ -331,7 +348,6 @@ export default function ManageApplications() {
             <div className="col-span-2">Profession</div>
             <div className="col-span-2">Statut</div>
           </div>
-
           <div className="divide-y divide-gray-200">
             {/* --- CORRECTION 3 : Utiliser une SEULE boucle .map --- */}
             {applications
@@ -481,10 +497,18 @@ export default function ManageApplications() {
                           </button>
                           <button
                             onClick={() =>
-                              handleMarkAsCompleted(job.id, candidate.id)
+                              handleMarkAsCompleted(
+                                job.id,
+                                candidate.id,
+                                app.id,
+                                job.title,
+                                `${candidate.profile?.firstName || ""} ${
+                                  candidate.profile?.lastName || ""
+                                }`.trim() || "Candidat"
+                              )
                             }
                             disabled={isMissionFinished}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-gray-800 text-sm font-medium"
+                            className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 text-sm font-medium"
                           >
                             <CheckCircleLucide className="w-4 h-4" /> Terminer
                           </button>
@@ -494,8 +518,7 @@ export default function ManageApplications() {
                   </div>
                 );
               })}
-          </div>
-
+          </div>{" "}
           {applications.filter((app) => {
             if (filterStatus === "all" && app.status === "withdrawn") {
               return false;
@@ -510,7 +533,6 @@ export default function ManageApplications() {
                   : "Aucune candidature trouvée."}
               </div>
             )}
-
           <div className="p-6 border-t border-gray-200">
             <Pagination
               currentPage={currentPage}
@@ -791,6 +813,31 @@ export default function ManageApplications() {
           </div>
         </div>
       )}
+
+      {/* Modal d'approbation de mission */}
+      <MissionApprovalModal
+        isOpen={approvalModal.isOpen}
+        onClose={() => setApprovalModal({ isOpen: false, application: null })}
+        applicationId={approvalModal.application?.id}
+        jobId={approvalModal.application?.jobId}
+        jobTitle={approvalModal.application?.jobTitle}
+        candidateName={approvalModal.application?.candidateName}
+        onSuccess={() => {
+          // Récupérer la candidature pour avoir l'ID du job et du candidat
+          const app = applications.find(
+            (a) => a.id === approvalModal.application?.id
+          );
+          if (app) {
+            // Ouvrir la modal de recommandation après approbation
+            setShowRecommendation({
+              jobId: app.job.id,
+              employeeId: app.candidate.id,
+            });
+          }
+          fetchApplications(currentPage, searchTerm, filterStatus);
+          setApprovalModal({ isOpen: false, application: null });
+        }}
+      />
     </div>
   );
 }

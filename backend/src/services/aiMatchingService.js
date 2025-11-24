@@ -42,12 +42,17 @@ ${JSON.stringify(simplifiedJobs)}
 Ta tâche est de sélectionner les 3 missions les plus pertinentes pour ce candidat.
 Pour chaque mission sélectionnée, fournis une brève explication (une seule phrase) sur la raison de la correspondance.
 
-Retourne ta réponse UNIQUEMENT au format JSON sous la forme d'un tableau d'objets, où chaque objet a les clés "jobId" et "reason".
-Exemple de format de sortie :
-[
-    { "jobId": 42, "reason": "Correspond parfaitement à vos compétences en React et à votre intérêt pour le e-commerce." },
-    { "jobId": 15, "reason": "Votre expérience en design UI/UX serait un atout majeur pour ce projet mobile." }
-]
+IMPORTANT : Retourne UNIQUEMENT un objet JSON valide avec une clé "recommendations" contenant un tableau.
+Format EXACT attendu :
+{
+  "recommendations": [
+    { "jobId": 42, "reason": "Correspond parfaitement à vos compétences en React." },
+    { "jobId": 15, "reason": "Votre expérience en design UI/UX serait un atout majeur." },
+    { "jobId": 8, "reason": "Projet e-commerce aligné avec votre profil." }
+  ]
+}
+
+NE PAS retourner plusieurs objets séparés. UN SEUL objet JSON avec un tableau dedans.
     `;
 
     completion = await deepseek.chat.completions.create({
@@ -56,11 +61,53 @@ Exemple de format de sortie :
       response_format: { type: "json_object" },
     });
 
-    // ✅ CORRECTION ICI : Le contenu est déjà une chaîne JSON
-    const rawContentString = completion.choices[0].message.content;
+    const rawContentString = completion.choices[0].message.content.trim();
 
-    // On parse le JSON une seule fois
-    const parsedContent = JSON.parse(rawContentString);
+    let parsedContent;
+
+    try {
+      // Tentative de parsing normal
+      parsedContent = JSON.parse(rawContentString);
+    } catch (parseError) {
+      // ✅ CAS SPÉCIAL : Plusieurs objets JSON séparés (comme dans votre erreur)
+      logger.warn(
+        "Parsing JSON échoué, tentative de récupération des objets multiples"
+      );
+
+      // On essaie d'extraire tous les objets JSON individuels
+      const jsonObjects = [];
+      const lines = rawContentString.split("\n");
+      let currentObject = "";
+      let braceCount = 0;
+
+      for (const line of lines) {
+        currentObject += line;
+
+        // Compter les accolades pour détecter quand un objet est complet
+        for (const char of line) {
+          if (char === "{") braceCount++;
+          if (char === "}") braceCount--;
+        }
+
+        // Si on a un objet complet
+        if (braceCount === 0 && currentObject.trim()) {
+          try {
+            const obj = JSON.parse(currentObject);
+            jsonObjects.push(obj);
+            currentObject = "";
+          } catch (e) {
+            // Objet incomplet, on continue
+          }
+        }
+      }
+
+      // Si on a réussi à extraire des objets, on les retourne comme un tableau
+      if (jsonObjects.length > 0) {
+        parsedContent = { recommendations: jsonObjects };
+      } else {
+        throw new Error("Impossible de parser la réponse JSON");
+      }
+    }
 
     // Maintenant on gère les différents formats possibles
     let result;
@@ -103,6 +150,12 @@ Exemple de format de sortie :
 
     // Validation finale : s'assurer que chaque élément a bien jobId et reason
     result = result.filter((item) => item.jobId && item.reason);
+
+    if (result.length === 0) {
+      logger.warn(
+        "Aucune recommandation valide trouvée dans la réponse de l'IA"
+      );
+    }
 
     return result;
   } catch (error) {

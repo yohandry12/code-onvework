@@ -30,6 +30,8 @@ db.Report = require("./Report")(sequelize);
 db.Recommendation = require("./Recommendation")(sequelize);
 db.UserSettings = require("./UserSettings")(sequelize);
 db.Activity = require("./Activity")(sequelize);
+// Cities
+db.City = require("./City")(sequelize);
 
 db.User.hasOne(db.UserSettings, {
   foreignKey: "userId",
