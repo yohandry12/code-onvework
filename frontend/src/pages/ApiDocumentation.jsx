@@ -176,7 +176,6 @@ const ApiDocumentation = () => {
                       )}
 
                       <div className="grid lg:grid-cols-2 gap-6">
-                        {/* Body Request */}
                         {endpoint.body && (
                           <div className="flex flex-col">
                             <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">

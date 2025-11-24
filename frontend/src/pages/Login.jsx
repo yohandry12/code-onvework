@@ -1,22 +1,24 @@
+// --- START OF FILE Login.jsx ---
+
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import axios from "axios";
 import { motion } from "framer-motion";
+// 1. IMPORT : On remplace axios par apiService
+// Vérifiez si le chemin est "../api" ou "../services/api" selon votre dossier
+import { apiService } from "../services/api";
 
 const Login = () => {
-  // État du formulaire
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
-  // État pour l'erreur de l'API et le chargement
   const [apiError, setApiError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { login } = useAuth(); // La fonction `login` de notre AuthContext
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -25,7 +27,12 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError("");
-    if (!formData.email || !formData.password) {
+
+    // On nettoie les espaces éventuels (fréquent sur mobile)
+    const emailClean = formData.email.trim();
+    const passwordClean = formData.password;
+
+    if (!emailClean || !passwordClean) {
       setApiError("L'email et le mot de passe sont requis.");
       return;
     }
@@ -33,20 +40,26 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const API_URL = "http://localhost:4000/api/auth/login"; // Assurez-vous que le port est correct (3000 dans votre server.js)
-      const response = await axios.post(API_URL, formData);
+      // 2. CORRECTION : On utilise apiService au lieu de axios + localhost
+      // apiService utilise automatiquement l'IP configurée dans api.js / .env
+      const response = await apiService.auth.login(emailClean, passwordClean);
 
-      if (response.data.success) {
-        // Si la connexion réussit, le contexte gère la redirection
-        login(response.data.user, response.data.token);
-        navigate("/dashboard");
+      // Note : L'intercepteur dans api.js renvoie déjà response.data
+      // Donc 'response' contient directement l'objet { success: true, user: ..., token: ... }
+      if (response.success) {
+        login(response.user, response.token);
+        // La navigation est gérée dans login(), mais on peut laisser ça ici par sécurité
+        // navigate("/dashboard");
       }
     } catch (err) {
-      // Afficher l'erreur renvoyée par l'API
-      setApiError(
+      console.error("Erreur Login:", err);
+      // Gestion d'erreur améliorée
+      const message =
         err.response?.data?.error ||
-          "Une erreur est survenue lors de la connexion."
-      );
+        err.message ||
+        "Une erreur est survenue lors de la connexion.";
+
+      setApiError(message);
     } finally {
       setLoading(false);
     }
@@ -60,7 +73,6 @@ const Login = () => {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md bg-white/80 backdrop-blur-sm shadow-2xl rounded-3xl border border-white/20 overflow-hidden"
       >
-        {/* Header avec gradient */}
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-8 text-center">
           <motion.h2
             initial={{ opacity: 0 }}
@@ -81,10 +93,8 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Formulaire */}
         <div className="px-8 py-10">
           <form onSubmit={handleSubmit} noValidate className="space-y-6">
-            {/* Email */}
             <div className="space-y-1">
               <input
                 id="email"
@@ -99,7 +109,6 @@ const Login = () => {
               />
             </div>
 
-            {/* Mot de passe */}
             <div className="space-y-1">
               <input
                 id="password"
@@ -114,7 +123,6 @@ const Login = () => {
               />
             </div>
 
-            {/* Erreur API */}
             {apiError && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -136,7 +144,6 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Bouton de soumission */}
             <motion.button
               type="submit"
               disabled={loading}

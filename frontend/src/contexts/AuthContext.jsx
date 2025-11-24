@@ -6,8 +6,10 @@ import React, {
   useMemo,
   useCallback,
 } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+// 1. IMPORT IMPORTANT : On importe apiService et apiClient depuis votre fichier api.js
+// Assurez-vous que le chemin "../api" est correct selon votre structure de dossiers
+import { apiService, apiClient } from "../services/api";
 
 const LoadingSpinner = () => (
   <div
@@ -31,64 +33,67 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // La fonction logout est mise en mémoire avec useCallback.
-  // Elle ne sera recréée que si `navigate` change (ce qui n'arrive jamais).
   const logout = useCallback(() => {
-    localStorage.removeItem("overwork_token");
+    // Nettoyage via apiService
+    apiService.clearAuthToken();
     localStorage.removeItem("user");
-    delete axios.defaults.headers.common["Authorization"];
     setUser(null);
     navigate("/login");
   }, [navigate]);
 
-  // NOUVELLE FONCTION POUR RAFRAÎCHIR L'UTILISATEUR
   const refreshUser = useCallback(async () => {
     try {
-      const response = await axios.get("http://localhost:4000/api/auth/me");
-      if (response.data.success) {
-        setUser(response.data.user);
-        // Mettre à jour aussi le localStorage pour la persistance
-        localStorage.setItem("user", JSON.stringify(response.data.user));
+      // 2. CORRECTION : On utilise apiService.auth.me() au lieu de l'URL en dur
+      // Cela utilisera automatiquement l'IP définie dans le .env
+      const response = await apiService.auth.me();
+
+      if (response.success) {
+        setUser(response.user);
+        localStorage.setItem("user", JSON.stringify(response.user));
       } else {
         logout();
       }
     } catch (error) {
       console.error("Impossible de rafraîchir la session.", error);
-      logout();
+      // Optionnel : ne pas déconnecter immédiatement en cas d'erreur réseau temporaire
+      // logout();
     }
   }, [logout]);
 
   useEffect(() => {
     const verifyUser = async () => {
       const token = localStorage.getItem("overwork_token");
+
       if (token) {
-        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        // On configure le token dans l'instance API globale
+        apiService.setAuthToken(token);
+
         try {
-          const response = await axios.get("http://localhost:4000/api/auth/me");
-          if (response.data.success) {
-            setUser(response.data.user);
+          // 3. CORRECTION : Utilisation de l'instance configurée
+          const response = await apiService.auth.me();
+
+          if (response.success) {
+            setUser(response.user);
           } else {
-            logout(); // Le token est invalide, on nettoie
+            logout();
           }
         } catch (error) {
           console.error("Session invalide ou expirée.", error);
-          logout(); // Erreur réseau ou autre, on nettoie
+          logout();
         }
       }
       setLoading(false);
     };
     verifyUser();
-  }, [logout]); // On dépend de `logout` qui est stable grâce à useCallback.
+  }, [logout]);
 
-  // La fonction login est aussi mise en mémoire.
   const login = useCallback(
     (userData, token) => {
-      localStorage.setItem("overwork_token", token);
-      localStorage.setItem("user", JSON.stringify(userData)); // Sauvegarder l'utilisateur est une bonne pratique
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      // Utilisation du helper centralisé
+      apiService.setAuthToken(token);
+      localStorage.setItem("user", JSON.stringify(userData));
       setUser(userData);
 
-      // La redirection se fait maintenant ici, dans le contexte, pour centraliser la logique.
       switch (userData.role) {
         case "admin":
           navigate("/admin/dashboard");
@@ -105,14 +110,11 @@ export const AuthProvider = ({ children }) => {
     [navigate]
   );
 
-  // --- LA CORRECTION PRINCIPALE EST ICI ---
-  // useMemo garantit que l'objet `value` n'est pas un nouvel objet à chaque rendu.
-  // Il ne change que si `user` ou `loading` change réellement.
   const value = useMemo(
     () => ({
       user,
       loading,
-      isAuthenticated: !!user, // Crée une valeur booléenne simple pour la vérification
+      isAuthenticated: !!user,
       login,
       logout,
       refreshUser,
