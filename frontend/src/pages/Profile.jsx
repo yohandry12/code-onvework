@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import apiService from "../services/api";
+import CitySelect from "../components/UI/CitySelect";
 
 import {
   EnvelopeIcon,
@@ -454,9 +455,14 @@ const ProfilePage = () => {
     setIsSaving(true);
 
     try {
+      const locationData = {
+        city: formData.profile.location.city,
+        country: "Cameroun",
+      };
       const updates = {
         profile: {
           ...formData.profile,
+          location: locationData,
           // Filtrer les diplômes vides avant l'envoi
           diplomas: formData.profile.diplomas.filter((d) => d.type),
         },
@@ -552,19 +558,32 @@ const ProfilePage = () => {
               <p className="text-sm text-gray-500 capitalize">{user.role}</p>
 
               {isEditing ? (
-                <div className="flex gap-4 mt-2">
-                  <InputRow
-                    label="Ville"
-                    name="city"
-                    value={formData.profile.location.city}
-                    onChange={handleLocationChange}
-                  />
-                  <InputRow
-                    label="Pays"
-                    name="country"
-                    value={formData.profile.location.country}
-                    onChange={handleLocationChange}
-                  />
+                <div className="flex flex-col sm:flex-row gap-4 mt-2">
+                  {/* Sélecteur de Ville connecté à l'API */}
+                  <div className="flex-1">
+                    <CitySelect
+                      label="Ville"
+                      name="city"
+                      value={formData.profile.location.city}
+                      onChange={handleLocationChange}
+                    />
+                  </div>
+
+                  {/* Champ Pays bloqué sur Cameroun */}
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Pays
+                    </label>
+                    <div className="mt-1">
+                      <input
+                        type="text"
+                        name="country"
+                        value="Cameroun" // Valeur forcée visuellement
+                        disabled // Empêche la modification
+                        className="block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm text-gray-500 cursor-not-allowed sm:text-sm"
+                      />
+                    </div>
+                  </div>
                 </div>
               ) : (
                 user.profile.location && (

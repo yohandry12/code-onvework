@@ -10,9 +10,6 @@ module.exports = (sequelize) => {
       slug: { type: DataTypes.STRING, allowNull: false },
       region: { type: DataTypes.STRING },
       department: { type: DataTypes.STRING },
-      lat: { type: DataTypes.DECIMAL(10, 7) },
-      lng: { type: DataTypes.DECIMAL(10, 7) },
-      population: { type: DataTypes.INTEGER },
     },
     {
       sequelize,

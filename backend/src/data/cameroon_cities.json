@@ -1,27 +1,1233 @@
 [
-  { "name": "Yaounde", "slug": "yaounde", "region": "Centre" },
-  { "name": "Douala", "slug": "douala", "region": "Littoral" },
-  { "name": "Garoua", "slug": "garoua", "region": "Nord" },
-  { "name": "Maroua", "slug": "maroua", "region": "Extreme-Nord" },
-  { "name": "Bamenda", "slug": "bamenda", "region": "Nord-Ouest" },
-  { "name": "Bafoussam", "slug": "bafoussam", "region": "Ouest" },
-  { "name": "Ngaoundere", "slug": "ngaoundere", "region": "Adamaoua" },
-  { "name": "Kumba", "slug": "kumba", "region": "Sud-Ouest" },
-  { "name": "Ebolowa", "slug": "ebolowa", "region": "Sud" },
-  { "name": "Kribi", "slug": "kribi", "region": "Littoral" },
-  { "name": "Limbe", "slug": "limbe", "region": "Sud-Ouest" },
-  { "name": "Mamfe", "slug": "mamfe", "region": "Sud-Ouest" },
-  { "name": "Bertoua", "slug": "bertoua", "region": "Est" },
-  { "name": "Loum", "slug": "loum", "region": "Littoral" },
-  { "name": "Foumban", "slug": "foumban", "region": "Ouest" },
-  { "name": "Nkongsamba", "slug": "nkongsamba", "region": "Littoral" },
-  { "name": "Sangmelima", "slug": "sangmelima", "region": "Sud" },
-  { "name": "Dschang", "slug": "dschang", "region": "Ouest" },
-  { "name": "Mbouda", "slug": "mbouda", "region": "Ouest" },
-  { "name": "Tiko", "slug": "tiko", "region": "Sud-Ouest" },
-  { "name": "Buea", "slug": "buea", "region": "Sud-Ouest" },
-  { "name": "Muyuka", "slug": "muyuka", "region": "Sud-Ouest" },
-  { "name": "Mbanga", "slug": "mbanga", "region": "Littoral" },
-  { "name": "Yagoua", "slug": "yagoua", "region": "Extreme-Nord" },
-  { "name": "Poli", "slug": "poli", "region": "Adamaoua" }
+  {
+    "name": "Yaoundé",
+    "slug": "yaounde",
+    "region": "Centre",
+    "department": "Mfoundi"
+  },
+  {
+    "name": "Douala",
+    "slug": "douala",
+    "region": "Littoral",
+    "department": "Wouri"
+  },
+  {
+    "name": "Garoua",
+    "slug": "garoua",
+    "region": "Nord",
+    "department": "Bénoué"
+  },
+  {
+    "name": "Bamenda",
+    "slug": "bamenda",
+    "region": "Nord-Ouest",
+    "department": "Mezam"
+  },
+  {
+    "name": "Maroua",
+    "slug": "maroua",
+    "region": "Extrême-Nord",
+    "department": "Diamaré"
+  },
+  {
+    "name": "Bafoussam",
+    "slug": "bafoussam",
+    "region": "Ouest",
+    "department": "Mifi"
+  },
+  {
+    "name": "Ngaoundéré",
+    "slug": "ngaoundere",
+    "region": "Adamaoua",
+    "department": "Vina"
+  },
+  {
+    "name": "Bertoua",
+    "slug": "bertoua",
+    "region": "Est",
+    "department": "Lom-et-Djerem"
+  },
+  {
+    "name": "Ebolowa",
+    "slug": "ebolowa",
+    "region": "Sud",
+    "department": "Mvila"
+  },
+  {
+    "name": "Buea",
+    "slug": "buea",
+    "region": "Sud-Ouest",
+    "department": "Fako"
+  },
+  {
+    "name": "Kumba",
+    "slug": "kumba",
+    "region": "Sud-Ouest",
+    "department": "Meme"
+  },
+  {
+    "name": "Edéa",
+    "slug": "edea",
+    "region": "Littoral",
+    "department": "Sanaga-Maritime"
+  },
+  { "name": "Kribi", "slug": "kribi", "region": "Sud", "department": "Océan" },
+  {
+    "name": "Foumban",
+    "slug": "foumban",
+    "region": "Ouest",
+    "department": "Noun"
+  },
+  {
+    "name": "Limbe",
+    "slug": "limbe",
+    "region": "Sud-Ouest",
+    "department": "Fako"
+  },
+  {
+    "name": "Dschang",
+    "slug": "dschang",
+    "region": "Ouest",
+    "department": "Menoua"
+  },
+  {
+    "name": "Nkongsamba",
+    "slug": "nkongsamba",
+    "region": "Littoral",
+    "department": "Moungo"
+  },
+  {
+    "name": "Tiko",
+    "slug": "tiko",
+    "region": "Sud-Ouest",
+    "department": "Fako"
+  },
+  {
+    "name": "Sangmélima",
+    "slug": "sangmelima",
+    "region": "Sud",
+    "department": "Dja-et-Lobo"
+  },
+  {
+    "name": "Guider",
+    "slug": "guider",
+    "region": "Nord",
+    "department": "Mayo-Louti"
+  },
+  {
+    "name": "Meiganga",
+    "slug": "meiganga",
+    "region": "Adamaoua",
+    "department": "Mbéré"
+  },
+  {
+    "name": "Yagoua",
+    "slug": "yagoua",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Danay"
+  },
+  {
+    "name": "Mbalmayo",
+    "slug": "mbalmayo",
+    "region": "Centre",
+    "department": "Nyong-et-So'o"
+  },
+  {
+    "name": "Bafia",
+    "slug": "bafia",
+    "region": "Centre",
+    "department": "Mbam-et-Inoubou"
+  },
+  {
+    "name": "Kousseri",
+    "slug": "kousseri",
+    "region": "Extrême-Nord",
+    "department": "Logone-et-Chari"
+  },
+  {
+    "name": "Mbouda",
+    "slug": "mbouda",
+    "region": "Ouest",
+    "department": "Bamboutos"
+  },
+  {
+    "name": "Mokolo",
+    "slug": "mokolo",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Tsanaga"
+  },
+  {
+    "name": "Mora",
+    "slug": "mora",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Sava"
+  },
+  {
+    "name": "Kaélé",
+    "slug": "kaele",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Kani"
+  },
+  {
+    "name": "Tibati",
+    "slug": "tibati",
+    "region": "Adamaoua",
+    "department": "Djerem"
+  },
+  {
+    "name": "Batouri",
+    "slug": "batouri",
+    "region": "Est",
+    "department": "Kadey"
+  },
+  {
+    "name": "Abong-Mbang",
+    "slug": "abong-mbang",
+    "region": "Est",
+    "department": "Haut-Nyong"
+  },
+  {
+    "name": "Yokadouma",
+    "slug": "yokadouma",
+    "region": "Est",
+    "department": "Boumba-et-Ngoko"
+  },
+  {
+    "name": "Obala",
+    "slug": "obala",
+    "region": "Centre",
+    "department": "Lekié"
+  },
+  {
+    "name": "Nanga-Eboko",
+    "slug": "nanga-eboko",
+    "region": "Centre",
+    "department": "Haute-Sanaga"
+  },
+  {
+    "name": "Eséka",
+    "slug": "eseka",
+    "region": "Centre",
+    "department": "Nyong-et-Kéllé"
+  },
+  {
+    "name": "Akonolinga",
+    "slug": "akonolinga",
+    "region": "Centre",
+    "department": "Nyong-et-Mfoumou"
+  },
+  {
+    "name": "Loum",
+    "slug": "loum",
+    "region": "Littoral",
+    "department": "Moungo"
+  },
+  {
+    "name": "Mbanga",
+    "slug": "mbanga",
+    "region": "Littoral",
+    "department": "Moungo"
+  },
+  {
+    "name": "Manjo",
+    "slug": "manjo",
+    "region": "Littoral",
+    "department": "Moungo"
+  },
+  {
+    "name": "Melong",
+    "slug": "melong",
+    "region": "Littoral",
+    "department": "Moungo"
+  },
+  {
+    "name": "Bangangté",
+    "slug": "bangangte",
+    "region": "Ouest",
+    "department": "Ndé"
+  },
+  {
+    "name": "Bafang",
+    "slug": "bafang",
+    "region": "Ouest",
+    "department": "Haut-Nkam"
+  },
+  {
+    "name": "Baham",
+    "slug": "baham",
+    "region": "Ouest",
+    "department": "Hauts-Plateaux"
+  },
+  {
+    "name": "Mbandjock",
+    "slug": "mbandjock",
+    "region": "Centre",
+    "department": "Haute-Sanaga"
+  },
+  {
+    "name": "Touboro",
+    "slug": "touboro",
+    "region": "Nord",
+    "department": "Mayo-Rey"
+  },
+  { "name": "Poli", "slug": "poli", "region": "Nord", "department": "Faro" },
+  {
+    "name": "Tcholliré",
+    "slug": "tchollire",
+    "region": "Nord",
+    "department": "Mayo-Rey"
+  },
+  {
+    "name": "Mamfe",
+    "slug": "mamfe",
+    "region": "Sud-Ouest",
+    "department": "Manyu"
+  },
+  {
+    "name": "Muyuka",
+    "slug": "muyuka",
+    "region": "Sud-Ouest",
+    "department": "Fako"
+  },
+  {
+    "name": "Mutengene",
+    "slug": "mutengene",
+    "region": "Sud-Ouest",
+    "department": "Fako"
+  },
+  {
+    "name": "Fontem",
+    "slug": "fontem",
+    "region": "Sud-Ouest",
+    "department": "Lebialem"
+  },
+  {
+    "name": "Mundemba",
+    "slug": "mundemba",
+    "region": "Sud-Ouest",
+    "department": "Ndian"
+  },
+  {
+    "name": "Kumbo",
+    "slug": "kumbo",
+    "region": "Nord-Ouest",
+    "department": "Bui"
+  },
+  {
+    "name": "Nkambé",
+    "slug": "nkambe",
+    "region": "Nord-Ouest",
+    "department": "Donga-Mantung"
+  },
+  {
+    "name": "Wum",
+    "slug": "wum",
+    "region": "Nord-Ouest",
+    "department": "Menchum"
+  },
+  {
+    "name": "Mbengwi",
+    "slug": "mbengwi",
+    "region": "Nord-Ouest",
+    "department": "Momo"
+  },
+  {
+    "name": "Fundong",
+    "slug": "fundong",
+    "region": "Nord-Ouest",
+    "department": "Boyo"
+  },
+  {
+    "name": "Ambam",
+    "slug": "ambam",
+    "region": "Sud",
+    "department": "Vallée-du-Ntem"
+  },
+  {
+    "name": "Lolodorf",
+    "slug": "lolodorf",
+    "region": "Sud",
+    "department": "Océan"
+  },
+  {
+    "name": "Akom II",
+    "slug": "akom-ii",
+    "region": "Sud",
+    "department": "Océan"
+  },
+  {
+    "name": "Mfou",
+    "slug": "mfou",
+    "region": "Centre",
+    "department": "Méfou-et-Afamba"
+  },
+  { "name": "Sa'a", "slug": "saa", "region": "Centre", "department": "Lekié" },
+  {
+    "name": "Monatélé",
+    "slug": "monatele",
+    "region": "Centre",
+    "department": "Lekié"
+  },
+  {
+    "name": "Okola",
+    "slug": "okola",
+    "region": "Centre",
+    "department": "Lekié"
+  },
+  {
+    "name": "Ntui",
+    "slug": "ntui",
+    "region": "Centre",
+    "department": "Mbam-et-Kim"
+  },
+  {
+    "name": "Ndikiniméki",
+    "slug": "ndikinimeki",
+    "region": "Centre",
+    "department": "Mbam-et-Inoubou"
+  },
+  {
+    "name": "Ombessa",
+    "slug": "ombessa",
+    "region": "Centre",
+    "department": "Mbam-et-Inoubou"
+  },
+  {
+    "name": "Bokito",
+    "slug": "bokito",
+    "region": "Centre",
+    "department": "Mbam-et-Inoubou"
+  },
+  {
+    "name": "Ngoumou",
+    "slug": "ngoumou",
+    "region": "Centre",
+    "department": "Méfou-et-Akono"
+  },
+  {
+    "name": "Mbankomo",
+    "slug": "mbankomo",
+    "region": "Centre",
+    "department": "Méfou-et-Akono"
+  },
+  {
+    "name": "Akono",
+    "slug": "akono",
+    "region": "Centre",
+    "department": "Méfou-et-Akono"
+  },
+  {
+    "name": "Esse",
+    "slug": "esse",
+    "region": "Centre",
+    "department": "Méfou-et-Afamba"
+  },
+  {
+    "name": "Awaé",
+    "slug": "awae",
+    "region": "Centre",
+    "department": "Méfou-et-Afamba"
+  },
+  {
+    "name": "Soa",
+    "slug": "soa",
+    "region": "Centre",
+    "department": "Méfou-et-Afamba"
+  },
+  {
+    "name": "Minta",
+    "slug": "minta",
+    "region": "Centre",
+    "department": "Haute-Sanaga"
+  },
+  {
+    "name": "Nkoteng",
+    "slug": "nkoteng",
+    "region": "Centre",
+    "department": "Haute-Sanaga"
+  },
+  {
+    "name": "Ayos",
+    "slug": "ayos",
+    "region": "Centre",
+    "department": "Nyong-et-Mfoumou"
+  },
+  {
+    "name": "Makak",
+    "slug": "makak",
+    "region": "Centre",
+    "department": "Nyong-et-Kéllé"
+  },
+  {
+    "name": "Matomb",
+    "slug": "matomb",
+    "region": "Centre",
+    "department": "Nyong-et-Kéllé"
+  },
+  {
+    "name": "Bot-Makak",
+    "slug": "bot-makak",
+    "region": "Centre",
+    "department": "Nyong-et-Kéllé"
+  },
+  {
+    "name": "Ngog-Mapubi",
+    "slug": "ngog-mapubi",
+    "region": "Centre",
+    "department": "Nyong-et-Kéllé"
+  },
+  {
+    "name": "Yabassi",
+    "slug": "yabassi",
+    "region": "Littoral",
+    "department": "Nkam"
+  },
+  {
+    "name": "Yingui",
+    "slug": "yingui",
+    "region": "Littoral",
+    "department": "Nkam"
+  },
+  {
+    "name": "Ndom",
+    "slug": "ndom",
+    "region": "Littoral",
+    "department": "Sanaga-Maritime"
+  },
+  {
+    "name": "Pouma",
+    "slug": "pouma",
+    "region": "Littoral",
+    "department": "Sanaga-Maritime"
+  },
+  {
+    "name": "Dizangué",
+    "slug": "dizangue",
+    "region": "Littoral",
+    "department": "Sanaga-Maritime"
+  },
+  {
+    "name": "Mouanko",
+    "slug": "mouanko",
+    "region": "Littoral",
+    "department": "Sanaga-Maritime"
+  },
+  {
+    "name": "Dibombari",
+    "slug": "dibombari",
+    "region": "Littoral",
+    "department": "Moungo"
+  },
+  {
+    "name": "Penja",
+    "slug": "penja",
+    "region": "Littoral",
+    "department": "Moungo"
+  },
+  {
+    "name": "Njombé",
+    "slug": "njombe",
+    "region": "Littoral",
+    "department": "Moungo"
+  },
+  {
+    "name": "Foumbot",
+    "slug": "foumbot",
+    "region": "Ouest",
+    "department": "Noun"
+  },
+  {
+    "name": "Koutaba",
+    "slug": "koutaba",
+    "region": "Ouest",
+    "department": "Noun"
+  },
+  { "name": "Magba", "slug": "magba", "region": "Ouest", "department": "Noun" },
+  {
+    "name": "Malentouen",
+    "slug": "malentouen",
+    "region": "Ouest",
+    "department": "Noun"
+  },
+  {
+    "name": "Massangam",
+    "slug": "massangam",
+    "region": "Ouest",
+    "department": "Noun"
+  },
+  {
+    "name": "Bandjoun",
+    "slug": "bandjoun",
+    "region": "Ouest",
+    "department": "Koung-Khi"
+  },
+  {
+    "name": "Demdeng",
+    "slug": "demdeng",
+    "region": "Ouest",
+    "department": "Koung-Khi"
+  },
+  {
+    "name": "Bayangam",
+    "slug": "bayangam",
+    "region": "Ouest",
+    "department": "Koung-Khi"
+  },
+  {
+    "name": "Galim",
+    "slug": "galim",
+    "region": "Ouest",
+    "department": "Bamboutos"
+  },
+  {
+    "name": "Batcham",
+    "slug": "batcham",
+    "region": "Ouest",
+    "department": "Bamboutos"
+  },
+  {
+    "name": "Babadjou",
+    "slug": "babadjou",
+    "region": "Ouest",
+    "department": "Bamboutos"
+  },
+  {
+    "name": "Penka-Michel",
+    "slug": "penka-michel",
+    "region": "Ouest",
+    "department": "Menoua"
+  },
+  {
+    "name": "Santchou",
+    "slug": "santchou",
+    "region": "Ouest",
+    "department": "Menoua"
+  },
+  {
+    "name": "Nkong-Ni",
+    "slug": "nkong-ni",
+    "region": "Ouest",
+    "department": "Menoua"
+  },
+  {
+    "name": "Bana",
+    "slug": "bana",
+    "region": "Ouest",
+    "department": "Haut-Nkam"
+  },
+  {
+    "name": "Banka",
+    "slug": "banka",
+    "region": "Ouest",
+    "department": "Haut-Nkam"
+  },
+  {
+    "name": "Kékem",
+    "slug": "kekem",
+    "region": "Ouest",
+    "department": "Haut-Nkam"
+  },
+  { "name": "Bazou", "slug": "bazou", "region": "Ouest", "department": "Ndé" },
+  { "name": "Tonga", "slug": "tonga", "region": "Ouest", "department": "Ndé" },
+  {
+    "name": "Bassamba",
+    "slug": "bassamba",
+    "region": "Ouest",
+    "department": "Ndé"
+  },
+  {
+    "name": "Ndop",
+    "slug": "ndop",
+    "region": "Nord-Ouest",
+    "department": "Ngoketunjia"
+  },
+  {
+    "name": "Babessi",
+    "slug": "babessi",
+    "region": "Nord-Ouest",
+    "department": "Ngoketunjia"
+  },
+  {
+    "name": "Balikumbat",
+    "slug": "balikumbat",
+    "region": "Nord-Ouest",
+    "department": "Ngoketunjia"
+  },
+  {
+    "name": "Bali",
+    "slug": "bali",
+    "region": "Nord-Ouest",
+    "department": "Mezam"
+  },
+  {
+    "name": "Santa",
+    "slug": "santa",
+    "region": "Nord-Ouest",
+    "department": "Mezam"
+  },
+  {
+    "name": "Tubah",
+    "slug": "tubah",
+    "region": "Nord-Ouest",
+    "department": "Mezam"
+  },
+  {
+    "name": "Bafut",
+    "slug": "bafut",
+    "region": "Nord-Ouest",
+    "department": "Mezam"
+  },
+  {
+    "name": "Jakiri",
+    "slug": "jakiri",
+    "region": "Nord-Ouest",
+    "department": "Bui"
+  },
+  { "name": "Oku", "slug": "oku", "region": "Nord-Ouest", "department": "Bui" },
+  {
+    "name": "Nkum",
+    "slug": "nkum",
+    "region": "Nord-Ouest",
+    "department": "Bui"
+  },
+  {
+    "name": "Ndu",
+    "slug": "ndu",
+    "region": "Nord-Ouest",
+    "department": "Donga-Mantung"
+  },
+  {
+    "name": "Ako",
+    "slug": "ako",
+    "region": "Nord-Ouest",
+    "department": "Donga-Mantung"
+  },
+  {
+    "name": "Misaje",
+    "slug": "misaje",
+    "region": "Nord-Ouest",
+    "department": "Donga-Mantung"
+  },
+  {
+    "name": "Nwa",
+    "slug": "nwa",
+    "region": "Nord-Ouest",
+    "department": "Donga-Mantung"
+  },
+  {
+    "name": "Batibo",
+    "slug": "batibo",
+    "region": "Nord-Ouest",
+    "department": "Momo"
+  },
+  {
+    "name": "Widikum",
+    "slug": "widikum",
+    "region": "Nord-Ouest",
+    "department": "Momo"
+  },
+  {
+    "name": "Njinikom",
+    "slug": "njinikom",
+    "region": "Nord-Ouest",
+    "department": "Boyo"
+  },
+  {
+    "name": "Belo",
+    "slug": "belo",
+    "region": "Nord-Ouest",
+    "department": "Boyo"
+  },
+  {
+    "name": "Bum",
+    "slug": "bum",
+    "region": "Nord-Ouest",
+    "department": "Boyo"
+  },
+  {
+    "name": "Bangem",
+    "slug": "bangem",
+    "region": "Sud-Ouest",
+    "department": "Koupé-Manengouba"
+  },
+  {
+    "name": "Tombel",
+    "slug": "tombel",
+    "region": "Sud-Ouest",
+    "department": "Koupé-Manengouba"
+  },
+  {
+    "name": "Nguti",
+    "slug": "nguti",
+    "region": "Sud-Ouest",
+    "department": "Koupé-Manengouba"
+  },
+  {
+    "name": "Menji",
+    "slug": "menji",
+    "region": "Sud-Ouest",
+    "department": "Lebialem"
+  },
+  {
+    "name": "Alou",
+    "slug": "alou",
+    "region": "Sud-Ouest",
+    "department": "Lebialem"
+  },
+  {
+    "name": "Eyumodjock",
+    "slug": "eyumodjock",
+    "region": "Sud-Ouest",
+    "department": "Manyu"
+  },
+  {
+    "name": "Akwaya",
+    "slug": "akwaya",
+    "region": "Sud-Ouest",
+    "department": "Manyu"
+  },
+  {
+    "name": "Tinto",
+    "slug": "tinto",
+    "region": "Sud-Ouest",
+    "department": "Manyu"
+  },
+  {
+    "name": "Ekondo-Titi",
+    "slug": "ekondo-titi",
+    "region": "Sud-Ouest",
+    "department": "Ndian"
+  },
+  {
+    "name": "Bamusso",
+    "slug": "bamusso",
+    "region": "Sud-Ouest",
+    "department": "Ndian"
+  },
+  {
+    "name": "Idenau",
+    "slug": "idenau",
+    "region": "Sud-Ouest",
+    "department": "Fako"
+  },
+  {
+    "name": "Konye",
+    "slug": "konye",
+    "region": "Sud-Ouest",
+    "department": "Meme"
+  },
+  {
+    "name": "Mbonge",
+    "slug": "mbonge",
+    "region": "Sud-Ouest",
+    "department": "Meme"
+  },
+  {
+    "name": "Tignère",
+    "slug": "tignere",
+    "region": "Adamaoua",
+    "department": "Faro-et-Déo"
+  },
+  {
+    "name": "Mayo-Baléo",
+    "slug": "mayo-baleo",
+    "region": "Adamaoua",
+    "department": "Faro-et-Déo"
+  },
+  {
+    "name": "Kontcha",
+    "slug": "kontcha",
+    "region": "Adamaoua",
+    "department": "Faro-et-Déo"
+  },
+  {
+    "name": "Banyo",
+    "slug": "banyo",
+    "region": "Adamaoua",
+    "department": "Mayo-Banyo"
+  },
+  {
+    "name": "Bankim",
+    "slug": "bankim",
+    "region": "Adamaoua",
+    "department": "Mayo-Banyo"
+  },
+  {
+    "name": "Ngaoundal",
+    "slug": "ngaoundal",
+    "region": "Adamaoua",
+    "department": "Djerem"
+  },
+  {
+    "name": "Djohong",
+    "slug": "djohong",
+    "region": "Adamaoua",
+    "department": "Mbéré"
+  },
+  { "name": "Dir", "slug": "dir", "region": "Adamaoua", "department": "Mbéré" },
+  {
+    "name": "Belel",
+    "slug": "belel",
+    "region": "Adamaoua",
+    "department": "Vina"
+  },
+  { "name": "Mbe", "slug": "mbe", "region": "Adamaoua", "department": "Vina" },
+  {
+    "name": "Lagdo",
+    "slug": "lagdo",
+    "region": "Nord",
+    "department": "Bénoué"
+  },
+  {
+    "name": "Pitoa",
+    "slug": "pitoa",
+    "region": "Nord",
+    "department": "Bénoué"
+  },
+  {
+    "name": "Bibémi",
+    "slug": "bibemi",
+    "region": "Nord",
+    "department": "Bénoué"
+  },
+  {
+    "name": "Ngong",
+    "slug": "ngong",
+    "region": "Nord",
+    "department": "Bénoué"
+  },
+  {
+    "name": "Touroua",
+    "slug": "touroua",
+    "region": "Nord",
+    "department": "Bénoué"
+  },
+  {
+    "name": "Figuil",
+    "slug": "figuil",
+    "region": "Nord",
+    "department": "Mayo-Louti"
+  },
+  {
+    "name": "Mayo-Oulo",
+    "slug": "mayo-oulo",
+    "region": "Nord",
+    "department": "Mayo-Louti"
+  },
+  {
+    "name": "Rey-Bouba",
+    "slug": "rey-bouba",
+    "region": "Nord",
+    "department": "Mayo-Rey"
+  },
+  {
+    "name": "Madingring",
+    "slug": "madingring",
+    "region": "Nord",
+    "department": "Mayo-Rey"
+  },
+  { "name": "Béka", "slug": "beka", "region": "Nord", "department": "Faro" },
+  {
+    "name": "Bogo",
+    "slug": "bogo",
+    "region": "Extrême-Nord",
+    "department": "Diamaré"
+  },
+  {
+    "name": "Meri",
+    "slug": "meri",
+    "region": "Extrême-Nord",
+    "department": "Diamaré"
+  },
+  {
+    "name": "Gazawa",
+    "slug": "gazawa",
+    "region": "Extrême-Nord",
+    "department": "Diamaré"
+  },
+  {
+    "name": "Petté",
+    "slug": "pette",
+    "region": "Extrême-Nord",
+    "department": "Diamaré"
+  },
+  {
+    "name": "Ndoukoula",
+    "slug": "ndoukoula",
+    "region": "Extrême-Nord",
+    "department": "Diamaré"
+  },
+  {
+    "name": "Makary",
+    "slug": "makary",
+    "region": "Extrême-Nord",
+    "department": "Logone-et-Chari"
+  },
+  {
+    "name": "Logone-Birni",
+    "slug": "logone-birni",
+    "region": "Extrême-Nord",
+    "department": "Logone-et-Chari"
+  },
+  {
+    "name": "Goulfey",
+    "slug": "goulfey",
+    "region": "Extrême-Nord",
+    "department": "Logone-et-Chari"
+  },
+  {
+    "name": "Blangoua",
+    "slug": "blangoua",
+    "region": "Extrême-Nord",
+    "department": "Logone-et-Chari"
+  },
+  {
+    "name": "Fotokol",
+    "slug": "fotokol",
+    "region": "Extrême-Nord",
+    "department": "Logone-et-Chari"
+  },
+  {
+    "name": "Waza",
+    "slug": "waza",
+    "region": "Extrême-Nord",
+    "department": "Logone-et-Chari"
+  },
+  {
+    "name": "Mindif",
+    "slug": "mindif",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Kani"
+  },
+  {
+    "name": "Guidiguis",
+    "slug": "guidiguis",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Kani"
+  },
+  {
+    "name": "Moulvoudaye",
+    "slug": "moulvoudaye",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Kani"
+  },
+  {
+    "name": "Touloum",
+    "slug": "touloum",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Kani"
+  },
+  {
+    "name": "Kolofata",
+    "slug": "kolofata",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Sava"
+  },
+  {
+    "name": "Tokombéré",
+    "slug": "tokombere",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Sava"
+  },
+  {
+    "name": "Koza",
+    "slug": "koza",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Tsanaga"
+  },
+  {
+    "name": "Bourha",
+    "slug": "bourha",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Tsanaga"
+  },
+  {
+    "name": "Mogodé",
+    "slug": "mogode",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Tsanaga"
+  },
+  {
+    "name": "Hina",
+    "slug": "hina",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Tsanaga"
+  },
+  {
+    "name": "Vélé",
+    "slug": "vele",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Danay"
+  },
+  {
+    "name": "Kar-Hay",
+    "slug": "kar-hay",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Danay"
+  },
+  {
+    "name": "Guéré",
+    "slug": "guere",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Danay"
+  },
+  {
+    "name": "Gobo",
+    "slug": "gobo",
+    "region": "Extrême-Nord",
+    "department": "Mayo-Danay"
+  },
+  {
+    "name": "Belabo",
+    "slug": "belabo",
+    "region": "Est",
+    "department": "Lom-et-Djerem"
+  },
+  {
+    "name": "Garoua-Boulaï",
+    "slug": "garoua-boulai",
+    "region": "Est",
+    "department": "Lom-et-Djerem"
+  },
+  {
+    "name": "Bétaré-Oya",
+    "slug": "betare-oya",
+    "region": "Est",
+    "department": "Lom-et-Djerem"
+  },
+  {
+    "name": "Mandjou",
+    "slug": "mandjou",
+    "region": "Est",
+    "department": "Lom-et-Djerem"
+  },
+  {
+    "name": "Diang",
+    "slug": "diang",
+    "region": "Est",
+    "department": "Lom-et-Djerem"
+  },
+  {
+    "name": "Ndélélé",
+    "slug": "ndelele",
+    "region": "Est",
+    "department": "Kadey"
+  },
+  { "name": "Kette", "slug": "kette", "region": "Est", "department": "Kadey" },
+  { "name": "Mbang", "slug": "mbang", "region": "Est", "department": "Kadey" },
+  {
+    "name": "Doumé",
+    "slug": "doume",
+    "region": "Est",
+    "department": "Haut-Nyong"
+  },
+  {
+    "name": "Dimako",
+    "slug": "dimako",
+    "region": "Est",
+    "department": "Haut-Nyong"
+  },
+  {
+    "name": "Messamena",
+    "slug": "messamena",
+    "region": "Est",
+    "department": "Haut-Nyong"
+  },
+  {
+    "name": "Lomié",
+    "slug": "lomie",
+    "region": "Est",
+    "department": "Haut-Nyong"
+  },
+  {
+    "name": "Nguelemendouka",
+    "slug": "nguelemendouka",
+    "region": "Est",
+    "department": "Haut-Nyong"
+  },
+  {
+    "name": "Moloundou",
+    "slug": "moloundou",
+    "region": "Est",
+    "department": "Boumba-et-Ngoko"
+  },
+  {
+    "name": "Gari-Gombo",
+    "slug": "gari-gombo",
+    "region": "Est",
+    "department": "Boumba-et-Ngoko"
+  },
+  {
+    "name": "Salapoumbé",
+    "slug": "salapoumbe",
+    "region": "Est",
+    "department": "Boumba-et-Ngoko"
+  },
+  { "name": "Campo", "slug": "campo", "region": "Sud", "department": "Océan" },
+  {
+    "name": "Biwong-Bané",
+    "slug": "biwong-bane",
+    "region": "Sud",
+    "department": "Mvila"
+  },
+  {
+    "name": "Mengong",
+    "slug": "mengong",
+    "region": "Sud",
+    "department": "Mvila"
+  },
+  {
+    "name": "Ngoulemakong",
+    "slug": "ngoulemakong",
+    "region": "Sud",
+    "department": "Mvila"
+  },
+  {
+    "name": "Zoétélé",
+    "slug": "zoetele",
+    "region": "Sud",
+    "department": "Dja-et-Lobo"
+  },
+  {
+    "name": "Meyomessala",
+    "slug": "meyomessala",
+    "region": "Sud",
+    "department": "Dja-et-Lobo"
+  },
+  {
+    "name": "Djoum",
+    "slug": "djoum",
+    "region": "Sud",
+    "department": "Dja-et-Lobo"
+  },
+  {
+    "name": "Oveng",
+    "slug": "oveng",
+    "region": "Sud",
+    "department": "Dja-et-Lobo"
+  },
+  {
+    "name": "Ma'an",
+    "slug": "maan",
+    "region": "Sud",
+    "department": "Vallée-du-Ntem"
+  },
+  {
+    "name": "Kyé-Ossi",
+    "slug": "kye-ossi",
+    "region": "Sud",
+    "department": "Vallée-du-Ntem"
+  },
+  {
+    "name": "Olamze",
+    "slug": "olamze",
+    "region": "Sud",
+    "department": "Vallée-du-Ntem"
+  },
+  {
+    "name": "Mintom",
+    "slug": "mintom",
+    "region": "Sud",
+    "department": "Dja-et-Lobo"
+  }
 ]

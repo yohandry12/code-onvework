@@ -273,6 +273,14 @@ export const apiService = {
     update: (settingsData) => apiService.put("/settings", settingsData),
   },
 
+  cities: {
+    // On demande une grosse limite pour avoir toutes les villes dans le select
+    getAll: () => apiClient.get("/cities?limit=1000"),
+    getById: (id) => apiClient.get(`/cities/${id}`),
+    getByCandidateId: (candidateId) =>
+      apiClient.get(`/:id/count-candidates`, { id: candidateId }),
+  },
+
   ai: {
     getChatReply: (messages, jobContext) =>
       apiService.post("/ai/chat", { messages, jobContext }),
