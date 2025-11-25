@@ -3,10 +3,14 @@ const {
   User,
   CandidateProfile,
   ClientProfile,
+  City,
   sequelize,
 } = require("../models"); // Import de tous les modèles + l'instance sequelize
 const { generateToken, authenticateToken } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
+const upload = require("../middleware/upload");
+const fs = require("fs");
+const path = require("path");
 
 const router = express.Router();
 
@@ -49,6 +53,7 @@ router.post("/register", async (req, res) => {
       sector,
       commercialName,
       associationName,
+      address,
     } = req.body;
 
     // ... (Vos validations initiales pour email, password, etc. restent les mêmes)
@@ -286,86 +291,107 @@ router.post("/logout", authenticateToken, async (req, res) => {
   }
 });
 
-// PUT /api/auth/profile - Mise à jour du profil (avec Transactions)
-// Dans auth.js - Route PUT /profile
+// PUT /api/auth/profile - Mise à jour du profil
 router.put("/profile", authenticateToken, async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const user = req.user;
     const { profile: profileUpdates } = req.body;
 
-    // Si aucune donnée de profil n'est fournie, il n'y a rien à faire.
     if (!profileUpdates || typeof profileUpdates !== "object") {
       return res
         .status(400)
         .json({ success: false, error: "Données de profil invalides." });
     }
 
-    let profileToUpdate;
-    if (user.role === "candidate") {
-      profileToUpdate = await user.getCandidateProfile({ transaction: t });
-    } else if (user.role === "client") {
-      profileToUpdate = await user.getClientProfile({ transaction: t });
+    // --- LOGIQUE POUR RECUPERER LE CITY_ID ---
+    // Si une ville est fournie dans le JSON location, on cherche son ID
+    let cityIdToUpdate = null;
+
+    // On gère le cas où location est une string JSON ou un objet
+    let locationData = profileUpdates.location;
+    if (typeof locationData === "string") {
+      try {
+        locationData = JSON.parse(locationData);
+      } catch (e) {}
     }
 
-    // Si le profil n'existe pas encore, on doit le créer
-    if (!profileToUpdate) {
-      if (user.role === "candidate") {
-        profileToUpdate = await CandidateProfile.create(
-          { userId: user.id, ...profileUpdates },
-          { transaction: t }
-        );
-      } else if (user.role === "client") {
-        profileToUpdate = await ClientProfile.create(
-          { userId: user.id, ...profileUpdates },
-          { transaction: t }
-        );
+    if (locationData && locationData.city) {
+      const cityName = locationData.city.trim();
+      // Recherche de la ville par son nom (insensible à la casse si possible)
+      const city = await City.findOne({
+        where: sequelize.where(
+          sequelize.fn("LOWER", sequelize.col("name")),
+          sequelize.fn("LOWER", cityName)
+        ),
+        transaction: t,
+      });
+
+      if (city) {
+        cityIdToUpdate = city.id;
       }
     }
-    // Si le profil existe déjà, on le met à jour
-    else {
-      // --- CORRECTION CLÉ : Parser et valider les champs JSON ---
+    // ------------------------------------------
+
+    let profileToUpdate;
+    let created = false;
+
+    if (user.role === "candidate") {
+      // On cherche ou on crée le profil
+      [profileToUpdate, created] = await CandidateProfile.findOrCreate({
+        where: { userId: user.id },
+        defaults: { ...profileUpdates, cityId: cityIdToUpdate }, // On ajoute cityId à la création
+        transaction: t,
+      });
+    } else if (user.role === "client") {
+      [profileToUpdate, created] = await ClientProfile.findOrCreate({
+        where: { userId: user.id },
+        defaults: profileUpdates,
+        transaction: t,
+      });
+    }
+
+    // Si le profil existait déjà, on le met à jour
+    if (!created) {
       const cleanedUpdates = { ...profileUpdates };
 
-      const jsonFields = ["location", "skills", "diplomas"];
+      // Si c'est un candidat et qu'on a trouvé un ID de ville, on l'ajoute
+      if (user.role === "candidate" && cityIdToUpdate) {
+        cleanedUpdates.cityId = cityIdToUpdate;
+      }
 
+      // Gestion des champs JSON
+      const jsonFields = ["location", "skills", "diplomas"];
       for (const field of jsonFields) {
-        // Si le champ est présent dans la requête
         if (cleanedUpdates[field] !== undefined) {
-          // Et si c'est une chaîne de caractères non vide
           if (
             typeof cleanedUpdates[field] === "string" &&
             cleanedUpdates[field].trim() !== ""
           ) {
             try {
-              // On essaie de la parser en objet/tableau
               cleanedUpdates[field] = JSON.parse(cleanedUpdates[field]);
             } catch (e) {
-              // Si le parsing échoue, on renvoie une erreur claire
               return res.status(400).json({
                 success: false,
                 error: `Le champ '${field}' n'est pas un JSON valide.`,
               });
             }
-          }
-          // Si ce n'est pas déjà un objet/tableau, on s'assure que c'est bien `null` ou un format valide
-          else if (
+          } else if (
             typeof cleanedUpdates[field] !== "object" &&
             cleanedUpdates[field] !== null
           ) {
-            cleanedUpdates[field] = null; // Mettre à null si le format est incorrect (ex: un nombre simple)
+            cleanedUpdates[field] = null;
           }
         }
       }
 
-      // Appliquer les mises à jour nettoyées
       Object.assign(profileToUpdate, cleanedUpdates);
       await profileToUpdate.save({ transaction: t });
     }
 
     await t.commit();
 
-    // Recharger l'utilisateur complet pour renvoyer les données à jour
+    // Recharger l'utilisateur complet
     const fullUser = await User.findByPk(user.id, {
       include: user.role === "candidate" ? "candidateProfile" : "clientProfile",
     });
@@ -472,5 +498,102 @@ router.delete("/delete-account", authenticateToken, async (req, res) => {
     });
   }
 });
+
+// --- POST /api/auth/avatar : Upload de la photo de profil ---
+router.post(
+  "/avatar",
+  authenticateToken,
+  upload.single("avatar"), // Le nom du champ doit être 'avatar'
+  async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+      if (!req.file) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Aucune image fournie." });
+      }
+
+      const userId = req.user.id;
+      const role = req.user.role;
+
+      // URL publique pour accéder à l'image (ex: /uploads/avatar-123.jpg)
+      // Note: Votre index.js sert le dossier uploads sur la route /uploads
+      const avatarUrl = `/avatar/${req.file.filename}`;
+
+      let profile;
+
+      // 1. Récupérer le profil selon le rôle
+      if (role === "candidate") {
+        profile = await CandidateProfile.findOne({
+          where: { userId },
+          transaction: t,
+        });
+      } else if (role === "client") {
+        profile = await ClientProfile.findOne({
+          where: { userId },
+          transaction: t,
+        });
+      }
+
+      if (!profile) {
+        await t.rollback();
+        // Nettoyage : supprimer le fichier qui vient d'être uploadé
+        fs.unlink(req.file.path, () => {});
+        return res
+          .status(404)
+          .json({ success: false, error: "Profil introuvable." });
+      }
+
+      // 2. Supprimer l'ancienne image du disque (si elle existe)
+      if (profile.avatar) {
+        try {
+          // profile.avatar ressemble à "/uploads/ancien.jpg"
+          // On doit construire le chemin système absolu
+          // On retire le premier slash pour avoir "uploads/ancien.jpg"
+          const relativePath = profile.avatar.startsWith("/")
+            ? profile.avatar.substring(1)
+            : profile.avatar;
+
+          // process.cwd() pointe vers la racine du projet (comme dans votre upload.js)
+          const oldPath = path.resolve(process.cwd(), relativePath);
+
+          if (fs.existsSync(oldPath)) {
+            fs.unlinkSync(oldPath);
+            logger.info(`Ancien avatar supprimé : ${oldPath}`);
+          }
+        } catch (err) {
+          logger.warn(
+            "Erreur non bloquante lors de la suppression de l'ancien avatar :",
+            err.message
+          );
+        }
+      }
+
+      // 3. Mettre à jour la BDD
+      profile.avatar = avatarUrl;
+      await profile.save({ transaction: t });
+
+      await t.commit();
+
+      logger.info(`Avatar mis à jour pour l'utilisateur ${userId}`);
+
+      res.json({
+        success: true,
+        message: "Photo de profil mise à jour.",
+        avatar: avatarUrl, // On renvoie la nouvelle URL au frontend
+      });
+    } catch (error) {
+      await t.rollback();
+      // En cas d'erreur, supprimer le fichier uploadé
+      if (req.file && req.file.path) {
+        fs.unlink(req.file.path, () => {});
+      }
+      logger.error("Erreur upload avatar:", error);
+      res
+        .status(500)
+        .json({ success: false, error: "Erreur lors de l'upload." });
+    }
+  }
+);
 
 module.exports = router;

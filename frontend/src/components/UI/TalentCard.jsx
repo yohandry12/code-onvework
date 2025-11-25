@@ -6,11 +6,37 @@ import { apiService } from "../services/api"; // Assure-toi que le chemin est co
 // Utilitaire pour les drapeaux (inchangé)
 const getCountryCode = (countryName) => {
   const countryMap = {
+<<<<<<< HEAD
     Germany: "DE", Australia: "AU", Brazil: "BR", Singapore: "SG",
     France: "FR", Canada: "CA", "United States": "US", "United Kingdom": "GB",
     Italy: "IT", Spain: "ES", Netherlands: "NL",
+=======
+    Germany: "DE",
+    Australia: "AU",
+    Brazil: "BR",
+    Singapore: "SG",
+    France: "FR",
+    Canada: "CA",
+    "United States": "US",
+    "United Kingdom": "GB",
+    Italy: "IT",
+    Spain: "ES",
+    Netherlands: "NL",
+>>>>>>> 092fba5a16dd15d1320e916ddd641e5dccd6227e
   };
   return countryMap[countryName] || null;
+};
+
+// --- FONCTION UTILITAIRE POUR L'AVATAR ---
+const getAvatarUrl = (avatarPath) => {
+  if (!avatarPath) return null;
+  if (avatarPath.startsWith("http")) return avatarPath;
+
+  const apiUrl = import.meta.env.VITE_API_URL;
+  const baseUrl = apiUrl.replace(/\/api$/, "");
+  const cleanPath = avatarPath.startsWith("/") ? avatarPath : `/${avatarPath}`;
+
+  return `${baseUrl}${cleanPath}`;
 };
 
 const TalentCard = ({ talent, onViewProfile }) => {
@@ -78,23 +104,87 @@ const TalentCard = ({ talent, onViewProfile }) => {
     );
   };
 
+  // ✅ AJOUT DE VÉRIFICATIONS DE SÉCURITÉ
+  if (!talent) {
+    return null; // ou un skeleton loader
+  }
+
+  // Extraire le profil avec un fallback sur un objet vide
+  const profile = talent.profile || talent.candidateProfile || {};
+
+  // Vérifications de sécurité pour toutes les propriétés
+  const countryCode = profile.location?.country
+    ? getCountryCode(profile.location.country)
+    : null;
+  const completedJobs = profile.completedJobs ?? 0;
+
+  // Construction du nom complet avec plusieurs fallbacks
+  const fullName =
+    profile.fullName ||
+    (profile.firstName && profile.lastName
+      ? `${profile.firstName} ${profile.lastName}`
+      : profile.firstName || profile.lastName || "Utilisateur");
+
+  // Avatar avec fallback
+  const avatarSrc = profile.avatar
+    ? getAvatarUrl(profile.avatar)
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        fullName
+      )}&background=random&color=fff`;
+
+  // Compétences avec vérification
+  const skills =
+    Array.isArray(profile.skills) && profile.skills.length > 0
+      ? profile.skills.slice(0, 2).join(" • ")
+      : "Aucune compétence listée";
+
+
   return (
     <div
       onClick={onViewProfile}
       className="bg-white rounded-2xl shadow-md p-6 flex flex-col items-center text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group cursor-pointer"
     >
+<<<<<<< HEAD
       {/* Bouton Options (inchangé) */}
       <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+=======
+      {/* Bouton Options */}
+      <button
+        className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        onClick={(e) => {
+          e.stopPropagation(); // Empêcher de déclencher onViewProfile
+          // Ajouter la logique du menu options ici
+        }}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="h-5 w-5"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+        >
+>>>>>>> 092fba5a16dd15d1320e916ddd641e5dccd6227e
           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
         </svg>
       </button>
 
       {/* Avatar (inchangé) */}
       <img
+<<<<<<< HEAD
         src={profile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`}
         alt={fullName}
         className="w-24 h-24 rounded-full object-cover mb-2 border-4 border-white shadow-sm"
+=======
+        src={avatarSrc}
+        alt={fullName}
+        className="w-24 h-24 rounded-full object-cover mb-4 border-4 border-white shadow-sm bg-gray-100"
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            fullName
+          )}&background=random&color=fff`;
+        }}
+>>>>>>> 092fba5a16dd15d1320e916ddd641e5dccd6227e
       />
 
       {/* Nom */}
@@ -124,12 +214,14 @@ const TalentCard = ({ talent, onViewProfile }) => {
             <img
               src={`https://flagcdn.com/w20/${countryCode.toLowerCase()}.png`}
               alt={profile.location.country}
+              className="w-5 h-3 object-cover"
             />
           )}
           <span>{profile.location.country}</span>
         </div>
       )}
 
+<<<<<<< HEAD
       {/* Compétences (inchangé) */}
       <div className="flex items-center gap-2 text-sm text-gray-600 mt-4">
         <BriefcaseIcon className="w-5 h-5 text-gray-400" />
@@ -143,6 +235,30 @@ const TalentCard = ({ talent, onViewProfile }) => {
         <EnvelopeIcon className="w-5 h-5 text-gray-400" />
         <span className="text-gray-600">{talent.email}</span>
       </div>
+=======
+      {/* Profession (si disponible) */}
+      {profile.profession && (
+        <p className="text-sm text-gray-600 mt-2 font-medium">
+          {profile.profession}
+        </p>
+      )}
+
+      {/* Compétences */}
+      <div className="flex items-center gap-2 text-sm text-gray-600 mt-4">
+        <BriefcaseIcon className="w-5 h-5 text-gray-400" />
+        <p className="line-clamp-1">{skills}</p>
+      </div>
+
+      {/* Email */}
+      {talent.email && (
+        <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
+          <EnvelopeIcon className="w-5 h-5 text-gray-400" />
+          <span className="text-gray-600 truncate max-w-[200px]">
+            {talent.email}
+          </span>
+        </div>
+      )}
+>>>>>>> 092fba5a16dd15d1320e916ddd641e5dccd6227e
 
       {/* Missions complétées (inchangé) */}
       <div className="mt-4 px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">

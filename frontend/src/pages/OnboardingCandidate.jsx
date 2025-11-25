@@ -2,25 +2,69 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { apiService } from "../services/api";
+import CitySelect from "../components/UI/CitySelect";
+import { CameraIcon } from "@heroicons/react/24/solid";
 
 const OnboardingCandidate = () => {
-  const { refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
 
   const [profileData, setProfileData] = useState({
     profession: "",
     phone: "",
-    location: { city: "", country: "" },
+    location: { city: "", country: "Cameroun" },
     bio: "",
     skills: "",
+    address: "",
   });
 
-  // L'état 'scan' contiendra maintenant l'objet Fichier (File), pas une simple URL
   const [diplomas, setDiplomas] = useState([{ type: "" }]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  // Gère les changements sur les champs de profil simples
+  // --- UTILITAIRE URL AVATAR ---
+  const getAvatarUrl = (avatarPath) => {
+    if (!avatarPath) return null;
+    const apiUrl = import.meta.env.VITE_API_URL;
+    const baseUrl = apiUrl.replace(/\/api$/, "");
+    if (avatarPath.startsWith("http")) return avatarPath;
+    const cleanPath = avatarPath.startsWith("/")
+      ? avatarPath
+      : `/${avatarPath}`;
+    return `${baseUrl}${cleanPath}`;
+  };
+
+  // --- GESTION UPLOAD AVATAR ---
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Le fichier doit être une image.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError("L'image est trop volumineuse (max 5Mo).");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setError("");
+
+    try {
+      const response = await apiService.auth.updateAvatar(file);
+      if (response.success) {
+        await refreshUser();
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Erreur lors de l'upload de la photo.");
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === "city" || name === "country") {
@@ -33,19 +77,16 @@ const OnboardingCandidate = () => {
     }
   };
 
-  // Gère le changement du type de diplôme
   const handleDiplomaTypeChange = (index, value) => {
     const list = [...diplomas];
     list[index].type = value;
     setDiplomas(list);
   };
 
-  // Ajoute une nouvelle ligne pour un diplôme
   const addDiplomaField = () => {
     setDiplomas([...diplomas, { type: "", scan: null }]);
   };
 
-  // Supprime une ligne de diplôme
   const removeDiplomaField = (index) => {
     setDiplomas(diplomas.filter((_, i) => i !== index));
   };
@@ -53,123 +94,46 @@ const OnboardingCandidate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 1. Validation côté client pour s'assurer que la profession est bien remplie
     if (!profileData.profession || profileData.profession.trim() === "") {
       setError("Complétez votre profil pour continuer.");
-      return; // On arrête la soumission si la validation échoue
+      return;
     }
 
     setLoading(true);
     setError("");
 
     try {
-      // 2. Création d'un simple objet JavaScript (payload) au lieu de FormData
       const payload = {
         profile: {
-          // On inclut toutes les données du state
           ...profileData,
-
-          // 3. On s'assure que les types de données sont corrects avant l'envoi
-
-          // Convertit l'âge en nombre, ou le laisse non défini s'il est vide
+          location: {
+            city: profileData.location.city,
+            country: "Cameroun",
+          },
           age: profileData.age ? Number(profileData.age) : undefined,
-
-          // Transforme la chaîne de caractères "skills" en un tableau propre
           skills: profileData.skills
-            .split(",") // Sépare par la virgule
-            .map((skill) => skill.trim()) // Enlève les espaces superflus
-            .filter(Boolean), // Retire les éléments vides (ex: "skill1, , skill2")
-
-          // Transforme le tableau des diplômes pour correspondre au format attendu par le backend
+            .split(",")
+            .map((skill) => skill.trim())
+            .filter(Boolean),
+          address: profileData.address,
           diplomas: diplomas
-            .filter((d) => d.type && d.type.trim() !== "") // Garde uniquement les diplômes où un type a été sélectionné
-            .map((d) => ({ type: d.type, scan: null })), // Formate chaque diplôme (scan est toujours null ici)
+            .filter((d) => d.type && d.type.trim() !== "")
+            .map((d) => ({ type: d.type, scan: null })),
         },
       };
 
-      // 4. Appel de l'API avec le payload JSON
-      // Votre service apiService doit être configuré pour envoyer du 'application/json' par défaut
       await apiService.auth.updateProfile(payload);
-
-      // 5. Mise à jour du contexte utilisateur et redirection
       await refreshUser();
       navigate("/dashboard");
     } catch (err) {
-      // Gestion des erreurs de l'API
       setError(
         err.response?.data?.error ||
           "Une erreur est survenue lors de la mise à jour."
       );
     } finally {
-      // S'assure que l'état de chargement est réinitialisé, même en cas d'erreur
       setLoading(false);
     }
   };
-
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   setLoading(true);
-  //   setError("");
-
-  //   try {
-  //     // On utilise FormData car nous envoyons des fichiers
-  //     const formData = new FormData();
-
-  //     // 1. Ajouter les données textuelles du profil
-  //     // La clé doit correspondre à ce que le backend attend (ex: 'profile[profession]')
-  //     formData.append("profile[profession]", profileData.profession);
-  //     formData.append("profile[age]", profileData.age);
-  //     formData.append("profile[phone]", profileData.phone);
-  //     formData.append("profile[bio]", profileData.bio);
-  //     formData.append("profile[location][city]", profileData.location.city);
-  //     formData.append(
-  //       "profile[location][country]",
-  //       profileData.location.country
-  //     );
-
-  //     // 2. Ajouter les compétences (en tant que tableau)
-  //     const skillsArray = profileData.skills
-  //       .split(",")
-  //       .map((s) => s.trim())
-  //       .filter(Boolean);
-  //     skillsArray.forEach((skill) =>
-  //       formData.append("profile[skills][]", skill)
-  //     );
-
-  //     // 3. Gérer les diplômes et les fichiers uploadés
-  //     const diplomaMetadata = [];
-  //     diplomas.forEach((diploma) => {
-  //       // On ne traite que les diplômes où un type est sélectionné
-  //       if (diploma.type) {
-  //         let scanData = null;
-  //         // Si un fichier a été uploadé pour ce diplôme, on l'ajoute au FormData
-  //         if (diploma.scan) {
-  //           // Le nom 'diplomaScans' doit correspondre au nom attendu par multer
-  //           formData.append("diplomaScans", diploma.scan, diploma.scan.name);
-  //           // On garde une référence dans les métadonnées
-  //           scanData = diploma.scan.name;
-  //         }
-  //         diplomaMetadata.push({ type: diploma.type, scan: scanData });
-  //       }
-  //     });
-
-  //     // On envoie les métadonnées des diplômes en format JSON stringifié
-  //     formData.append("diplomas", JSON.stringify(diplomaMetadata));
-
-  //     // Le service api doit être configuré pour envoyer un 'multipart/form-data'
-  //     await apiService.auth.updateProfile(formData);
-
-  //     await refreshUser();
-  //     navigate("/dashboard");
-  //   } catch (err) {
-  //     setError(
-  //       err.response?.data?.error ||
-  //         "Une erreur est survenue lors de la mise à jour."
-  //     );
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
@@ -179,6 +143,62 @@ const OnboardingCandidate = () => {
           <p className="text-sm text-gray-600 mt-2">
             Ces informations aideront les recruteurs à vous trouver.
           </p>
+        </div>
+
+        {/* --- ZONE AVATAR --- */}
+        <div className="flex justify-center">
+          <div className="relative group cursor-pointer">
+            <input
+              type="file"
+              id="avatar-upload-onboarding"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+              disabled={loading || isUploadingAvatar}
+            />
+            <label
+              htmlFor="avatar-upload-onboarding"
+              className="cursor-pointer block relative"
+            >
+              {user?.profile?.avatar ? (
+                <img
+                  src={getAvatarUrl(user.profile.avatar)}
+                  alt="Profil"
+                  className={`w-32 h-32 rounded-full object-cover border-4 border-white shadow-md ${
+                    isUploadingAvatar ? "opacity-50" : ""
+                  }`}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.style.display = "none";
+                  }}
+                />
+              ) : (
+                <div
+                  className={`w-32 h-32 bg-indigo-600 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-md ${
+                    isUploadingAvatar ? "opacity-50" : ""
+                  }`}
+                >
+                  {user?.profile?.firstName?.charAt(0) || "U"}
+                  {user?.profile?.lastName?.charAt(0) || ""}
+                </div>
+              )}
+
+              {/* Overlay */}
+              <div
+                className={`absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center transition-opacity duration-200 ${
+                  isUploadingAvatar
+                    ? "opacity-100"
+                    : "opacity-0 group-hover:opacity-100"
+                }`}
+              >
+                {isUploadingAvatar ? (
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                ) : (
+                  <CameraIcon className="w-10 h-10 text-white" />
+                )}
+              </div>
+            </label>
+          </div>
         </div>
 
         {error && <p className="text-red-500 text-center text-sm">{error}</p>}
@@ -201,59 +221,48 @@ const OnboardingCandidate = () => {
               placeholder="Ex: Développeur Full-Stack"
             />
           </div>
-          {/* <div>
-            <label
-              htmlFor="age"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Âge
-            </label>
-            <input
-              type="number"
-              name="age"
-              id="age"
-              value={profileData.age}
-              onChange={handleChange}
-              className="input input-bordered w-full mt-1"
-              placeholder="Votre âge"
-            />
-          </div> */}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Sélecteur de Ville intelligent */}
+            <CitySelect
+              label="Ville"
+              name="city"
+              value={profileData.location.city}
+              onChange={handleChange}
+            />
+
             <div>
-              <label
-                htmlFor="city"
-                className="block text-sm font-medium text-gray-700"
-              >
-                Ville
-              </label>
-              <input
-                type="text"
-                name="city"
-                id="city"
-                value={profileData.location.city}
-                onChange={handleChange}
-                className="input input-bordered w-full mt-1"
-                placeholder="Ex: Paris"
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="country"
-                className="block text-sm font-medium text-gray-700"
-              >
+              <label className="block text-sm font-medium text-gray-700">
                 Pays
               </label>
               <input
                 type="text"
                 name="country"
-                id="country"
-                value={profileData.location.country}
-                onChange={handleChange}
-                className="input input-bordered w-full mt-1"
-                placeholder="Ex: France"
+                value="Cameroun"
+                disabled
+                className="input input-bordered w-full mt-1 bg-gray-100 text-gray-500 cursor-not-allowed"
               />
             </div>
           </div>
+
+          <div>
+            <label
+              htmlFor="address"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Votre Adresse
+            </label>
+            <input
+              type="text"
+              name="address"
+              id="address"
+              value={profileData.address}
+              onChange={handleChange}
+              className="input input-bordered w-full mt-1"
+              placeholder="Ex: Rue Jamot, Akwa"
+            />
+          </div>
+
           <div>
             <label
               htmlFor="skills"

@@ -125,10 +125,10 @@ module.exports = (sequelize) => {
         field: "last_name",
       },
       profession: { type: DataTypes.STRING },
-      age: { type: DataTypes.INTEGER },
       avatar: { type: DataTypes.STRING },
       phone: DataTypes.STRING,
       location: DataTypes.JSON,
+      address: DataTypes.STRING,
       bio: DataTypes.TEXT,
       skills: { type: DataTypes.JSON, defaultValue: [] },
       website: {

@@ -234,10 +234,31 @@ const FreelancerProfileModal = ({ freelancer, isLoading, onClose }) => {
 
   if (!freelancer) return null;
 
+  // --- FONCTION UTILITAIRE POUR L'AVATAR ---
+  const getAvatarUrl = (avatarPath) => {
+    if (!avatarPath) return null;
+    if (avatarPath.startsWith("http")) return avatarPath;
+
+    const apiUrl = import.meta.env.VITE_API_URL;
+    const baseUrl = apiUrl.replace(/\/api$/, "");
+    const cleanPath = avatarPath.startsWith("/")
+      ? avatarPath
+      : `/${avatarPath}`;
+
+    return `${baseUrl}${cleanPath}`;
+  };
+
   // Construit le nom complet de manière robuste
   const fullName =
     freelancer.profile.fullName ||
     `${freelancer.profile.firstName} ${freelancer.profile.lastName}`;
+
+  // Avatar avec fallback
+  const avatarSrc = freelancer.profile.avatar
+    ? getAvatarUrl(freelancer.profile.avatar)
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        fullName
+      )}&background=random&color=fff`;
 
   const completedJobs = freelancer.profile?.completedJobs ?? 0;
 
@@ -263,14 +284,15 @@ const FreelancerProfileModal = ({ freelancer, isLoading, onClose }) => {
             <div className="p-6 border-b flex items-start justify-between">
               <div className="flex items-center space-x-4">
                 <img
-                  src={
-                    freelancer.profile.avatar ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                      fullName
-                    )}&background=0D8ABC&color=fff&bold=true`
-                  }
+                  src={avatarSrc}
                   alt={fullName}
-                  className="w-20 h-20 rounded-full object-cover border-4 border-gray-100"
+                  className="w-24 h-24 rounded-full object-cover mb-4 border-4 border-white shadow-sm bg-gray-100"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                      fullName
+                    )}&background=random&color=fff`;
+                  }}
                 />
                 <div>
                   <h2 className="text-2xl font-bold">{fullName}</h2>
