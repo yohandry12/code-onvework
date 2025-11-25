@@ -408,6 +408,74 @@ export const apiDocs = [
     ],
   },
   {
+    title: "🏆 Recommandations Candidats",
+    description:
+      "Gestion des avis et notes reçus par les candidats (API candidates.js).",
+    endpoints: [
+      {
+        method: "GET",
+        url: "/candidates/recommendations",
+        description:
+          "Récupérer les recommandations de TOUS les candidats (groupées par candidat).",
+        access: "Public",
+        params: ["page=1", "limit=10", "sortBy=rating | recent"],
+        response: {
+          success: true,
+          data: [
+            {
+              candidateId: 10,
+              candidateName: "Alice",
+              totalRecommendations: 3,
+              averageRating: 4.5,
+              badge: "Argent",
+              recommendations: [
+                {
+                  employerName: "TechCorp",
+                  message: "Très compétente",
+                  rating: 5,
+                  createdAt: "2023-10-27...",
+                },
+              ],
+              pagination: { currentPage: 1, totalPages: 5, totalResults: 3 },
+            },
+          ],
+          summary: { totalCandidates: 50, totalRecommendationsAcrossAll: 150 },
+        },
+      },
+      {
+        method: "GET",
+        url: "/candidates/:candidateId/recommendations",
+        description:
+          "Récupérer les recommandations détaillées d'un candidat spécifique.",
+        access: "Public",
+        params: ["page=1", "limit=10", "sortBy=rating | recent"],
+        response: {
+          success: true,
+          data: {
+            candidateId: 10,
+            candidateName: "Alice",
+            avatarUrl: "...",
+            totalRecommendations: 5,
+            averageRating: 4.8,
+            badge: "Or",
+            recommendations: [
+              {
+                id: 1,
+                jobTitle: "Développeur React",
+                employerName: "Bob",
+                employerCompany: "StartUp Inc.",
+                message: "Excellent travail",
+                rating: 5,
+              },
+            ],
+            pagination: { currentPage: 1, totalPages: 2, totalResults: 5 },
+          },
+        },
+      },
+    ],
+  },
+
+  {
     title: "⭐ Témoignages",
     description: "Avis sur la plateforme.",
     endpoints: [

@@ -33,7 +33,7 @@ export const SocketProvider = ({ children }) => {
     if (isAuthenticated && user && !socketRef.current) {
       // URL du serveur Socket.IO
       const SOCKET_URL =
-        import.meta.env.VITE_SOCKET_URL || "http://192.168.100.162:4000";
+        import.meta.env.VITE_SOCKET_URL || "http://192.168.1.117:4000";
 
       // Créer la connexion
       socketRef.current = io(SOCKET_URL, {
