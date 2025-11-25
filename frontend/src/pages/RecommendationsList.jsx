@@ -82,7 +82,7 @@ const RecommendationsList = () => {
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center">
-                  <StarIcon className="w-6 h-6 text-rose-500" />
+                  <StarIcon className="w-6 h-6 text-rose-500" />{/*card candidats evalues*/}
                 </div>
               </div>
             </div>
@@ -98,12 +98,12 @@ const RecommendationsList = () => {
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
-                  <SparklesIcon className="w-6 h-6 text-blue-500" />
+                  <SparklesIcon className="w-6 h-6 text-blue-500" />{/*card nombre d'avis*/}
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
+            {/* <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm font-medium">
@@ -118,7 +118,7 @@ const RecommendationsList = () => {
                   <StarIcon className="w-6 h-6 text-yellow-500" />
                 </div>
               </div>
-            </div>
+            </div> */}
           </motion.div>
         )}
 
