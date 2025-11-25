@@ -51,8 +51,6 @@ const OnboardingCandidate = () => {
     setDiplomas(diplomas.filter((_, i) => i !== index));
   };
 
-  const handleSkip = () => navigate("/dashboard");
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -332,13 +330,6 @@ const OnboardingCandidate = () => {
           </div>
 
           <div className="flex justify-between items-center pt-4">
-            <button
-              type="button"
-              onClick={handleSkip}
-              className="text-sm font-semibold text-gray-600 hover:text-indigo-600"
-            >
-              Passer pour l'instant
-            </button>
             <button
               type="submit"
               disabled={loading}
