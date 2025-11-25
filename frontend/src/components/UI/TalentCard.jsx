@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { EnvelopeIcon, BriefcaseIcon } from "@heroicons/react/24/outline";
-import { StarIcon } from "@heroicons/react/24/solid"; 
-import { apiService } from "../services/api"; // Assure-toi que le chemin est correct
-
-// Utilitaire pour les drapeaux (inchangé)
+import { StarIcon } from "@heroicons/react/24/solid";
+import { apiService } from "../../services/api";
+// Un petit utilitaire pour obtenir les codes de pays pour les drapeaux
 const getCountryCode = (countryName) => {
   const countryMap = {
-<<<<<<< HEAD
-    Germany: "DE", Australia: "AU", Brazil: "BR", Singapore: "SG",
-    France: "FR", Canada: "CA", "United States": "US", "United Kingdom": "GB",
-    Italy: "IT", Spain: "ES", Netherlands: "NL",
-=======
     Germany: "DE",
     Australia: "AU",
     Brazil: "BR",
@@ -22,7 +16,6 @@ const getCountryCode = (countryName) => {
     Italy: "IT",
     Spain: "ES",
     Netherlands: "NL",
->>>>>>> 092fba5a16dd15d1320e916ddd641e5dccd6227e
   };
   return countryMap[countryName] || null;
 };
@@ -40,69 +33,8 @@ const getAvatarUrl = (avatarPath) => {
 };
 
 const TalentCard = ({ talent, onViewProfile }) => {
-  const { profile } = talent;
-  const countryCode = getCountryCode(profile.location?.country);
-  const completedJobs = talent.profile?.completedJobs ?? 0;
-  const fullName = profile.fullName || `${profile.firstName} ${profile.lastName}`;
-
   // --- NOUVEAU : États pour stocker les avis ---
   const [stats, setStats] = useState({ average: 0, count: 0, loading: true });
-
-  // --- NOUVEAU : Récupération et calcul des notes ---
-  useEffect(() => {
-    let isMounted = true; // Pour éviter les erreurs si le composant est démonté
-
-    const fetchRating = async () => {
-      try {
-        // On utilise l'ID du talent pour chercher ses recommandations
-        const response = await apiService.recommendations.getCandidateRecommendations(talent.id);
-        
-        // Supposons que response.data contienne le tableau des avis
-        const reviews = response.data || [];
-        
-        if (reviews.length > 0) {
-          // Calcul de la moyenne
-          const totalStars = reviews.reduce((acc, review) => acc + review.rating, 0);
-          const average = totalStars / reviews.length;
-          
-          if (isMounted) {
-            setStats({ 
-              average: average, 
-              count: reviews.length, 
-              loading: false 
-            });
-          }
-        } else {
-          if (isMounted) setStats({ average: 0, count: 0, loading: false });
-        }
-      } catch (error) {
-        console.error("Erreur chargement note", error);
-        if (isMounted) setStats({ average: 0, count: 0, loading: false });
-      }
-    };
-
-    if (talent.id) {
-      fetchRating();
-    }
-
-    return () => { isMounted = false; };
-  }, [talent.id]);
-
-  // --- NOUVEAU : Fonction pour afficher les étoiles ---
-  const renderStars = (rating) => {
-    return (
-      <div className="flex text-yellow-400">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <StarIcon
-            key={star}
-            className={`w-5 h-5 ${
-              star <= Math.round(rating) ? "text-yellow-400" : "text-gray-200"
-            }`}
-          />
-        ))}
-      </div>
-    );
-  };
 
   // ✅ AJOUT DE VÉRIFICATIONS DE SÉCURITÉ
   if (!talent) {
@@ -125,6 +57,66 @@ const TalentCard = ({ talent, onViewProfile }) => {
       ? `${profile.firstName} ${profile.lastName}`
       : profile.firstName || profile.lastName || "Utilisateur");
 
+  // --- NOUVEAU : Récupération et calcul des notes ---
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchRating = async () => {
+      try {
+        // L'ID du talent correspond à son userId
+        const candidateId = talent.id || talent.userId;
+
+        if (!candidateId) return;
+
+        const response =
+          await apiService.recommendations.getCandidateRecommendations(
+            candidateId
+          );
+
+        if (response.success && response.data) {
+          // LE FIX EST ICI : On récupère directement les stats envoyées par le backend
+          // au lieu de les recalculer
+          const { averageRating, totalRecommendations } = response.data;
+
+          if (isMounted) {
+            setStats({
+              average: Number(averageRating) || 0, // S'assure que c'est un nombre
+              count: Number(totalRecommendations) || 0,
+              loading: false,
+            });
+          }
+        } else {
+          if (isMounted) setStats({ average: 0, count: 0, loading: false });
+        }
+      } catch (error) {
+        console.error("Erreur chargement note", error);
+        if (isMounted) setStats({ average: 0, count: 0, loading: false });
+      }
+    };
+
+    fetchRating();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [talent]);
+
+  // --- NOUVEAU : Fonction pour afficher les étoiles ---
+  const renderStars = (rating) => {
+    return (
+      <div className="flex text-yellow-400">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <StarIcon
+            key={star}
+            className={`w-5 h-5 ${
+              star <= Math.round(rating) ? "text-yellow-400" : "text-gray-200"
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
   // Avatar avec fallback
   const avatarSrc = profile.avatar
     ? getAvatarUrl(profile.avatar)
@@ -138,17 +130,11 @@ const TalentCard = ({ talent, onViewProfile }) => {
       ? profile.skills.slice(0, 2).join(" • ")
       : "Aucune compétence listée";
 
-
   return (
     <div
       onClick={onViewProfile}
       className="bg-white rounded-2xl shadow-md p-6 flex flex-col items-center text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group cursor-pointer"
     >
-<<<<<<< HEAD
-      {/* Bouton Options (inchangé) */}
-      <button className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-=======
       {/* Bouton Options */}
       <button
         className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
@@ -163,18 +149,12 @@ const TalentCard = ({ talent, onViewProfile }) => {
           viewBox="0 0 20 20"
           fill="currentColor"
         >
->>>>>>> 092fba5a16dd15d1320e916ddd641e5dccd6227e
           <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
         </svg>
       </button>
 
-      {/* Avatar (inchangé) */}
+      {/* Avatar */}
       <img
-<<<<<<< HEAD
-        src={profile.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`}
-        alt={fullName}
-        className="w-24 h-24 rounded-full object-cover mb-2 border-4 border-white shadow-sm"
-=======
         src={avatarSrc}
         alt={fullName}
         className="w-24 h-24 rounded-full object-cover mb-4 border-4 border-white shadow-sm bg-gray-100"
@@ -184,11 +164,7 @@ const TalentCard = ({ talent, onViewProfile }) => {
             fullName
           )}&background=random&color=fff`;
         }}
->>>>>>> 092fba5a16dd15d1320e916ddd641e5dccd6227e
       />
-
-      {/* Nom */}
-      <h2 className="text-xl font-bold text-gray-800">{fullName}</h2>
 
       {/* --- NOUVEAU : Affichage des étoiles sous le nom --- */}
       <div className="flex items-center gap-2 mt-1 mb-2 h-6">
@@ -207,7 +183,8 @@ const TalentCard = ({ talent, onViewProfile }) => {
         )}
       </div>
 
-      {/* Localisation (inchangé) */}
+      {/* Nom et Localisation */}
+      <h2 className="text-xl font-bold text-gray-800">{fullName}</h2>
       {profile.location?.country && (
         <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
           {countryCode && (
@@ -221,21 +198,6 @@ const TalentCard = ({ talent, onViewProfile }) => {
         </div>
       )}
 
-<<<<<<< HEAD
-      {/* Compétences (inchangé) */}
-      <div className="flex items-center gap-2 text-sm text-gray-600 mt-4">
-        <BriefcaseIcon className="w-5 h-5 text-gray-400" />
-        <p className="line-clamp-1">
-          {profile.skills?.slice(0, 2).join(" • ") || "Aucune compétence listée"}
-        </p>
-      </div>
-
-      {/* Email (inchangé) */}
-      <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
-        <EnvelopeIcon className="w-5 h-5 text-gray-400" />
-        <span className="text-gray-600">{talent.email}</span>
-      </div>
-=======
       {/* Profession (si disponible) */}
       {profile.profession && (
         <p className="text-sm text-gray-600 mt-2 font-medium">
@@ -258,11 +220,11 @@ const TalentCard = ({ talent, onViewProfile }) => {
           </span>
         </div>
       )}
->>>>>>> 092fba5a16dd15d1320e916ddd641e5dccd6227e
 
-      {/* Missions complétées (inchangé) */}
+      {/* Nombre de missions complétées */}
       <div className="mt-4 px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-        {completedJobs} mission{completedJobs !== 1 ? "s" : ""} complétée{completedJobs !== 1 ? "s" : ""}
+        {completedJobs} mission{completedJobs !== 1 ? "s" : ""} complétée
+        {completedJobs !== 1 ? "s" : ""}
       </div>
     </div>
   );
