@@ -221,33 +221,7 @@ const OnboardingCandidate = () => {
               placeholder="Ex: Développeur Full-Stack"
             />
           </div>
-<<<<<<< HEAD
 
-          <div>
-=======
-          {/* <div>
->>>>>>> d63039270a2a50374321f1001a470e76b51f7927
-            <label
-              htmlFor="age"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Âge
-            </label>
-            <input
-              type="number"
-              name="age"
-              id="age"
-              value={profileData.age}
-              onChange={handleChange}
-              className="input input-bordered w-full mt-1"
-              placeholder="Votre âge"
-            />
-<<<<<<< HEAD
-          </div>
-
-=======
-          </div> */}
->>>>>>> d63039270a2a50374321f1001a470e76b51f7927
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Sélecteur de Ville intelligent */}
             <CitySelect
