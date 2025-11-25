@@ -11,7 +11,6 @@ const OnboardingCandidate = () => {
 
   const [profileData, setProfileData] = useState({
     profession: "",
-    age: "",
     phone: "",
     location: { city: "", country: "Cameroun" },
     bio: "",
@@ -222,8 +221,12 @@ const OnboardingCandidate = () => {
               placeholder="Ex: Développeur Full-Stack"
             />
           </div>
+<<<<<<< HEAD
 
           <div>
+=======
+          {/* <div>
+>>>>>>> d63039270a2a50374321f1001a470e76b51f7927
             <label
               htmlFor="age"
               className="block text-sm font-medium text-gray-700"
@@ -239,8 +242,12 @@ const OnboardingCandidate = () => {
               className="input input-bordered w-full mt-1"
               placeholder="Votre âge"
             />
+<<<<<<< HEAD
           </div>
 
+=======
+          </div> */}
+>>>>>>> d63039270a2a50374321f1001a470e76b51f7927
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Sélecteur de Ville intelligent */}
             <CitySelect

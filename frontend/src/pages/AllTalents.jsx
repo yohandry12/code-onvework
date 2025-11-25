@@ -9,6 +9,8 @@ import {
 } from "@heroicons/react/24/outline";
 import FreelancerProfileModal from "../components/UI/FreelancerProfileModal";
 import { useAuth } from "../contexts/AuthContext";
+
+// endpoint pour recuperer les avis de chaque candidat
 // Nouveau composant pour les boutons de pagination
 const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
@@ -63,6 +65,7 @@ const FreelancerCard = ({ user, onViewProfile }) => {
           {user.profile.fullName}
         </h3>
         <p className="text-sm text-gray-400">{title}</p>
+
       </div>
       <div className="flex flex-wrap justify-center gap-2">
         {user.profile.skills?.slice(0, 3).map((skill, idx) => (
