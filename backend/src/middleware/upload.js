@@ -2,57 +2,53 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-// --- CORRECTION CLÉ : Utiliser process.cwd() pour un chemin fiable ---
-// process.cwd() donne la racine du projet où vous avez lancé 'npm run dev'.
-// On construit un chemin absolu vers 'backend/uploads'. C'est beaucoup plus robuste.
+// Chemins absolus
 const uploadDir = path.resolve(process.cwd(), "uploads");
+const avatarDir = path.resolve(process.cwd(), "avatar");
 
-// On ajoute des logs pour savoir exactement où Multer pense que le dossier se trouve.
-console.log(`[Multer] Chemin du dossier d'upload configuré sur : ${uploadDir}`);
+console.log(`[Multer] Uploads: ${uploadDir}`);
+console.log(`[Multer] Avatars: ${avatarDir}`);
 
-// Tenter de créer le dossier s'il n'existe pas.
-try {
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-    console.log(`[Multer] Dossier d'upload créé avec succès.`);
+// Création des dossiers si inexistants
+[uploadDir, avatarDir].forEach((dir) => {
+  try {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  } catch (error) {
+    console.error(`[Multer] Erreur création dossier ${dir}:`, error);
   }
-} catch (error) {
-  // Si cette erreur apparaît, c'est un problème de permissions.
-  console.error(
-    `[Multer] ERREUR CRITIQUE : Impossible de créer le dossier d'upload.`,
-    error
-  );
-}
+});
 
-// Configurer le stockage (comment nommer et où placer les fichiers)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // --- NOUVEAUTÉ : Vérifier les permissions d'écriture ---
-    // Avant chaque upload, on s'assure que le dossier est bien accessible en écriture.
-    fs.access(uploadDir, fs.constants.W_OK, (err) => {
+    // --- LOGIQUE DE SÉLECTION DU DOSSIER ---
+    // Si le champ s'appelle "avatar", on va dans le dossier avatar.
+    // Sinon, on va dans le dossier uploads standard.
+    const targetDir = file.fieldname === "avatar" ? avatarDir : uploadDir;
+
+    // Vérification des permissions
+    fs.access(targetDir, fs.constants.W_OK, (err) => {
       if (err) {
-        console.error(
-          `[Multer] ERREUR : Le dossier ${uploadDir} n'est pas accessible en écriture.`
-        );
-        // On renvoie l'erreur à Multer, qui arrêtera proprement le processus.
+        console.error(`[Multer] Erreur permission écriture sur ${targetDir}`);
         return cb(err);
       }
-      // Si tout est OK, on continue.
-      cb(null, uploadDir);
+      cb(null, targetDir);
     });
   },
   filename: (req, file, cb) => {
+    // Nettoyage du nom de fichier pour éviter les caractères spéciaux
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     const extension = path.extname(file.originalname);
     cb(null, `${file.fieldname}-${uniqueSuffix}${extension}`);
   },
 });
 
-// Le reste de votre configuration est correct.
 const fileFilter = (req, file, cb) => {
   const allowedMimes = [
     "image/jpeg",
     "image/png",
+    "image/webp",
     "application/pdf",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

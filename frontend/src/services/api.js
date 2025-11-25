@@ -111,6 +111,16 @@ export const apiService = {
     changePassword: (currentPassword, newPassword) =>
       apiClient.post("/auth/change-password", { currentPassword, newPassword }),
     deleteAccount: () => apiClient.delete("/auth/delete-account"),
+
+    updateAvatar: (file) => {
+      const formData = new FormData();
+      formData.append("avatar", file); // La clé doit être "avatar"
+      return apiClient.post("/auth/avatar", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    },
   },
 
   // API des emplois

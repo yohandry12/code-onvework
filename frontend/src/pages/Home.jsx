@@ -85,6 +85,18 @@ const JobCard = ({ job }) => {
   );
 };
 
+// --- FONCTION UTILITAIRE POUR L'AVATAR ---
+const getAvatarUrl = (avatarPath) => {
+  if (!avatarPath) return null;
+  if (avatarPath.startsWith("http")) return avatarPath;
+
+  const apiUrl = import.meta.env.VITE_API_URL;
+  const baseUrl = apiUrl.replace(/\/api$/, "");
+  const cleanPath = avatarPath.startsWith("/") ? avatarPath : `/${avatarPath}`;
+
+  return `${baseUrl}${cleanPath}`;
+};
+
 const FreelancerCard = ({ user, onViewProfile }) => {
   const profile = user.profile || {};
   const title =
@@ -95,6 +107,13 @@ const FreelancerCard = ({ user, onViewProfile }) => {
     profile.fullName ||
     `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
 
+  // Avatar avec fallback
+  const avatarSrc = profile.avatar
+    ? getAvatarUrl(profile.avatar)
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        fullName
+      )}&background=random&color=fff`;
+
   return (
     <div
       onClick={onViewProfile}
@@ -104,14 +123,15 @@ const FreelancerCard = ({ user, onViewProfile }) => {
       {/* Avatar */}
       <div className="relative">
         <img
-          src={
-            profile.avatar ||
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(
-              fullName
-            )}&background=f5e6c8&color=5b4636&bold=true`
-          }
+          src={avatarSrc}
           alt={fullName}
-          className="w-20 h-20 rounded-full object-cover border-4 border-amber-100 shadow-sm"
+          className="w-24 h-24 rounded-full object-cover mb-4 border-4 border-white shadow-sm bg-gray-100"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+              fullName
+            )}&background=random&color=fff`;
+          }}
         />
       </div>
 
@@ -247,7 +267,9 @@ const Home = () => {
       {/* HERO avec fond image et overlay beige apaisant */}
       <section
         className="relative flex flex-col items-center justify-center text-center bg-cover bg-center bg-no-repeat bg-fixed min-h-[85vh] px-6 py-24"
-        style={{ backgroundImage: `linear-gradient(rgb(15 15 15 / 50%), rgb(0 0 0 / 50%)), url(${homeIllustration})` }}
+        style={{
+          backgroundImage: `linear-gradient(rgb(15 15 15 / 50%), rgb(0 0 0 / 50%)), url(${homeIllustration})`,
+        }}
       >
         {/* Overlay doux */}
         {/* <div className="absolute inset-0 bg-white/70"></div> */}

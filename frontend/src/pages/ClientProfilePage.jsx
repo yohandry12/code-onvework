@@ -42,8 +42,29 @@ const ClientProfilePage = () => {
   if (!client)
     return <div className="text-center py-20">Ce profil n'existe pas.</div>;
 
+  // --- FONCTION UTILITAIRE POUR L'AVATAR ---
+  const getAvatarUrl = (avatarPath) => {
+    if (!avatarPath) return null;
+    if (avatarPath.startsWith("http")) return avatarPath;
+
+    const apiUrl = import.meta.env.VITE_API_URL;
+    const baseUrl = apiUrl.replace(/\/api$/, "");
+    const cleanPath = avatarPath.startsWith("/")
+      ? avatarPath
+      : `/${avatarPath}`;
+
+    return `${baseUrl}${cleanPath}`;
+  };
+
   const profile = client.profile;
   const fullName = `${profile.firstName} ${profile.lastName}`;
+
+  // Avatar avec fallback
+  const avatarSrc = profile.avatar
+    ? getAvatarUrl(profile.avatar)
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        fullName
+      )}&background=random&color=fff`;
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -51,10 +72,29 @@ const ClientProfilePage = () => {
         <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md p-8">
           {/* En-tête du profil */}
           <div className="flex flex-col sm:flex-row items-center gap-6 border-b pb-6">
-            <div className="w-24 h-24 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-4xl font-bold">
-              {profile.firstName.charAt(0)}
-              {profile.lastName.charAt(0)}
-            </div>
+            {client.profile ? (
+              <img
+                src={avatarSrc}
+                alt={fullName}
+                className="w-24 h-24 rounded-full object-cover mb-4 border-4 border-white shadow-sm bg-gray-100"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    fullName
+                  )}&background=random&color=fff`;
+                }}
+              />
+            ) : (
+              <div
+                className={`w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-md ${
+                  isUploadingAvatar ? "opacity-50" : ""
+                }`}
+              >
+                {formData.profile.firstName?.charAt(0)}
+                {formData.profile.lastName?.charAt(0)}
+              </div>
+            )}
+
             <div className="text-center sm:text-left">
               <h1 className="text-3xl font-bold text-gray-900">
                 {profile.company || fullName}

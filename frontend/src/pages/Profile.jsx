@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import apiService from "../services/api";
+import { apiService } from "../services/api"; // Assurez-vous que l'import est correct (accolades ou default)
 import CitySelect from "../components/UI/CitySelect";
 
 import {
@@ -13,14 +13,11 @@ import {
   SparklesIcon,
   AcademicCapIcon,
   BuildingOfficeIcon as OfficeBuildingIcon,
-  CheckBadgeIcon,
-  UserIcon,
-  LinkIcon,
   TagIcon,
+  CameraIcon,
 } from "@heroicons/react/24/outline";
 
-// --- Composants d'aide pour le style ---
-
+// --- Composants d'aide pour le style (Inchangés) ---
 const ProfileCard = ({ title, children, className }) => (
   <div className={`bg-white shadow rounded-lg p-6 ${className}`}>
     <h3 className="text-lg font-semibold text-gray-900 border-b pb-3 mb-4">
@@ -40,8 +37,7 @@ const InfoRow = ({ icon, label, value }) => (
   </div>
 );
 
-// --- Nouveaux composants d'aide pour le mode édition ---
-
+// --- Composants d'aide pour le mode édition (Inchangés) ---
 const InputRow = ({ label, name, value, onChange, type = "text" }) => (
   <div>
     <label htmlFor={name} className="block text-sm font-medium text-gray-700">
@@ -78,8 +74,8 @@ const TextareaRow = ({ label, name, value, onChange }) => (
   </div>
 );
 
-// --- Composants de profil spécifiques au rôle (mis à jour pour l'édition) ---
-
+// --- Composants de profil (Candidate & Client) ---
+// Note: J'ai gardé vos composants tels quels, ils recevront les props mises à jour
 const CandidateProfile = ({
   user,
   isEditing,
@@ -163,22 +159,16 @@ const CandidateProfile = ({
         )}
       </ProfileCard>
       <ProfileCard title="Badges & Diplômes">
-        {/* Section du Badge */}
         <InfoRow
           icon={<SparklesIcon />}
           label="Badge de Recommandation"
           value={user.profile.recommendationBadge || "Aucun"}
         />
-
-        {/* Ligne de séparation */}
         <div className="border-t border-gray-200 my-4"></div>
-
-        {/* Titre de la section des diplômes */}
         <div className="flex items-center text-gray-700">
           <AcademicCapIcon className="h-5 w-5 mr-2" />
           <h4 className="font-semibold">Diplômes & Certificats</h4>
         </div>
-
         <div className="mt-2 pl-2">
           {isEditing ? (
             <div className="space-y-4">
@@ -242,7 +232,6 @@ const ClientProfile = ({
   handleEmployerTypeChange,
 }) => (
   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    {/* Colonne de Gauche */}
     <div className="lg:col-span-2 space-y-6">
       <ProfileCard title="À propos">
         {isEditing ? (
@@ -323,8 +312,6 @@ const ClientProfile = ({
         )}
       </ProfileCard>
     </div>
-
-    {/* Colonne de Droite */}
     <div className="space-y-6">
       <ProfileCard title="Contact">
         <InfoRow icon={<EnvelopeIcon />} label="Email" value={user.email} />
@@ -350,15 +337,15 @@ const ClientProfile = ({
 // --- Composant principal de la page ---
 
 const ProfilePage = () => {
-  const { user, loading, refreshUser } = useAuth(); // `refreshUser` est supposé exister dans le contexte
+  const { user, loading, refreshUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState(null);
   const [feedback, setFeedback] = useState({ error: null, success: null });
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   useEffect(() => {
     if (user) {
-      // Initialise le formulaire avec les données de l'utilisateur
       setFormData({
         profile: {
           firstName: user.profile.firstName || "",
@@ -374,6 +361,8 @@ const ProfilePage = () => {
           commercialName: user.profile.commercialName || "",
           sector: user.profile.sector || "",
           employerType: user.profile.employerType || "",
+          avatar: user.profile.avatar || "",
+          address: user.profile.address || "",
         },
       });
     }
@@ -384,12 +373,61 @@ const ProfilePage = () => {
       const timer = setTimeout(() => {
         setFeedback({ success: null, error: null });
       }, 5000);
-
-      return () => clearTimeout(timer); // nettoyage si feedback change avant 5s
+      return () => clearTimeout(timer);
     }
   }, [feedback]);
 
-  // --- NOUVELLES FONCTIONS POUR GÉRER LES DIPLÔMES EN MODE ÉDITION ---
+  // --- GESTION AVATAR (NOUVEAU) ---
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validation basique
+    if (!file.type.startsWith("image/")) {
+      setFeedback({
+        error: "Le fichier doit être une image (jpg, png, etc.)",
+        success: null,
+      });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setFeedback({
+        error: "L'image est trop volumineuse (max 5Mo).",
+        success: null,
+      });
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    setFeedback({ error: null, success: null });
+
+    try {
+      const response = await apiService.auth.updateAvatar(file);
+      if (response.success) {
+        setFeedback({ success: "Photo de profil mise à jour !", error: null });
+
+        // Mettre à jour le state local pour un affichage immédiat
+        setFormData((prev) => ({
+          ...prev,
+          profile: { ...prev.profile, avatar: response.avatar },
+        }));
+
+        // Rafraîchir le contexte utilisateur global
+        await refreshUser();
+      }
+    } catch (err) {
+      setFeedback({
+        error:
+          err.response?.data?.error ||
+          "Erreur lors du téléchargement de l'image.",
+        success: null,
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
+  // --- Fonctions existantes ---
   const handleDiplomaChange = (index, field, value) => {
     const updatedDiplomas = [...formData.profile.diplomas];
     updatedDiplomas[index][field] = value;
@@ -400,7 +438,7 @@ const ProfilePage = () => {
   };
 
   const addDiplomaField = () => {
-    const newDiploma = { type: "", scan: null }; // `scan` est null pour un nouveau fichier
+    const newDiploma = { type: "", scan: null };
     setFormData((prev) => ({
       ...prev,
       profile: {
@@ -429,7 +467,7 @@ const ProfilePage = () => {
   };
 
   const handleLocationChange = (e) => {
-    const { name, value } = e.target; // name sera "city" ou "country"
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       profile: {
@@ -463,12 +501,11 @@ const ProfilePage = () => {
         profile: {
           ...formData.profile,
           location: locationData,
-          // Filtrer les diplômes vides avant l'envoi
           diplomas: formData.profile.diplomas.filter((d) => d.type),
         },
       };
       await apiService.auth.updateProfile(updates);
-      await refreshUser(); // Rafraîchir les données utilisateur depuis le serveur
+      await refreshUser();
       setFeedback({ success: "Profil mis à jour avec succès !", error: null });
       setIsEditing(false);
     } catch (error) {
@@ -483,7 +520,6 @@ const ProfilePage = () => {
 
   const handleCancelEdit = () => {
     setIsEditing(false);
-    // Réinitialise formData aux valeurs originales de `user`
     if (user) {
       setFormData({
         profile: { ...user.profile },
@@ -491,10 +527,27 @@ const ProfilePage = () => {
     }
   };
 
+  // Utilitaire pour construire l'URL de l'avatar
+  const getAvatarUrl = (avatarPath) => {
+    if (!avatarPath) return null;
+    const apiUrl = import.meta.env.VITE_API_URL;
+    // On retire '/api' pour avoir la racine (ex: http://192.168.1.10:4000)
+    const baseUrl = apiUrl.replace(/\/api$/, "");
+
+    // Si avatarPath commence par http, c'est déjà une URL complète (ex: Google auth)
+    if (avatarPath.startsWith("http")) return avatarPath;
+
+    // Sinon on concatène. Assurons-nous qu'il y a un slash.
+    const cleanPath = avatarPath.startsWith("/")
+      ? avatarPath
+      : `/${avatarPath}`;
+    return `${baseUrl}${cleanPath}`;
+  };
+
   if (loading || !formData) {
     return (
       <div className="text-center py-10">
-        <p>Chargement du profil...</p>
+        <p>Chargement...</p>
       </div>
     );
   }
@@ -512,10 +565,64 @@ const ProfilePage = () => {
         {/* --- En-tête du profil --- */}
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
-            <div className="w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center text-white text-4xl font-bold">
-              {formData.profile.firstName.charAt(0)}
-              {formData.profile.lastName.charAt(0)}
+            {/* --- ZONE AVATAR MODIFIÉE --- */}
+            <div className="relative group cursor-pointer">
+              <input
+                type="file"
+                id="avatar-upload"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+                disabled={isSaving || isUploadingAvatar}
+              />
+
+              <label
+                htmlFor="avatar-upload"
+                className="cursor-pointer block relative"
+              >
+                {/* Affichage de l'image ou des initiales */}
+                {formData.profile.avatar ? (
+                  <img
+                    src={getAvatarUrl(formData.profile.avatar)}
+                    alt="Profil"
+                    className={`w-24 h-24 rounded-full object-cover border-4 border-white shadow-md ${
+                      isUploadingAvatar ? "opacity-50" : ""
+                    }`}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.style.display = "none"; // Cache l'image cassée
+                      // On pourrait afficher les initiales en fallback ici via un état local si nécessaire
+                    }}
+                  />
+                ) : (
+                  <div
+                    className={`w-24 h-24 bg-indigo-600 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-md ${
+                      isUploadingAvatar ? "opacity-50" : ""
+                    }`}
+                  >
+                    {formData.profile.firstName?.charAt(0)}
+                    {formData.profile.lastName?.charAt(0)}
+                  </div>
+                )}
+
+                {/* Overlay au survol ou pendant chargement */}
+                <div
+                  className={`absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center transition-opacity duration-200 ${
+                    isUploadingAvatar
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100"
+                  }`}
+                >
+                  {isUploadingAvatar ? (
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                  ) : (
+                    <CameraIcon className="w-8 h-8 text-white" />
+                  )}
+                </div>
+              </label>
             </div>
+            {/* --- FIN ZONE AVATAR --- */}
+
             <div className="flex-grow text-center sm:text-left">
               {isEditing ? (
                 <div className="flex gap-4">
@@ -553,13 +660,27 @@ const ProfilePage = () => {
                       {user.profile.profession || "Profession non renseignée"}
                     </p>
                   )}
+                  {isEditing ? (
+                    <div className="mt-2">
+                      <InputRow
+                        label="Adresse"
+                        name="address"
+                        value={formData.profile.address}
+                        onChange={handleProfileChange}
+                        placeholder="Ex: Rue Jamot, Akwa"
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 mt-1">
+                      {user.profile.address || "Adresse non renseignée"}
+                    </p>
+                  )}
                 </>
               )}
               <p className="text-sm text-gray-500 capitalize">{user.role}</p>
 
               {isEditing ? (
                 <div className="flex flex-col sm:flex-row gap-4 mt-2">
-                  {/* Sélecteur de Ville connecté à l'API */}
                   <div className="flex-1">
                     <CitySelect
                       label="Ville"
@@ -568,8 +689,6 @@ const ProfilePage = () => {
                       onChange={handleLocationChange}
                     />
                   </div>
-
-                  {/* Champ Pays bloqué sur Cameroun */}
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-gray-700">
                       Pays
@@ -578,8 +697,8 @@ const ProfilePage = () => {
                       <input
                         type="text"
                         name="country"
-                        value="Cameroun" // Valeur forcée visuellement
-                        disabled // Empêche la modification
+                        value="Cameroun"
+                        disabled
                         className="block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm text-gray-500 cursor-not-allowed sm:text-sm"
                       />
                     </div>
@@ -602,7 +721,7 @@ const ProfilePage = () => {
                   disabled={isSaving}
                   className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-green-500 transition"
                 >
-                  {isSaving ? "Enregistrement..." : "Enregistrer"}
+                  {isSaving ? "..." : "Enregistrer"}
                 </button>
                 <button
                   type="button"
@@ -619,7 +738,7 @@ const ProfilePage = () => {
                 className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
               >
                 <PencilIcon className="w-5 h-5 mr-2" />
-                Modifier le profil
+                Modifier
               </button>
             )}
           </div>
@@ -637,7 +756,7 @@ const ProfilePage = () => {
         {feedback.error && (
           <div
             className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4"
-            role="ale  rt"
+            role="alert"
           >
             <p>{feedback.error}</p>
           </div>
