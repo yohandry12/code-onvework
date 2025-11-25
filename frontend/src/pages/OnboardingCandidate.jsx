@@ -9,7 +9,6 @@ const OnboardingCandidate = () => {
 
   const [profileData, setProfileData] = useState({
     profession: "",
-    age: "",
     phone: "",
     location: { city: "", country: "" },
     bio: "",
@@ -202,7 +201,7 @@ const OnboardingCandidate = () => {
               placeholder="Ex: Développeur Full-Stack"
             />
           </div>
-          <div>
+          {/* <div>
             <label
               htmlFor="age"
               className="block text-sm font-medium text-gray-700"
@@ -218,7 +217,7 @@ const OnboardingCandidate = () => {
               className="input input-bordered w-full mt-1"
               placeholder="Votre âge"
             />
-          </div>
+          </div> */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label
