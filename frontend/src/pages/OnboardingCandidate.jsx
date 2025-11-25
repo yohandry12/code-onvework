@@ -56,7 +56,7 @@ const OnboardingCandidate = () => {
 
     // 1. Validation côté client pour s'assurer que la profession est bien remplie
     if (!profileData.profession || profileData.profession.trim() === "") {
-      setError("La profession est un champ obligatoire.");
+      setError("Complétez votre profil pour continuer.");
       return; // On arrête la soumission si la validation échoue
     }
 
