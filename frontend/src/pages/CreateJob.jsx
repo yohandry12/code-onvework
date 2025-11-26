@@ -15,10 +15,12 @@ import {
   Info,
   Zap,
   Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import { apiService } from "../services/api";
 import AIChatAssistant from "../components/UI/AIChatAssistant";
 import AIFormField from "../components/UI/AIFormField";
+import CitySelect from "../components/UI/CitySelect";
 
 const categories = [
   { value: "development", label: "Développement", icon: "💻" },
@@ -70,7 +72,7 @@ const CreateJob = () => {
     budgetCurrency: "EUR",
     locationType: "distanciel/télétravail",
     locationCity: "",
-    locationCountry: "",
+    locationCountry: "Cameroun",
     skills: "",
     experience: "intermediate",
     education: "none",
@@ -94,6 +96,7 @@ const CreateJob = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [initialPrompt, setInitialPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [searchParams] = useSearchParams();
 
@@ -121,7 +124,7 @@ const CreateJob = () => {
               locationType:
                 clonedJob.location?.type || "distanciel/télétravail",
               locationCity: clonedJob.location?.city || "",
-              locationCountry: clonedJob.location?.country || "",
+              locationCountry: clonedJob.location?.country || "Cameroun",
 
               // ✅ Convertir les tableaux en strings
               skills: Array.isArray(clonedJob.skills)
@@ -177,6 +180,7 @@ const CreateJob = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === "locationCountry") return;
     setForm({
       ...form,
       [name]: type === "checkbox" ? checked : value,
@@ -211,7 +215,7 @@ const CreateJob = () => {
       location: {
         type: form.locationType,
         city: form.locationCity,
-        country: form.locationCountry,
+        country: form.locationCountry || "Cameroun",
       },
 
       // ✅ CORRECTION : Gérer les cas où c'est déjà un tableau OU une chaîne
@@ -251,12 +255,7 @@ const CreateJob = () => {
 
     try {
       await apiService.jobs.create(jobData);
-      setSuccess(
-        "Votre mission a été créée et sera analysée par notre équipe."
-      );
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 1500);
+      setShowSuccessModal(true);
     } catch (err) {
       const errorMsg =
         err.response?.data?.error || "Erreur lors de la publication.";
@@ -542,18 +541,13 @@ const CreateJob = () => {
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Ville
-                  </label>
-                  <input
-                    name="locationCity"
-                    value={form.locationCity}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="Paris, Lyon..."
-                  />
-                </div>
+                <CitySelect
+                  label="Ville"
+                  name="locationCity"
+                  value={form.locationCity}
+                  onChange={handleChange}
+                  placeholder="Rechercher une ville..."
+                />
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -561,10 +555,10 @@ const CreateJob = () => {
                   </label>
                   <input
                     name="locationCountry"
-                    value={form.locationCountry}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="France, Cameroun..."
+                    value="Cameroun"
+                    disabled
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-500 cursor-not-allowed focus:outline-none"
+                    placeholder="Cameroun"
                   />
                 </div>
               </div>
@@ -1165,6 +1159,42 @@ const CreateJob = () => {
           </div>
         </div>
       </div>
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden transform transition-all scale-100 animate-in fade-in zoom-in duration-300">
+            {/* Header visuel */}
+            <div className="bg-green-50 p-6 flex justify-center">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+            </div>
+
+            {/* Contenu */}
+            <div className="p-6 text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Mission soumise !
+              </h2>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Votre offre a bien été enregistrée. Notre équipe de modération
+                va l'examiner pour s'assurer qu'elle respecte nos standards.
+                <br />
+                <span className="block mt-2 font-medium text-blue-600 bg-blue-50 py-1 px-2 rounded-md inline-block">
+                  <ShieldCheck className="w-4 h-4 inline mr-1 mb-0.5" />
+                  Validation sous 2 à 4 heures
+                </span>
+              </p>
+
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="w-full py-3 px-4 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2"
+              >
+                Retourner au tableau de bord
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <AIChatAssistant
         jobFormContext={form}
         isOpen={isChatOpen}

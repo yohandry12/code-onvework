@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiService } from "../../services/api";
 
 export default function MissionCompletionModal({
   isOpen,
@@ -18,15 +19,8 @@ export default function MissionCompletionModal({
     setError("");
 
     try {
-      const response = await fetch(
-        `/api/applications/${applicationId}/mark-completed`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
+      const response = await apiService.applications.markCompleted(
+        applicationId
       );
 
       if (!response.ok) {

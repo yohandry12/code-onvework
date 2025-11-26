@@ -17,7 +17,7 @@ module.exports = function (io) {
   const router = express.Router();
 
   // --- GET /api/users/search - Recherche d'utilisateurs (traduit pour Sequelize) ---
-  router.get("/search", authenticateToken, async (req, res) => {
+  router.get("/search", async (req, res) => {
     try {
       const { query = "", role, page = 1, limit = 12 } = req.query;
 

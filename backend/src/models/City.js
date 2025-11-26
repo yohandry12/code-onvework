@@ -28,6 +28,13 @@ module.exports = (sequelize) => {
         as: "candidates",
       });
     }
+
+    if (models.Job) {
+      City.hasMany(models.Job, {
+        foreignKey: "city_id",
+        as: "jobs",
+      });
+    }
   };
 
   return City;

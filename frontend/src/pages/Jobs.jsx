@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { apiService } from "../services/api";
 import { useDebounce } from "../hooks/useDebounce";
 import ApplicationForm from "../pages/ApplicationForm";
+import { useAuth } from "../contexts/AuthContext";
 import Toast from "../components/UI/Toast";
 import {
   MagnifyingGlassIcon,
@@ -274,6 +275,9 @@ const Jobs = () => {
   const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const { user } = useAuth(); // Récupérer l'utilisateur courant
+  const navigate = useNavigate(); // Pour la redirection
+  const location = useLocation(); // Pour savoir d'où on vient
 
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -337,6 +341,18 @@ const Jobs = () => {
     }
   };
 
+  // --- NOUVELLE FONCTION DE GESTION DU CLIC ---
+  const handleApplyClick = (job) => {
+    if (!user) {
+      // Si pas connecté, on redirige vers /login
+      // "state: { from: location }" permet de revenir ici après la connexion si votre Login le gère
+      navigate("/login", { state: { from: location } });
+      return;
+    }
+    // Si connecté, on ouvre la modale normalement
+    setActiveJobToApply(job);
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <header className="bg-white border-b py-8 top-16 z-30">
@@ -396,7 +412,7 @@ const Jobs = () => {
                   <JobCard
                     key={job.id}
                     job={job}
-                    onApply={setActiveJobToApply}
+                    onApply={() => handleApplyClick(job)}
                   />
                 ))}
               </div>
@@ -433,11 +449,7 @@ const Jobs = () => {
 
       {/* Toast global (top-left) */}
       {toast && (
-        <Toast
-          toast={toast}
-          onClose={() => setToast(null)}
-          duration={4000}
-        />
+        <Toast toast={toast} onClose={() => setToast(null)} duration={4000} />
       )}
     </div>
   );

@@ -22,34 +22,32 @@ export default function MissionApprovalModal({
 
     try {
       // 1. Mettre à jour le statut de la candidature à "completed"
-      const response = await fetch(
-        `/api/applications/${applicationId}/status`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            status: "completed",
-          }),
-        }
+      // Note: Votre backend s'occupe déjà de passer le Job en "filled" automatiquement
+      // quand la candidature passe en "completed". Pas besoin de faire un 2ème appel API.
+      const response = await apiService.applications.updateStatus(
+        applicationId,
+        "completed"
       );
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Erreur lors de la validation");
+      // Avec Axios/apiService, si on est ici, c'est que ça a marché.
+      // On vérifie juste la propriété success logique du backend
+      if (response && response.success) {
+        // Déclencher le succès (ce qui ouvrira la modale de recommandation dans le parent)
+        if (onSuccess) {
+          onSuccess();
+        }
+        onClose();
+      } else {
+        throw new Error("Réponse inattendue du serveur.");
       }
-
-      // 2. Mettre à jour le statut du job à "filled"
-      if (jobId) {
-        await apiService.jobs.updateStatus(jobId, "filled");
-      }
-
-      onSuccess?.();
-      onClose();
     } catch (err) {
-      setError(err.message);
+      console.error("Erreur validation:", err);
+      // Gestion correcte des erreurs Axios
+      const errorMessage =
+        err.response?.data?.error ||
+        err.message ||
+        "Erreur lors de la validation";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

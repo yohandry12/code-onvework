@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { apiService } from "../services/api";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
+import { StarIcon } from "@heroicons/react/24/solid";
 import FreelancerProfileModal from "../components/UI/FreelancerProfileModal";
 import TestimonialsSection from "../pages/TestimonialsSection";
 import homeIllustration from "../assets/images/home.jpg";
@@ -107,6 +108,68 @@ const FreelancerCard = ({ user, onViewProfile }) => {
     profile.fullName ||
     `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
 
+  const [stats, setStats] = useState({ average: 0, count: 0, loading: true });
+
+  // --- NOUVEAU : Récupération et calcul des notes ---
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchRating = async () => {
+      try {
+        // L'ID du talent correspond à son userId
+        const candidateId = user.id || user.userId;
+
+        if (!candidateId) return;
+
+        const response =
+          await apiService.recommendations.getCandidateRecommendations(
+            candidateId
+          );
+
+        if (response.success && response.data) {
+          // LE FIX EST ICI : On récupère directement les stats envoyées par le backend
+          // au lieu de les recalculer
+          const { averageRating, totalRecommendations } = response.data;
+
+          if (isMounted) {
+            setStats({
+              average: Number(averageRating) || 0, // S'assure que c'est un nombre
+              count: Number(totalRecommendations) || 0,
+              loading: false,
+            });
+          }
+        } else {
+          if (isMounted) setStats({ average: 0, count: 0, loading: false });
+        }
+      } catch (error) {
+        console.error("Erreur chargement note", error);
+        if (isMounted) setStats({ average: 0, count: 0, loading: false });
+      }
+    };
+
+    fetchRating();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user]);
+
+  // --- NOUVEAU : Fonction pour afficher les étoiles ---
+  const renderStars = (rating) => {
+    return (
+      <div className="flex text-yellow-400">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <StarIcon
+            key={star}
+            className={`w-5 h-5 ${
+              star <= Math.round(rating) ? "text-yellow-400" : "text-gray-200"
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
   // Avatar avec fallback
   const avatarSrc = profile.avatar
     ? getAvatarUrl(profile.avatar)
@@ -133,6 +196,23 @@ const FreelancerCard = ({ user, onViewProfile }) => {
             )}&background=random&color=fff`;
           }}
         />
+      </div>
+
+      {/* --- NOUVEAU : Affichage des étoiles sous le nom --- */}
+      <div className="flex items-center gap-2 mt-1 mb-2 h-6">
+        {stats.loading ? (
+          // Petit squelette de chargement discret
+          <div className="h-4 w-24 bg-gray-100 animate-pulse rounded"></div>
+        ) : stats.count > 0 ? (
+          <>
+            {renderStars(stats.average)}
+            <span className="text-sm text-gray-500 font-medium">
+              ({stats.count} avis)
+            </span>
+          </>
+        ) : (
+          <span className="text-sm text-gray-400 italic">Aucun avis</span>
+        )}
       </div>
 
       {/* Nom + métier */}

@@ -13,6 +13,12 @@ module.exports = (sequelize) => {
           contentType: "job", // Ne lier que les rapports dont le type est 'job'
         },
       });
+      if (models.City) {
+        Job.belongsTo(models.City, {
+          foreignKey: "city_id",
+          as: "city",
+        });
+      }
     }
   }
 
@@ -73,6 +79,16 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING(4),
         defaultValue: "EUR",
         field: "budget_currency",
+      },
+
+      cityId: {
+        type: DataTypes.INTEGER,
+        field: "city_id",
+        allowNull: true, // Peut être null si "locationType" est 100% remote sans ville précise
+        references: {
+          model: "cities", // Nom de la table
+          key: "id",
+        },
       },
 
       locationType: {

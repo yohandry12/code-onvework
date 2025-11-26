@@ -48,12 +48,36 @@ const MyApplications = () => {
   // Filtrer les candidatures selon le filtre actif
   const getFilteredApplications = () => {
     if (activeFilter === "all") return applications;
+
+    // --- MODIFICATION START : Logique de filtrage améliorée ---
+
+    // Le filtre "other" correspond généralement au bouton "Historique"
     if (activeFilter === "other") {
-      return applications.filter(
-        (app) => !["accepted", "pending", "rejected"].includes(app.status)
+      // On inclut ici :
+      // - Refusées (rejected)
+      // - Retirées (withdrawn)
+      // - Terminées par candidat (completed_by_candidate)
+      // - Complètement terminées/validées (completed, filled)
+      return applications.filter((app) =>
+        [
+          "rejected",
+          "withdrawn",
+          "completed_by_candidate",
+          "completed",
+          "filled",
+        ].includes(app.status)
       );
     }
+
+    // Si le filtre est "accepted", on ne veut QUE les missions en cours, pas celles terminées
+    if (activeFilter === "accepted") {
+      return applications.filter((app) => app.status === "accepted");
+    }
+
+    // Pour "pending" (En attente) et les autres cas simples
     return applications.filter((app) => app.status === activeFilter);
+
+    // --- MODIFICATION END ---
   };
 
   const filteredApplications = getFilteredApplications();

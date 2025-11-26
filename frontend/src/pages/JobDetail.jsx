@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import { apiService } from "../services/api";
 import ApplicationForm from "./ApplicationForm"; // Assurez-vous que les chemins sont corrects
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import ReportModal from "../components/UI/ReportModal";
+import { useAuth } from "../contexts/AuthContext";
 
 const JobDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const locations = useLocation();
+  const { user } = useAuth();
 
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,16 @@ const JobDetail = () => {
       month: "long",
       year: "numeric",
     });
+  };
+
+  const handleApplyClick = () => {
+    if (!user) {
+      // Redirection immédiate vers login si non connecté
+      navigate("/login", { state: { from: locations } });
+      return;
+    }
+    // Sinon, on ouvre le formulaire
+    setActiveApply(true);
   };
 
   const handleApplyClose = () => setActiveApply(false);
@@ -305,7 +318,7 @@ const JobDetail = () => {
 
                 <div className="flex flex-col gap-2">
                   <button
-                    onClick={() => setActiveApply(true)}
+                    onClick={() => handleApplyClick()}
                     disabled={isCompleted || isFrozen || isInProgress}
                     className="w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-indigo-700"
                   >

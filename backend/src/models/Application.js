@@ -66,7 +66,10 @@ module.exports = (sequelize) => {
           "reviewed",
           "accepted",
           "rejected",
-          "withdrawn"
+          "withdrawn",
+          "completed_by_candidate",
+          "completed",
+          "filled"
         ),
         defaultValue: "pending",
         allowNull: false,

@@ -75,14 +75,33 @@ const ApplicationCard = forwardRef(
       },
       completed_by_candidate: {
         text: "En attente d'approbation",
-        icon: CheckCircleIcon,
+        icon: ClockIcon, // Changé pour une horloge car c'est en attente
         bgColor: "bg-gradient-to-br from-blue-50 to-cyan-50",
         badgeColor: "bg-blue-100 text-blue-700",
         badgeBorder: "border-blue-300",
         accent: "text-blue-600",
       },
+      // --- MODIFICATION START : AJOUT DES STATUTS TERMINÉS ---
+      completed: {
+        text: "Terminée",
+        icon: CheckCircleIcon,
+        bgColor: "bg-gradient-to-br from-gray-50 to-gray-100",
+        badgeColor: "bg-gray-200 text-gray-700",
+        badgeBorder: "border-gray-300",
+        accent: "text-gray-600",
+      },
+      filled: {
+        text: "Terminée",
+        icon: CheckCircleIcon,
+        bgColor: "bg-gradient-to-br from-gray-50 to-gray-100",
+        badgeColor: "bg-gray-200 text-gray-700",
+        badgeBorder: "border-gray-300",
+        accent: "text-gray-600",
+      },
+      // --- MODIFICATION END ---
     };
 
+    // Fallback sur pending si le statut n'existe pas
     const currentStatus = statusInfo[status] || statusInfo.pending;
     const StatusIcon = currentStatus.icon;
 
@@ -92,13 +111,6 @@ const ApplicationCard = forwardRef(
       job.budgetMin && job.budgetMax
         ? `${Math.round(job.budgetMin)}-${Math.round(job.budgetMax)} €`
         : null;
-
-    // Mini timeline de statuts possibles
-    const statuses = ["accepted", "pending", "reviewed", "rejected"];
-    const currentStatusIndex = Math.max(
-      statuses.indexOf(status),
-      statuses.indexOf("pending")
-    );
 
     const cardVariants = {
       hidden: { opacity: 0, y: 20 },
@@ -154,36 +166,40 @@ const ApplicationCard = forwardRef(
                 <p className="text-sm text-gray-600 mt-1">{companyName}</p>
               </div>
 
-              {/* Menu action */}
+              {/* Menu action (Affiché seulement si En attente) */}
               <div className="relative ml-3">
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setShowMenu(!showMenu)}
-                  className="p-1 hover:bg-black/5 rounded-lg transition-colors"
-                >
-                  <EllipsisHorizontalIcon className="w-5 h-5 text-gray-500" />
-                </motion.button>
-
-                {/* Dropdown menu */}
-                {showMenu && status === "pending" && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-100 z-10"
-                  >
+                {status === "pending" && (
+                  <>
                     <motion.button
-                      whileHover={{ backgroundColor: "#fef2f2" }}
-                      onClick={() => {
-                        onWithdraw();
-                        setShowMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 font-semibold flex items-center gap-2 hover:bg-red-50 transition-colors"
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setShowMenu(!showMenu)}
+                      className="p-1 hover:bg-black/5 rounded-lg transition-colors"
                     >
-                      <TrashIcon className="w-4 h-4" />
-                      Retirer
+                      <EllipsisHorizontalIcon className="w-5 h-5 text-gray-500" />
                     </motion.button>
-                  </motion.div>
+
+                    {/* Dropdown menu */}
+                    {showMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg border border-gray-100 z-10"
+                      >
+                        <motion.button
+                          whileHover={{ backgroundColor: "#fef2f2" }}
+                          onClick={() => {
+                            onWithdraw();
+                            setShowMenu(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 font-semibold flex items-center gap-2 hover:bg-red-50 transition-colors"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                          Retirer
+                        </motion.button>
+                      </motion.div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -207,7 +223,6 @@ const ApplicationCard = forwardRef(
 
           {/* Infos job */}
           <div className="px-5 py-4 grid grid-cols-2 gap-3">
-            {/* Date candidature */}
             <div className="flex items-center gap-2">
               <CalendarIcon className="w-4 h-4 text-gray-400" />
               <div>
@@ -218,7 +233,6 @@ const ApplicationCard = forwardRef(
               </div>
             </div>
 
-            {/* Budget */}
             {budget && (
               <div className="flex items-center gap-2">
                 <CurrencyEuroIcon className="w-4 h-4 text-gray-400" />
@@ -235,6 +249,9 @@ const ApplicationCard = forwardRef(
 
           {/* Footer actions */}
           <div className="px-5 py-3 bg-gray-50/50 flex gap-2">
+            {/* --- MODIFICATION START : Logique des boutons mise à jour --- */}
+
+            {/* Cas 1: Mission Acceptée -> Bouton "Marquer comme terminée" Actif */}
             {status === "accepted" && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -245,23 +262,41 @@ const ApplicationCard = forwardRef(
                 Marquer comme terminée
               </motion.button>
             )}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onWithdraw()}
-              className={`
-              flex-1 px-3 py-2 rounded-lg text-xs font-semibold
-              transition-all duration-200
-              ${
-                status === "pending"
-                  ? "text-red-600 bg-red-50 hover:bg-red-100 border border-red-200"
-                  : "text-gray-400 bg-gray-100 cursor-not-allowed border border-gray-200"
-              }
-            `}
-              disabled={status !== "pending"}
-            >
-              Retirer
-            </motion.button>
+
+            {/* Cas 2: En attente de validation -> Bouton Désactivé */}
+            {status === "completed_by_candidate" && (
+              <button
+                disabled
+                className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold text-gray-500 bg-gray-200 border border-gray-300 cursor-not-allowed"
+              >
+                Validation en cours...
+              </button>
+            )}
+
+            {/* Cas 3: Mission Terminée (validée par client) -> Bouton Désactivé final */}
+            {["completed", "filled"].includes(status) && (
+              <button
+                disabled
+                className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold text-green-700 bg-green-100 border border-green-200 cursor-not-allowed flex items-center justify-center gap-1"
+              >
+                <CheckCircleIcon className="w-4 h-4" />
+                Mission validée
+              </button>
+            )}
+
+            {/* Cas 4: En attente (Pending) -> Bouton Retirer */}
+            {status === "pending" && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onWithdraw()}
+                className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 transition-all duration-200"
+              >
+                Retirer
+              </motion.button>
+            )}
+
+            {/* --- MODIFICATION END --- */}
 
             <Link to={`/jobs/${job.id}`}>
               <motion.div

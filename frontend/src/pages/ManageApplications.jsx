@@ -338,6 +338,7 @@ export default function ManageApplications() {
                 <option value="filled">Terminée</option>
                 <option value="rejected">Refusée</option>
                 <option value="withdrawn">Retirée</option>
+                <option value="completed_by_candidate">À valider</option>
               </select>
             </div>
           </div>
@@ -363,7 +364,8 @@ export default function ManageApplications() {
                 const fullName = `${candidate?.profile?.firstName || ""} ${
                   candidate?.profile?.lastName || ""
                 }`.trim();
-                const isMissionFinished = job?.status === "filled";
+                const isMissionFinished =
+                  job?.status === "filled" || app.status === "completed";
 
                 return (
                   // On enlève le 'grid' ici pour qu'il soit contrôlé par chaque ligne
@@ -439,9 +441,14 @@ export default function ManageApplications() {
                       </span>
                       {/* On s'assure que le statut est aligné à droite sur desktop seulement */}
                       <div className="md:ml-auto">
-                        {isMissionFinished && app.status === "accepted" ? (
+                        {isMissionFinished && app.status === "completed" ? (
                           <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                             TERMINÉE
+                          </span>
+                        ) : app.status === "completed_by_candidate" ? (
+                          // Cas 2 : Attente validation client
+                          <span className="inline-flex items-center px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-medium">
+                            À VALIDER
                           </span>
                         ) : app.status === "pending" ? (
                           <span className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
@@ -482,19 +489,15 @@ export default function ManageApplications() {
                           </button>
                         </>
                       )}
-                      {app.status === "accepted" && !isMissionFinished && (
-                        <>
-                          <button
-                            onClick={() =>
-                              setShowRecommendation({
-                                jobId: job.id,
-                                employeeId: candidate.id,
-                              })
-                            }
-                            className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium"
-                          >
-                            <Star className="w-4 h-4" /> Recommander
-                          </button>
+                      {app.status === "completed_by_candidate" && (
+                        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full bg-blue-50 p-3 rounded-lg border border-blue-100">
+                          <div className="flex items-center gap-2">
+                            {/* Note: Assurez-vous d'avoir importé AlertCircle ou utilisez une autre icône */}
+                            <SparklesIcon className="w-5 h-5 text-blue-600" />
+                            <span className="text-sm text-blue-800 font-medium">
+                              Le candidat a terminé la mission.
+                            </span>
+                          </div>
                           <button
                             onClick={() =>
                               handleMarkAsCompleted(
@@ -502,17 +505,31 @@ export default function ManageApplications() {
                                 candidate.id,
                                 app.id,
                                 job.title,
-                                `${candidate.profile?.firstName || ""} ${
-                                  candidate.profile?.lastName || ""
-                                }`.trim() || "Candidat"
+                                fullName
                               )
                             }
-                            disabled={isMissionFinished}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded-lg hover:bg-green-800 text-sm font-medium"
+                            className="md:ml-auto flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-sm transition-colors"
                           >
-                            <CheckCircleLucide className="w-4 h-4" /> Terminer
+                            <CheckCircleLucide className="w-4 h-4" />
+                            Valider la mission
                           </button>
-                        </>
+                        </div>
+                      )}
+
+                      {/* CAS 4 : Mission Terminée -> BOUTON RECOMMANDER */}
+                      {(app.status === "completed" ||
+                        app.status === "filled") && (
+                        <button
+                          onClick={() =>
+                            setShowRecommendation({
+                              jobId: job.id,
+                              employeeId: candidate.id,
+                            })
+                          }
+                          className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium transition-colors shadow-sm"
+                        >
+                          <Star className="w-4 h-4" /> Laisser un avis
+                        </button>
                       )}
                     </div>
                   </div>
@@ -688,7 +705,7 @@ export default function ManageApplications() {
                             // On construit l'URL complète vers le fichier sur le backend
                             const fileUrl = `${
                               import.meta.env.VITE_API_URL ||
-                              "http://localhost:4000"
+                              "http://192.168.1.118:4000"
                             }/uploads/${file.filename}`;
 
                             return (

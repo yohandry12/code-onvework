@@ -79,6 +79,19 @@ module.exports = function (io) {
         );
       }
 
+      // Cas 2 : Client VALIDE la fin de mission -> Job passe "Terminé" (filled)
+      else if (status === "completed") {
+        // On vérifie que le freelance avait bien marqué comme terminé avant (optionnel mais conseillé)
+        // if (application.status !== 'completed_by_candidate') ... (on peut être souple ici)
+
+        await Job.update(
+          { status: "filled" }, // C'est ICI que la mission se ferme officiellement
+          { where: { id: job.id }, transaction: t }
+        );
+
+        logger.info(`Job ${job.id} passé en 'filled' (Terminé)`);
+      }
+
       await t.commit();
 
       // --- ENVOI DES EMAILS SELON LE STATUT ---
@@ -333,25 +346,30 @@ module.exports = function (io) {
           .json({ success: false, error: "Candidature introuvable" });
       }
 
+      const job = await application.getJob({ transaction: t });
+      if (!job) {
+        await t.rollback();
+        return res
+          .status(404)
+          .json({ success: false, error: "Mission liée introuvable" });
+      }
+
       // 2. Vérifier que c'est bien le candidat qui effectue l'action
       if (application.candidateId !== candidateUser.id) {
-        return res
-          .status(403)
-          .json({
-            success: false,
-            error: "Vous n'êtes pas autorisé à effectuer cette action.",
-          });
+        await t.rollback();
+        return res.status(403).json({
+          success: false,
+          error: "Vous n'êtes pas autorisé à effectuer cette action.",
+        });
       }
 
       // 3. Vérifier que la candidature est acceptée
       if (application.status !== "accepted") {
-        return res
-          .status(400)
-          .json({
-            success: false,
-            error:
-              "Seules les missions acceptées peuvent être marquées comme terminées.",
-          });
+        return res.status(400).json({
+          success: false,
+          error:
+            "Seules les missions acceptées peuvent être marquées comme terminées.",
+        });
       }
 
       // 4. Mettre à jour le statut et ajouter la date de complétion par le candidat
@@ -396,7 +414,6 @@ module.exports = function (io) {
       }
 
       // 5. Notifier le client en temps réel via Socket.IO
-      const job = await application.getJob();
       if (job && job.clientId) {
         io.to(`user-${job.clientId}`).emit("mission-completed-by-candidate", {
           jobId: job.id,

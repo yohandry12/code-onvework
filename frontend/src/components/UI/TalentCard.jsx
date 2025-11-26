@@ -1,24 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { EnvelopeIcon, BriefcaseIcon } from "@heroicons/react/24/outline";
+import {
+  EnvelopeIcon,
+  BriefcaseIcon,
+  MapPinIcon,
+} from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
 import { apiService } from "../../services/api";
 // Un petit utilitaire pour obtenir les codes de pays pour les drapeaux
-const getCountryCode = (countryName) => {
-  const countryMap = {
-    Germany: "DE",
-    Australia: "AU",
-    Brazil: "BR",
-    Singapore: "SG",
-    France: "FR",
-    Canada: "CA",
-    "United States": "US",
-    "United Kingdom": "GB",
-    Italy: "IT",
-    Spain: "ES",
-    Netherlands: "NL",
-  };
-  return countryMap[countryName] || null;
-};
+// const getCountryCode = (countryName) => {
+//   const countryMap = {
+//     Germany: "DE",
+//     Australia: "AU",
+//     Brazil: "BR",
+//     Singapore: "SG",
+//     France: "FR",
+//     Canada: "CA",
+//     "United States": "US",
+//     "United Kingdom": "GB",
+//     Italy: "IT",
+//     Spain: "ES",
+//     Netherlands: "NL",
+//   };
+//   return countryMap[countryName] || null;
+// };
 
 // --- FONCTION UTILITAIRE POUR L'AVATAR ---
 const getAvatarUrl = (avatarPath) => {
@@ -45,9 +49,9 @@ const TalentCard = ({ talent, onViewProfile }) => {
   const profile = talent.profile || talent.candidateProfile || {};
 
   // Vérifications de sécurité pour toutes les propriétés
-  const countryCode = profile.location?.country
-    ? getCountryCode(profile.location.country)
-    : null;
+  // const countryCode = profile.location?.country
+  //   ? getCountryCode(profile.location.country)
+  //   : null;
   const completedJobs = profile.completedJobs ?? 0;
 
   // Construction du nom complet avec plusieurs fallbacks
@@ -185,16 +189,10 @@ const TalentCard = ({ talent, onViewProfile }) => {
 
       {/* Nom et Localisation */}
       <h2 className="text-xl font-bold text-gray-800">{fullName}</h2>
-      {profile.location?.country && (
-        <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-          {countryCode && (
-            <img
-              src={`https://flagcdn.com/w20/${countryCode.toLowerCase()}.png`}
-              alt={profile.location.country}
-              className="w-5 h-3 object-cover"
-            />
-          )}
-          <span>{profile.location.country}</span>
+      {profile.location?.city && (
+        <div className="flex items-center justify-center gap-1 text-sm text-gray-500 mt-1">
+          <MapPinIcon className="w-4 h-4 text-gray-400" />
+          <span>{profile.location.city}</span>
         </div>
       )}
 

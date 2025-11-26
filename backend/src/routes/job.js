@@ -8,6 +8,7 @@ const {
   CandidateProfile,
   ClientProfile,
   Recommendation,
+  City,
 } = require("../models");
 const { Op } = require("sequelize");
 const { authenticateToken, requireRole } = require("../middleware/auth");
@@ -157,6 +158,20 @@ module.exports = function (io) {
             .json({ success: false, error: "Champs obligatoires manquants." });
         }
 
+        let cityIdToSave = null;
+        if (location && location.city) {
+          // On cherche la ville (insensible à la casse)
+          const cityFound = await City.findOne({
+            where: sequelize.where(
+              sequelize.fn("LOWER", sequelize.col("name")),
+              sequelize.fn("LOWER", location.city.trim())
+            ),
+          });
+          if (cityFound) {
+            cityIdToSave = cityFound.id;
+          }
+        }
+
         // Récupérer le profil client pour avoir les infos complètes
         const clientProfile = await ClientProfile.findOne({
           where: { userId: clientUser.id },
@@ -171,6 +186,7 @@ module.exports = function (io) {
           locationType: location.type,
           locationCity: location.city,
           locationCountry: location.country,
+          cityId: cityIdToSave,
 
           // On assigne les champs "aplatis"
           skills,
@@ -1032,10 +1048,11 @@ module.exports = function (io) {
 
         // 3. Vérifier que l'employé a été accepté
         const application = await Application.findOne({
-          where: { jobId, candidateId: employeeId, status: "accepted" },
+          where: { jobId, candidateId: employeeId },
           transaction: t,
         });
-        if (!application)
+        const allowedStatuses = ["accepted", "completed"];
+        if (!application || !allowedStatuses.includes(application.status))
           return res.status(400).json({
             success: false,
             error: "Ce candidat n'a pas été accepté.",

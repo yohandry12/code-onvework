@@ -31,11 +31,13 @@ const candidatesRoutes = require("./routes/candidates");
 const citiesRoutes = require("./routes/cities");
 const startNotifyUpcomingDeadlines = require("./tasks/notifyUpcomingDeadlines");
 const aiRoutes = require("./routes/ai");
+const uploadsPath = path.resolve(process.cwd(), "uploads");
+const avatarPath = path.resolve(process.cwd(), "avatar");
 // --- 🌍 CORS ---
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  /^http:\/\/192\.168\.1\.117\d+:5174$/,
+  /^http:\/\/192\.168\.1\.118\d+:5174$/,
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
@@ -105,8 +107,8 @@ app.use("/api/candidates", candidatesRoutes);
 app.use("/api/cities", citiesRoutes);
 app.use("/api/ai", aiRoutes);
 // Sert les fichiers statiques du dossier 'uploads'
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use("/avatar", express.static(path.resolve(process.cwd(), "avatar")));
+app.use("/api/uploads", express.static(uploadsPath));
+app.use("/avatar", express.static(avatarPath));
 
 // --- 🧩 WebSocket ---
 io.on("connection", (socket) => {
