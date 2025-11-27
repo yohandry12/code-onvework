@@ -335,7 +335,7 @@ export default function ManageApplications() {
                 <option value="all">Tous les statuts</option>
                 <option value="pending">En attente</option>
                 <option value="accepted">En mission</option>
-                <option value="filled">Terminée</option>
+                <option value="completed">Terminée</option>
                 <option value="rejected">Refusée</option>
                 <option value="withdrawn">Retirée</option>
                 <option value="completed_by_candidate">À valider</option>

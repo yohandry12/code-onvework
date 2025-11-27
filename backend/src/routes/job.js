@@ -29,6 +29,7 @@ module.exports = function (io) {
         limit = 10,
         minBudget,
         maxBudget,
+        city,
       } = req.query;
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);
@@ -37,20 +38,28 @@ module.exports = function (io) {
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
+      // ✅ DÉCLARER whereClause EN PREMIER
       const whereClause = {
+        status: { [Op.notIn]: ["archived"] },
         [Op.or]: [
           { status: "published" },
-          // { status: "in_progress" },
           { status: "filled", updatedAt: { [Op.gte]: oneMonthAgo } },
         ],
       };
 
-      /* 1. Filtres simples */
+      // ✅ ENSUITE on peut l'utiliser
+      /* 1. Filtre par ville */
+      if (city) {
+        // Recherche insensible à la casse et partielle (ex: "doua" trouve "Douala")
+        whereClause.locationCity = { [Op.like]: `%${city}%` };
+      }
+
+      /* 2. Filtres simples */
       if (category) whereClause.category = { [Op.in]: category.split(",") };
       if (experience)
         whereClause.experience = { [Op.in]: experience.split(",") };
 
-      /* 2. Budget */
+      /* 3. Budget */
       if (minBudget || maxBudget) {
         whereClause.budgetMin = { [Op.gte]: parseInt(minBudget || 0, 10) };
         whereClause.budgetMax = {
@@ -58,7 +67,7 @@ module.exports = function (io) {
         };
       }
 
-      /* 3. Recherche texte (on ajoute UNIQUEMENT un Op.and si besoin) */
+      /* 4. Recherche texte (on ajoute UNIQUEMENT un Op.and si besoin) */
       if (search) {
         // Use LOWER() on columns and compare with lowercased query to ensure
         // case-insensitive search regardless of MySQL collation.
@@ -1051,7 +1060,7 @@ module.exports = function (io) {
           where: { jobId, candidateId: employeeId },
           transaction: t,
         });
-        const allowedStatuses = ["accepted", "completed"];
+        const allowedStatuses = ["accepted", "completed", "filled"];
         if (!application || !allowedStatuses.includes(application.status))
           return res.status(400).json({
             success: false,
@@ -1088,7 +1097,10 @@ module.exports = function (io) {
         // La notification reste la même
         io.to(`user-${employeeId}`).emit("recommendation-received", {
           newBadge,
-          employerName: job.clientName,
+          employerName: job.clientName, // Pour compatibilité
+          // Ajout des champs séparés pour éviter "undefined undefined"
+          employerFirstName: req.user.firstName,
+          employerLastName: req.user.lastName,
         });
 
         await t.commit();
@@ -1098,7 +1110,7 @@ module.exports = function (io) {
           const act = await Activity.create({
             userId: employeeId,
             type: "recommendation",
-            message: `Vous avez reçu une recommandation et obtenu le badge ${newBadge}!`,
+            message: `Vous avez reçu une recommandation de ${req.user.firstName} ${req.user.lastName} et obtenu le badge ${newBadge}!`,
             referenceId: jobId,
             referenceType: "job",
             status: "new",

@@ -19,19 +19,29 @@ export default function MissionCompletionModal({
     setError("");
 
     try {
+      // 1. Appel API via apiService (Axios)
+      // Axios renvoie directement les données JSON, pas besoin de .json()
       const response = await apiService.applications.markCompleted(
         applicationId
       );
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Erreur lors de la validation");
+      // 2. Vérification du succès logique
+      if (response && response.success) {
+        onSuccess?.();
+        onClose();
+      } else {
+        // Si le backend renvoie success: false sans lancer d'erreur HTTP
+        throw new Error(response?.error || "Erreur lors de la validation");
       }
-
-      onSuccess?.();
-      onClose();
     } catch (err) {
-      setError(err.message);
+      console.error(err);
+      // 3. Gestion correcte des erreurs Axios
+      // On cherche le message d'erreur du backend (err.response.data.error)
+      // ou une erreur générique (err.message)
+      const errorMessage =
+        err.response?.data?.error || err.message || "Une erreur est survenue.";
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

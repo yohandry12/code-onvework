@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { apiService } from "../services/api"; // Assurez-vous que l'import est correct (accolades ou default)
-import CitySelect from "../components/UI/CitySelect";
+import { apiService } from "../services/api";
 
 import {
   EnvelopeIcon,
@@ -38,7 +37,14 @@ const InfoRow = ({ icon, label, value }) => (
 );
 
 // --- Composants d'aide pour le mode édition (Inchangés) ---
-const InputRow = ({ label, name, value, onChange, type = "text" }) => (
+const InputRow = ({
+  label,
+  name,
+  value,
+  onChange,
+  type = "text",
+  placeholder,
+}) => (
   <div>
     <label htmlFor={name} className="block text-sm font-medium text-gray-700">
       {label}
@@ -50,6 +56,7 @@ const InputRow = ({ label, name, value, onChange, type = "text" }) => (
         id={name}
         value={value || ""}
         onChange={onChange}
+        placeholder={placeholder}
         className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
       />
     </div>
@@ -75,7 +82,6 @@ const TextareaRow = ({ label, name, value, onChange }) => (
 );
 
 // --- Composants de profil (Candidate & Client) ---
-// Note: J'ai gardé vos composants tels quels, ils recevront les props mises à jour
 const CandidateProfile = ({
   user,
   isEditing,
@@ -107,7 +113,9 @@ const CandidateProfile = ({
           <InputRow
             label="Compétences (séparées par des virgules)"
             name="skills"
-            value={formData.profile.skills.join(", ")}
+            value={
+              formData.profile.skills ? formData.profile.skills.join(", ") : ""
+            }
             onChange={(e) => {
               const event = {
                 target: {
@@ -344,6 +352,27 @@ const ProfilePage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
+  // --- LOGIQUE AUTOCOMPLÉTION VILLE ---
+  const [allCities, setAllCities] = useState([]);
+  const [citySuggestions, setCitySuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef(null);
+
+  // 1. Charger toutes les villes au montage
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await apiService.cities.getAll();
+        const cityNames = (response.data || []).map((c) => c.name);
+        setAllCities(cityNames);
+      } catch (err) {
+        console.error("Erreur chargement villes:", err);
+      }
+    };
+    fetchCities();
+  }, []);
+
+  // 2. Initialiser formData
   useEffect(() => {
     if (user) {
       setFormData({
@@ -354,7 +383,8 @@ const ProfilePage = () => {
           profession: user.profile.profession || "",
           bio: user.profile.bio || "",
           website: user.profile.website || "",
-          location: user.profile.location || { city: "", country: "" },
+          // On s'assure que location existe toujours
+          location: user.profile.location || { city: "", country: "Cameroun" },
           skills: user.profile.skills || [],
           diplomas: user.profile.diplomas || [],
           company: user.profile.company || "",
@@ -368,6 +398,55 @@ const ProfilePage = () => {
     }
   }, [user]);
 
+  // 3. Gestionnaire de changement de l'input ville
+  const handleCityChange = (e) => {
+    const userInput = e.target.value;
+    // --- CORRECTION : Mise à jour imbriquée correcte ---
+    setFormData((prev) => ({
+      ...prev,
+      profile: {
+        ...prev.profile,
+        location: { ...prev.profile.location, city: userInput },
+      },
+    }));
+
+    if (userInput.length > 0) {
+      const filtered = allCities.filter((city) =>
+        city.toLowerCase().includes(userInput.toLowerCase())
+      );
+      setCitySuggestions(filtered.slice(0, 5));
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  // 4. Sélection d'une ville
+  const selectCity = (cityName) => {
+    setFormData((prev) => ({
+      ...prev,
+      profile: {
+        ...prev.profile,
+        location: { ...prev.profile.location, city: cityName },
+      },
+    }));
+    setShowSuggestions(false);
+  };
+
+  // 5. Fermer la liste si clic dehors
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [wrapperRef]);
+
+  // Nettoyage feedback
   useEffect(() => {
     if (feedback.success || feedback.error) {
       const timer = setTimeout(() => {
@@ -377,12 +456,11 @@ const ProfilePage = () => {
     }
   }, [feedback]);
 
-  // --- GESTION AVATAR (NOUVEAU) ---
+  // --- GESTION AVATAR ---
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validation basique
     if (!file.type.startsWith("image/")) {
       setFeedback({
         error: "Le fichier doit être une image (jpg, png, etc.)",
@@ -405,14 +483,10 @@ const ProfilePage = () => {
       const response = await apiService.auth.updateAvatar(file);
       if (response.success) {
         setFeedback({ success: "Photo de profil mise à jour !", error: null });
-
-        // Mettre à jour le state local pour un affichage immédiat
         setFormData((prev) => ({
           ...prev,
           profile: { ...prev.profile, avatar: response.avatar },
         }));
-
-        // Rafraîchir le contexte utilisateur global
         await refreshUser();
       }
     } catch (err) {
@@ -466,20 +540,6 @@ const ProfilePage = () => {
     }));
   };
 
-  const handleLocationChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      profile: {
-        ...prev.profile,
-        location: {
-          ...prev.profile.location,
-          [name]: value,
-        },
-      },
-    }));
-  };
-
   const handleEmployerTypeChange = (e) => {
     setFormData((prev) => ({
       ...prev,
@@ -493,10 +553,12 @@ const ProfilePage = () => {
     setIsSaving(true);
 
     try {
+      // On s'assure que location a bien la bonne structure
       const locationData = {
-        city: formData.profile.location.city,
+        city: formData.profile.location?.city || "",
         country: "Cameroun",
       };
+
       const updates = {
         profile: {
           ...formData.profile,
@@ -521,8 +583,12 @@ const ProfilePage = () => {
   const handleCancelEdit = () => {
     setIsEditing(false);
     if (user) {
+      // Revenir aux données d'origine
       setFormData({
-        profile: { ...user.profile },
+        profile: {
+          ...user.profile,
+          location: user.profile.location || { city: "", country: "Cameroun" },
+        },
       });
     }
   };
@@ -530,14 +596,9 @@ const ProfilePage = () => {
   // Utilitaire pour construire l'URL de l'avatar
   const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;
-    const apiUrl = import.meta.env.VITE_API_URL;
-    // On retire '/api' pour avoir la racine (ex: http://192.168.1.10:4000)
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
     const baseUrl = apiUrl.replace(/\/api$/, "");
-
-    // Si avatarPath commence par http, c'est déjà une URL complète (ex: Google auth)
     if (avatarPath.startsWith("http")) return avatarPath;
-
-    // Sinon on concatène. Assurons-nous qu'il y a un slash.
     const cleanPath = avatarPath.startsWith("/")
       ? avatarPath
       : `/${avatarPath}`;
@@ -547,7 +608,8 @@ const ProfilePage = () => {
   if (loading || !formData) {
     return (
       <div className="text-center py-10">
-        <p>Chargement...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Chargement...</p>
       </div>
     );
   }
@@ -565,7 +627,7 @@ const ProfilePage = () => {
         {/* --- En-tête du profil --- */}
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6">
-            {/* --- ZONE AVATAR MODIFIÉE --- */}
+            {/* --- ZONE AVATAR --- */}
             <div className="relative group cursor-pointer">
               <input
                 type="file"
@@ -580,7 +642,6 @@ const ProfilePage = () => {
                 htmlFor="avatar-upload"
                 className="cursor-pointer block relative"
               >
-                {/* Affichage de l'image ou des initiales */}
                 {formData.profile.avatar ? (
                   <img
                     src={getAvatarUrl(formData.profile.avatar)}
@@ -590,8 +651,7 @@ const ProfilePage = () => {
                     }`}
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.style.display = "none"; // Cache l'image cassée
-                      // On pourrait afficher les initiales en fallback ici via un état local si nécessaire
+                      e.target.style.display = "none";
                     }}
                   />
                 ) : (
@@ -605,7 +665,6 @@ const ProfilePage = () => {
                   </div>
                 )}
 
-                {/* Overlay au survol ou pendant chargement */}
                 <div
                   className={`absolute inset-0 bg-black bg-opacity-40 rounded-full flex items-center justify-center transition-opacity duration-200 ${
                     isUploadingAvatar
@@ -621,7 +680,6 @@ const ProfilePage = () => {
                 </div>
               </label>
             </div>
-            {/* --- FIN ZONE AVATAR --- */}
 
             <div className="flex-grow text-center sm:text-left">
               {isEditing ? (
@@ -680,53 +738,89 @@ const ProfilePage = () => {
               <p className="text-sm text-gray-500 capitalize">{user.role}</p>
 
               {isEditing ? (
-                <div className="flex flex-col sm:flex-row gap-4 mt-2">
-                  <div className="flex-1">
-                    <CitySelect
-                      label="Ville"
-                      name="city"
-                      value={formData.profile.location.city}
-                      onChange={handleLocationChange}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Pays
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 w-full">
+                  {/* --- COLONNE 1 : VILLE --- */}
+                  <div className="relative" ref={wrapperRef}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Ville
                     </label>
-                    <div className="mt-1">
+                    <div className="relative">
                       <input
                         type="text"
-                        name="country"
-                        value="Cameroun"
-                        disabled
-                        className="block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm text-gray-500 cursor-not-allowed sm:text-sm"
+                        name="city"
+                        value={formData.profile.location?.city || ""}
+                        onChange={handleCityChange}
+                        onFocus={() =>
+                          formData.profile.location?.city &&
+                          setShowSuggestions(true)
+                        }
+                        className="block w-full pl-10 px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="Ex: Douala, Yaoundé..."
+                        autoComplete="off"
                       />
+                      {/* Icone positionnée absolument au centre vertical */}
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <MapPinIcon className="h-5 w-5 text-gray-400" />
+                      </div>
                     </div>
+
+                    {/* Liste déroulante des suggestions */}
+                    {showSuggestions && citySuggestions.length > 0 && (
+                      <ul className="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto">
+                        {citySuggestions.map((cityName, index) => (
+                          <li
+                            key={index}
+                            onClick={() => selectCity(cityName)}
+                            className="px-4 py-2 hover:bg-indigo-50 cursor-pointer text-gray-700 transition-colors border-b last:border-b-0 border-gray-100 flex items-center text-sm"
+                          >
+                            <MapPinIcon className="h-4 w-4 mr-2 text-gray-400" />
+                            {cityName}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* --- COLONNE 2 : PAYS --- */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Pays
+                    </label>
+                    <input
+                      type="text"
+                      name="country"
+                      value="Cameroun"
+                      disabled
+                      className="block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm text-gray-500 cursor-not-allowed sm:text-sm"
+                    />
                   </div>
                 </div>
               ) : (
-                user.profile.location && (
+                (user.profile.location || user.profile.city) && (
                   <p className="text-sm text-gray-500 mt-1 flex items-center justify-center sm:justify-start">
                     <MapPinIcon className="w-4 h-4 mr-1" />
-                    {user.profile.location.city},{" "}
-                    {user.profile.location.country}
+                    {user.profile.location?.city ||
+                      user.profile.city ||
+                      "Ville N/A"}
+                    , {user.profile.location?.country || "Cameroun"}
                   </p>
                 )
               )}
             </div>
             {isEditing ? (
-              <div className="flex space-x-3">
+              <div className="flex space-x-3 mt-4 sm:mt-0">
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-green-500 transition"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition shadow disabled:opacity-50"
                 >
-                  {isSaving ? "..." : "Enregistrer"}
+                  {isSaving ? "Enregistrement..." : "Enregistrer"}
                 </button>
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-red-500 transition"
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
                 >
                   Annuler
                 </button>
@@ -735,7 +829,7 @@ const ProfilePage = () => {
               <button
                 type="button"
                 onClick={() => setIsEditing(true)}
-                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition"
+                className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition mt-4 sm:mt-0"
               >
                 <PencilIcon className="w-5 h-5 mr-2" />
                 Modifier
@@ -747,7 +841,7 @@ const ProfilePage = () => {
         {/* --- Messages de feedback --- */}
         {feedback.success && (
           <div
-            className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4"
+            className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4 rounded"
             role="alert"
           >
             <p>{feedback.success}</p>
@@ -755,7 +849,7 @@ const ProfilePage = () => {
         )}
         {feedback.error && (
           <div
-            className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4"
+            className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 rounded"
             role="alert"
           >
             <p>{feedback.error}</p>

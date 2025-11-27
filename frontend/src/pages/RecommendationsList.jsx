@@ -69,7 +69,7 @@ const RecommendationsList = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10"
+            className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10"
           >
             <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between">
@@ -82,7 +82,8 @@ const RecommendationsList = () => {
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 flex items-center justify-center">
-                  <StarIcon className="w-6 h-6 text-rose-500" />{/*card candidats evalues*/}
+                  <StarIcon className="w-6 h-6 text-rose-500" />
+                  {/*card candidats evalues*/}
                 </div>
               </div>
             </div>
@@ -98,7 +99,8 @@ const RecommendationsList = () => {
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-cyan-100 flex items-center justify-center">
-                  <SparklesIcon className="w-6 h-6 text-blue-500" />{/*card nombre d'avis*/}
+                  <SparklesIcon className="w-6 h-6 text-blue-500" />
+                  {/*card nombre d'avis*/}
                 </div>
               </div>
             </div>

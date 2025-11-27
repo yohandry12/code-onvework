@@ -20,16 +20,42 @@ const ApplicationCard = forwardRef(
 
     if (!job) return null;
 
-    // Format date
-    const daysAgo = Math.floor(
-      (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24)
-    );
-    const dateLabel =
-      daysAgo === 0
-        ? "Aujourd'hui"
-        : daysAgo === 1
-        ? "Hier"
-        : `Il y a ${daysAgo} j`;
+    // ✅ NOUVELLE LOGIQUE : Basée sur les jours calendaires
+    const getDateLabel = (createdAt) => {
+      const now = new Date();
+      const created = new Date(createdAt);
+
+      // Réinitialiser les heures pour comparer uniquement les dates
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const createdDay = new Date(
+        created.getFullYear(),
+        created.getMonth(),
+        created.getDate()
+      );
+
+      // Différence en jours calendaires
+      const diffTime = today.getTime() - createdDay.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      // Si moins de 24h et même jour -> afficher l'heure
+      if (diffDays === 0) {
+        const hours = created.getHours().toString().padStart(2, "0");
+        const minutes = created.getMinutes().toString().padStart(2, "0");
+        return `Aujourd'hui à ${hours}:${minutes}`;
+      } else if (diffDays === 1) {
+        return "Hier";
+      } else if (diffDays < 7) {
+        return `Il y a ${diffDays} jours`;
+      } else if (diffDays < 30) {
+        const weeks = Math.floor(diffDays / 7);
+        return `Il y a ${weeks} semaine${weeks > 1 ? "s" : ""}`;
+      } else {
+        const months = Math.floor(diffDays / 30);
+        return `Il y a ${months} mois`;
+      }
+    };
+
+    const dateLabel = getDateLabel(createdAt);
 
     // Status info avec couleurs et icônes
     const statusInfo = {
@@ -74,14 +100,13 @@ const ApplicationCard = forwardRef(
         accent: "text-gray-500",
       },
       completed_by_candidate: {
-        text: "En attente d'approbation",
-        icon: ClockIcon, // Changé pour une horloge car c'est en attente
+        text: "En attente de confirmation",
+        icon: ClockIcon,
         bgColor: "bg-gradient-to-br from-blue-50 to-cyan-50",
         badgeColor: "bg-blue-100 text-blue-700",
         badgeBorder: "border-blue-300",
         accent: "text-blue-600",
       },
-      // --- MODIFICATION START : AJOUT DES STATUTS TERMINÉS ---
       completed: {
         text: "Terminée",
         icon: CheckCircleIcon,
@@ -98,14 +123,11 @@ const ApplicationCard = forwardRef(
         badgeBorder: "border-gray-300",
         accent: "text-gray-600",
       },
-      // --- MODIFICATION END ---
     };
 
-    // Fallback sur pending si le statut n'existe pas
     const currentStatus = statusInfo[status] || statusInfo.pending;
     const StatusIcon = currentStatus.icon;
 
-    // Données du job
     const companyName = job.client?.profile?.company || "Entreprise";
     const budget =
       job.budgetMin && job.budgetMax
@@ -166,7 +188,7 @@ const ApplicationCard = forwardRef(
                 <p className="text-sm text-gray-600 mt-1">{companyName}</p>
               </div>
 
-              {/* Menu action (Affiché seulement si En attente) */}
+              {/* Menu action */}
               <div className="relative ml-3">
                 {status === "pending" && (
                   <>
@@ -179,7 +201,6 @@ const ApplicationCard = forwardRef(
                       <EllipsisHorizontalIcon className="w-5 h-5 text-gray-500" />
                     </motion.button>
 
-                    {/* Dropdown menu */}
                     {showMenu && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -249,9 +270,6 @@ const ApplicationCard = forwardRef(
 
           {/* Footer actions */}
           <div className="px-5 py-3 bg-gray-50/50 flex gap-2">
-            {/* --- MODIFICATION START : Logique des boutons mise à jour --- */}
-
-            {/* Cas 1: Mission Acceptée -> Bouton "Marquer comme terminée" Actif */}
             {status === "accepted" && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -263,7 +281,6 @@ const ApplicationCard = forwardRef(
               </motion.button>
             )}
 
-            {/* Cas 2: En attente de validation -> Bouton Désactivé */}
             {status === "completed_by_candidate" && (
               <button
                 disabled
@@ -273,7 +290,6 @@ const ApplicationCard = forwardRef(
               </button>
             )}
 
-            {/* Cas 3: Mission Terminée (validée par client) -> Bouton Désactivé final */}
             {["completed", "filled"].includes(status) && (
               <button
                 disabled
@@ -284,7 +300,6 @@ const ApplicationCard = forwardRef(
               </button>
             )}
 
-            {/* Cas 4: En attente (Pending) -> Bouton Retirer */}
             {status === "pending" && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -295,8 +310,6 @@ const ApplicationCard = forwardRef(
                 Retirer
               </motion.button>
             )}
-
-            {/* --- MODIFICATION END --- */}
 
             <Link to={`/jobs/${job.id}`}>
               <motion.div

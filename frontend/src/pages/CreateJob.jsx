@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Briefcase,
@@ -16,11 +16,11 @@ import {
   Zap,
   Sparkles,
   ShieldCheck,
+  Eye,
 } from "lucide-react";
 import { apiService } from "../services/api";
 import AIChatAssistant from "../components/UI/AIChatAssistant";
 import AIFormField from "../components/UI/AIFormField";
-import CitySelect from "../components/UI/CitySelect";
 
 const categories = [
   { value: "development", label: "Développement", icon: "💻" },
@@ -97,6 +97,63 @@ const CreateJob = () => {
   const [initialPrompt, setInitialPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  // --- LOGIQUE AUTOCOMPLÉTION VILLE (Ajout) ---
+  const [allCities, setAllCities] = useState([]);
+  const [citySuggestions, setCitySuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef(null); // Pour détecter le clic en dehors
+
+  // 1. Charger toutes les villes au montage
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await apiService.cities.getAll();
+        const cityNames = (response.data || []).map((c) => c.name);
+        setAllCities(cityNames);
+      } catch (err) {
+        console.error("Erreur chargement villes:", err);
+      }
+    };
+    fetchCities();
+  }, []);
+
+  // 2. Gestionnaire de changement de l'input ville
+  const handleCityChange = (e) => {
+    const userInput = e.target.value;
+    // Mise à jour du formulaire global
+    setForm((prev) => ({ ...prev, locationCity: userInput }));
+
+    if (userInput.length > 0) {
+      const filtered = allCities.filter((city) =>
+        city.toLowerCase().includes(userInput.toLowerCase())
+      );
+      setCitySuggestions(filtered.slice(0, 5));
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  // 3. Sélection d'une ville
+  const selectCity = (cityName) => {
+    setForm((prev) => ({ ...prev, locationCity: cityName }));
+    setShowSuggestions(false);
+  };
+
+  // 4. Fermer la liste si clic dehors
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [wrapperRef]);
 
   const [searchParams] = useSearchParams();
 
@@ -540,15 +597,42 @@ const CreateJob = () => {
                     ))}
                   </select>
                 </div>
+                <div className="relative" ref={wrapperRef}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ville
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      name="locationCity"
+                      value={form.locationCity}
+                      onChange={handleCityChange}
+                      onFocus={() =>
+                        form.locationCity && setShowSuggestions(true)
+                      }
+                      className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                      placeholder="Ex: Douala, Yaoundé..."
+                      autoComplete="off"
+                    />
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                  </div>
 
-                <CitySelect
-                  label="Ville"
-                  name="locationCity"
-                  value={form.locationCity}
-                  onChange={handleChange}
-                  placeholder="Rechercher une ville..."
-                />
-
+                  {/* Liste de suggestions */}
+                  {showSuggestions && citySuggestions.length > 0 && (
+                    <ul className="absolute z-20 w-full bg-white border border-gray-200 rounded-xl shadow-xl mt-1 max-h-60 overflow-y-auto">
+                      {citySuggestions.map((cityName, index) => (
+                        <li
+                          key={index}
+                          onClick={() => selectCity(cityName)}
+                          className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-gray-700 transition-colors border-b last:border-b-0 border-gray-100 flex items-center"
+                        >
+                          <MapPin className="h-4 w-4 mr-2 text-gray-400" />
+                          {cityName}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Pays
@@ -789,6 +873,28 @@ const CreateJob = () => {
                   Étape 5/5 - Options et finalisation
                 </span>
               </div>
+            </div>
+
+            {/* --- NOUVEAU BLOC DE PRÉVISUALISATION --- */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-blue-900 flex items-center">
+                  <Eye className="h-5 w-5 mr-2" />
+                  Aperçu de votre mission
+                </h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  Visualisez votre offre telle qu'elle apparaîtra aux candidats
+                  avant de valider.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowPreviewModal(true)}
+                className="px-5 py-2.5 bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 hover:border-blue-300 rounded-lg font-medium shadow-sm transition-all flex items-center whitespace-nowrap"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Voir l'aperçu
+              </button>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -1190,6 +1296,197 @@ const CreateJob = () => {
                 className="w-full py-3 px-4 bg-gray-900 hover:bg-gray-800 text-white font-semibold rounded-xl transition-colors shadow-lg flex items-center justify-center gap-2"
               >
                 Retourner au tableau de bord
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODALE DE PRÉVISUALISATION --- */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8 overflow-hidden relative animate-in fade-in zoom-in duration-200">
+            {/* Header de la modale */}
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 z-10">
+              <h2 className="text-lg font-bold text-gray-800 flex items-center">
+                <Eye className="w-5 h-5 mr-2 text-gray-500" />
+                Aperçu de l'offre
+              </h2>
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+              >
+                <span className="text-2xl leading-none">&times;</span>
+              </button>
+            </div>
+
+            {/* Contenu de la fiche de mission (Simulation) */}
+            <div className="p-6 md:p-8 space-y-8">
+              {/* En-tête de la mission */}
+              <div>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold uppercase tracking-wide">
+                    {categories.find((c) => c.value === form.category)?.label ||
+                      form.category}
+                  </span>
+                  {form.type && (
+                    <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold uppercase tracking-wide">
+                      {form.type}
+                    </span>
+                  )}
+                  {form.isUrgent && (
+                    <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold uppercase tracking-wide flex items-center">
+                      <Zap className="w-3 h-3 mr-1" /> Urgent
+                    </span>
+                  )}
+                </div>
+
+                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-4 leading-tight">
+                  {form.title || "Titre de la mission"}
+                </h1>
+
+                <div className="flex flex-wrap gap-y-2 gap-x-6 text-sm text-gray-600 border-b border-gray-100 pb-6">
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                    {form.locationCity
+                      ? `${form.locationCity}, ${form.locationCountry}`
+                      : form.locationType}
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 mr-2 text-gray-400" />
+                    {form.durationUnit === "projet"
+                      ? "Durée du projet"
+                      : `${form.durationValue || "?"} ${form.durationUnit}`}
+                  </div>
+                  <div className="flex items-center">
+                    <DollarSign className="w-4 h-4 mr-2 text-gray-400" />
+                    <span className="font-semibold text-green-700">
+                      {form.budgetMin} - {form.budgetMax} {form.budgetCurrency}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-3">
+                  À propos de la mission
+                </h3>
+                <div className="prose prose-blue max-w-none text-gray-600 whitespace-pre-wrap leading-relaxed bg-gray-50 p-6 rounded-xl border border-gray-100">
+                  {form.description || "Aucune description fournie."}
+                </div>
+              </div>
+
+              {/* Détails en grille */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">
+                    Compétences requises
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {form.skills ? (
+                      (Array.isArray(form.skills)
+                        ? form.skills
+                        : form.skills.split(",")
+                      ).map((skill, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-sm font-medium border border-gray-200"
+                        >
+                          {skill.trim()}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 text-sm italic">
+                        Non spécifiées
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">
+                    Langues
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {form.languages ? (
+                      (Array.isArray(form.languages)
+                        ? form.languages
+                        : form.languages.split(",")
+                      ).map((lang, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-md text-sm font-medium"
+                        >
+                          {lang.trim()}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 text-sm italic">
+                        Non spécifiées
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer de détails */}
+              <div className="bg-blue-50 rounded-xl p-5 border border-blue-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="block text-gray-500 text-xs mb-1">
+                    Expérience
+                  </span>
+                  <span className="font-semibold text-gray-800 capitalize">
+                    {experienceLevels.find((e) => e.value === form.experience)
+                      ?.label || form.experience}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-gray-500 text-xs mb-1">
+                    Éducation
+                  </span>
+                  <span className="font-semibold text-gray-800 capitalize">
+                    {educationLevels.find((e) => e.value === form.education)
+                      ?.label || form.education}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-gray-500 text-xs mb-1">Lieu</span>
+                  <span className="font-semibold text-gray-800 capitalize">
+                    {form.locationType}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-gray-500 text-xs mb-1">Tags</span>
+                  <span
+                    className="font-semibold text-gray-800 truncate block"
+                    title={form.tags}
+                  >
+                    {Array.isArray(form.tags)
+                      ? form.tags.join(", ")
+                      : form.tags || "-"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions de la modale */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3 sticky bottom-0 z-10">
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+              >
+                Fermer et modifier
+              </button>
+              <button
+                onClick={(e) => {
+                  setShowPreviewModal(false);
+                  handleFinalSubmit(e);
+                }}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium shadow-sm flex items-center"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Tout est bon, publier !
               </button>
             </div>
           </div>

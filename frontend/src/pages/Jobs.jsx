@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { apiService } from "../services/api";
 import { useDebounce } from "../hooks/useDebounce";
@@ -9,19 +9,18 @@ import {
   MagnifyingGlassIcon,
   BriefcaseIcon,
   ArrowPathIcon,
+  MapPinIcon, // Ajout de l'icône
 } from "@heroicons/react/24/outline";
 
-// --- COMPOSANT JobCard ENTIÈREMENT CORRIGÉ ---
+// --- JobCard (Inchangé) ---
 const JobCard = ({ job, onApply }) => {
   const isCompleted = job.status === "filled";
   const isRepublished = !!job.clonedFromId;
   const isFrozen = job.isFrozen;
   const isInProgress = job.status === "in_progress";
 
-  // Fonction utilitaire pour le budget
   const formatBudget = (min, max, currency) => {
     if (!min && !max) return "N/A";
-    // Sequelize renvoie des chaînes de caractères pour les décimaux, on les convertit
     const minNum = parseFloat(min);
     const maxNum = parseFloat(max);
     return `${minNum.toLocaleString("fr-FR")} - ${maxNum.toLocaleString(
@@ -52,7 +51,6 @@ const JobCard = ({ job, onApply }) => {
             >
               <Link to={`/jobs/${job.id}`}>{job.title}</Link>
             </h3>
-            {/* --- AJOUTER LE BADGE ICI --- */}
             {isRepublished && (
               <span className="flex items-center bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-1 rounded-full">
                 <ArrowPathIcon className="w-4 h-4 mr-1" />
@@ -64,13 +62,11 @@ const JobCard = ({ job, onApply }) => {
                 Terminée
               </span>
             )}
-
             {isFrozen && (
               <span className="flex items-center bg-red-100 text-red-800 text-xs font-medium px-2.5 py-1 rounded-full">
                 Signalé
               </span>
             )}
-
             {isInProgress && (
               <span className="flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
                 En cours
@@ -134,14 +130,72 @@ const JobCard = ({ job, onApply }) => {
   );
 };
 
-// --- COMPOSANT FilterSidebar (COMPLET ET INCHANGÉ) ---
+// --- COMPOSANT FilterSidebar AVEC AUTOCOMPLETE VILLE ---
 const FilterSidebar = ({ onFilterChange, categories }) => {
   const [filters, setFilters] = useState({
     category: "",
     experienceLevel: [],
     minBudget: "",
     maxBudget: "",
+    city: "", // Ajout du champ ville
   });
+
+  // États pour l'autocomplétion des villes
+  const [allCities, setAllCities] = useState([]);
+  const [citySuggestions, setCitySuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef(null); // Pour détecter le clic en dehors
+
+  // 1. Charger toutes les villes au montage
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await apiService.cities.getAll();
+        // On stocke juste les noms des villes pour simplifier la recherche
+        const cityNames = (response.data || []).map((c) => c.name);
+        setAllCities(cityNames);
+      } catch (err) {
+        console.error("Erreur chargement villes:", err);
+      }
+    };
+    fetchCities();
+  }, []);
+
+  // 2. Gestionnaire de changement de l'input ville
+  const handleCityChange = (e) => {
+    const userInput = e.target.value;
+    setFilters((prev) => ({ ...prev, city: userInput }));
+
+    if (userInput.length > 0) {
+      // Filtrer les villes qui contiennent la saisie (insensible à la casse)
+      const filtered = allCities.filter((city) =>
+        city.toLowerCase().includes(userInput.toLowerCase())
+      );
+      setCitySuggestions(filtered.slice(0, 5)); // Limiter à 5 suggestions
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  // 3. Sélection d'une ville dans la liste
+  const selectCity = (cityName) => {
+    setFilters((prev) => ({ ...prev, city: cityName }));
+    setShowSuggestions(false);
+  };
+
+  // 4. Fermer la liste si on clique ailleurs
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [wrapperRef]);
 
   const handleCheckboxChange = (group, value) => {
     setFilters((prev) => ({
@@ -158,19 +212,17 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
 
   const debouncedMinBudget = useDebounce(filters.minBudget, 500);
   const debouncedMaxBudget = useDebounce(filters.maxBudget, 500);
+  const debouncedCity = useDebounce(filters.city, 500); // Debounce pour la ville aussi
 
-  // useCallback est utilisé ici pour optimiser
-  // Assurer que la callback suit les changements du parent
   const memoizedOnFilterChange = useCallback(onFilterChange, [onFilterChange]);
 
   useEffect(() => {
-    // Le backend attend `experience` (pas `experienceLevel`).
-    // On envoie une string CSV (ex: "junior,senior").
     const apiFilters = {
       category: filters.category,
       experience: filters.experienceLevel.join(","),
       minBudget: debouncedMinBudget,
       maxBudget: debouncedMaxBudget,
+      city: debouncedCity, // On envoie la ville à l'API
     };
     memoizedOnFilterChange(apiFilters);
   }, [
@@ -178,6 +230,7 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
     filters.experienceLevel,
     debouncedMinBudget,
     debouncedMaxBudget,
+    debouncedCity,
     memoizedOnFilterChange,
   ]);
 
@@ -187,7 +240,9 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
       experienceLevel: [],
       minBudget: "",
       maxBudget: "",
+      city: "",
     });
+    setShowSuggestions(false);
   };
 
   return (
@@ -202,6 +257,38 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
             Réinitialiser
           </button>
         </div>
+
+        {/* --- NOUVEAU FILTRE VILLE --- */}
+        <div className="mb-6 relative" ref={wrapperRef}>
+          <h4 className="font-semibold mb-3 text-gray-700">Ville</h4>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Ex: Douala, Yaoundé..."
+              value={filters.city}
+              onChange={handleCityChange}
+              onFocus={() => filters.city && setShowSuggestions(true)}
+              className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+            />
+            <MapPinIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          </div>
+
+          {/* Liste de suggestions */}
+          {showSuggestions && citySuggestions.length > 0 && (
+            <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
+              {citySuggestions.map((cityName, index) => (
+                <li
+                  key={index}
+                  onClick={() => selectCity(cityName)}
+                  className="px-4 py-2 hover:bg-indigo-50 cursor-pointer text-sm text-gray-700"
+                >
+                  {cityName}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div className="mb-6">
           <h4 className="font-semibold mb-3 text-gray-700">Catégorie</h4>
           <select
@@ -268,16 +355,16 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
   );
 };
 
-// --- COMPOSANT PRINCIPAL DE LA PAGE ---
+// --- COMPOSANT PRINCIPAL (Peu de changements, juste la réception du filtre) ---
 const Jobs = () => {
   const [jobs, setJobs] = useState([]);
   const [pagination, setPagination] = useState({});
   const [filters, setFilters] = useState({});
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const { user } = useAuth(); // Récupérer l'utilisateur courant
-  const navigate = useNavigate(); // Pour la redirection
-  const location = useLocation(); // Pour savoir d'où on vient
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -310,9 +397,17 @@ const Jobs = () => {
           page: currentPage,
           limit: 10,
         };
+        // Nettoyage des clés vides
         Object.keys(allFilters).forEach((key) => {
-          if (!allFilters[key]) delete allFilters[key];
+          if (
+            allFilters[key] === "" ||
+            allFilters[key] === null ||
+            allFilters[key] === undefined
+          ) {
+            delete allFilters[key];
+          }
         });
+
         const response = await apiService.jobs.getAll(allFilters);
         if (response.success) {
           setJobs((prev) =>
@@ -341,23 +436,17 @@ const Jobs = () => {
     }
   };
 
-  // --- NOUVELLE FONCTION DE GESTION DU CLIC ---
   const handleApplyClick = (job) => {
     if (!user) {
-      // Si pas connecté, on redirige vers /login
-      // "state: { from: location }" permet de revenir ici après la connexion si votre Login le gère
       navigate("/login", { state: { from: location } });
       return;
     }
-    // Si connecté, on ouvre la modale normalement
     setActiveJobToApply(job);
   };
 
   return (
     <div className="bg-gray-50 min-h-screen">
       <header className="bg-white border-b py-8 top-16 z-30">
-        {" "}
-        {/* Header */}
         <div className="max-w-7xl mx-auto px-4">
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
             Trouvez votre prochaine mission
@@ -439,15 +528,12 @@ const Jobs = () => {
           client={activeJobToApply.client}
           onClose={() => setActiveJobToApply(null)}
           onSubmitted={() => {
-            // Fermer le formulaire
             setActiveJobToApply(null);
-            // Afficher un toast de succès en haut à gauche
             setToast({ type: "success", message: "Candidature envoyée !" });
           }}
         />
       )}
 
-      {/* Toast global (top-left) */}
       {toast && (
         <Toast toast={toast} onClose={() => setToast(null)} duration={4000} />
       )}

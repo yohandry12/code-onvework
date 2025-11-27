@@ -123,7 +123,8 @@ module.exports = (sequelize) => {
           "filled",
           "interview",
           "reported",
-          "in_progress"
+          "in_progress",
+          "archived"
         ),
         defaultValue: "pending",
       },

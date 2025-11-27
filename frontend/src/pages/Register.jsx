@@ -611,6 +611,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { apiService } from "../services/api";
+import CitySelect from "../components/UI/CitySelect";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -627,7 +628,7 @@ const Register = () => {
     associationName: "",
     phone: "",
     locationCity: "",
-    locationCountry: "",
+    locationCountry: "Cameroun",
   });
 
   const [errors, setErrors] = useState({});
@@ -640,9 +641,19 @@ const Register = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    if (errors[name]) {
-      setErrors({ ...errors, [name]: "" });
+
+    // 1. Déterminer la clé du state à modifier
+    // Le composant CitySelect envoie "city", mais le state attend "locationCity"
+    let stateKey = name;
+    if (name === "city") stateKey = "locationCity";
+    if (name === "country") stateKey = "locationCountry";
+
+    // 2. Mettre à jour le formData
+    setFormData((prev) => ({ ...prev, [stateKey]: value }));
+
+    // 3. Effacer l'erreur si elle existe pour ce champ
+    if (errors[stateKey]) {
+      setErrors((prev) => ({ ...prev, [stateKey]: "" }));
     }
   };
 
@@ -712,7 +723,7 @@ const Register = () => {
         phone: formData.phone,
         location: {
           city: formData.locationCity,
-          country: formData.locationCountry,
+          country: formData.locationCountry || "Cameroun",
         },
         commercialName: formData.commercialName || undefined,
         associationName: formData.associationName || undefined,
@@ -1000,40 +1011,22 @@ const Register = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <CitySelect
+                  label="Ville"
+                  name="city"
+                  value={formData.locationCity}
+                  onChange={handleChange}
+                />
                 <div>
-                  <label
-                    htmlFor="locationCity"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
-                    Ville
-                  </label>
-                  <input
-                    id="locationCity"
-                    name="locationCity"
-                    type="text"
-                    value={formData.locationCity}
-                    onChange={handleChange}
-                    required
-                    className="input input-bordered w-full"
-                    placeholder="Ville"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="locationCountry"
-                    className="block text-sm font-medium text-gray-700 mb-1"
-                  >
+                  <label className="block text-sm font-medium text-gray-700">
                     Pays
                   </label>
                   <input
-                    id="locationCountry"
-                    name="locationCountry"
                     type="text"
-                    value={formData.locationCountry}
-                    onChange={handleChange}
-                    required
-                    className="input input-bordered w-full"
-                    placeholder="Pays"
+                    name="country"
+                    value="Cameroun"
+                    disabled
+                    className="input input-bordered w-full mt-1 bg-gray-100 text-gray-500 cursor-not-allowed"
                   />
                 </div>
               </div>

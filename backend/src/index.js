@@ -11,6 +11,8 @@ require("dotenv").config();
 // --- 🗄️ Base de données (Sequelize) ---
 const db = require("./models");
 const { logger, requestLogger } = require("./utils/logger");
+// server.js
+const { startJobArchiveCron } = require("./utils/cronJobs");
 
 // --- ⚙️ Middlewares & Routes ---
 const { errorHandler } = require("./middleware/errorHandler");
@@ -178,6 +180,9 @@ const startServer = async () => {
     process.exit(1);
   }
 };
+
+// --- 🕒 Démarrer la tâche CRON d'archivage des missions ---
+startJobArchiveCron();
 
 // --- 🛑 Fermeture propre ---
 const shutdown = () => {
