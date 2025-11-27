@@ -1111,6 +1111,7 @@ module.exports = function (io) {
             userId: employeeId,
             type: "recommendation",
             message: `Vous avez reçu une recommandation de ${req.user.firstName} ${req.user.lastName} et obtenu le badge ${newBadge}!`,
+            employerName: `${req.user.firstName} ${req.user.lastName}`,
             referenceId: jobId,
             referenceType: "job",
             status: "new",
