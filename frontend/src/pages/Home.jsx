@@ -16,7 +16,7 @@ const CategoryCard = ({ name, icon, onClick }) => (
     <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-xl text-3xl">
       {icon}
     </div>
-    <p className="font-semibold text-gray-800">{name}</p>
+    <p className="font-semibold text-gray-800 text-sm">{name}</p>
   </button>
 );
 
@@ -298,9 +298,29 @@ const Home = () => {
             />
             <button
               type="submit"
-              className="px-6 py-3 bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors"
+              // Ajout de 'flex justify-center items-center' pour bien centrer l'icône
+              className="px-6 py-3 bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors flex justify-center items-center"
             >
-              Rechercher
+              {/* L'icône (Visible sur Mobile, Cachée sur Grand écran) --- */}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="w-6 h-6 block sm:hidden" 
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                />
+              </svg>
+
+              {/* Le Texte (Caché sur Mobile, Visible sur Grand écran) --- */}
+              <span className="hidden sm:inline">
+                Rechercher
+              </span>
             </button>
           </form>
         </div>
@@ -311,12 +331,12 @@ const Home = () => {
         {/* Catégories */}
         <section>
           <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="text-sm sm:text-2xl font-bold text-gray-800">
               Explorez les catégories
             </h2>
             <Link
               to="/jobs"
-              className="text-sm font-medium text-amber-600 hover:text-amber-700"
+              className="text-sm font-medium text-amber-600 hover:text-amber-700 shrink-0 "
             >
               Voir toutes
             </Link>
@@ -334,17 +354,18 @@ const Home = () => {
         </section>
         {/* Offres en vedette */}
         <section>
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl font-bold text-gray-800">
-              Offres en vedette
-            </h2>
-            <Link
-              to="/jobs"
-              className="text-sm font-medium text-amber-600 hover:text-amber-700"
-            >
-              Voir plus
-            </Link>
-          </div>
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-sm sm:text-2xl font-bold text-gray-800">
+            Offres en vedette
+          </h2>
+          <Link
+            to="/jobs"
+            // Ajout de 'shrink-0' ici pour empêcher le lien de s'écraser
+            className="text-sm font-medium text-amber-600 hover:text-amber-700 "
+          >
+            Voir plus
+          </Link>
+        </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {featuredJobs.length === 0 ? (
               <p className="col-span-full text-center text-gray-500 py-12">
@@ -360,7 +381,7 @@ const Home = () => {
           {" "}
           <div className="flex items-center justify-between mb-8">
             {" "}
-            <h2 className="text-2xl font-bold text-gray-800">
+            <h2 className="flex-none text-sm sm:text-2xl font-bold text-gray-800">
               Talents recommandés
             </h2>{" "}
             <Link
