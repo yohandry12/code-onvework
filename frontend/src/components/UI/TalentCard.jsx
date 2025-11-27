@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; 
 import { EnvelopeIcon, BriefcaseIcon } from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
 import { apiService } from "../../services/api";
@@ -16,6 +17,7 @@ const getCountryCode = (countryName) => {
     Italy: "IT",
     Spain: "ES",
     Netherlands: "NL",
+    Cameroon: "CM", 
   };
   return countryMap[countryName] || null;
 };
@@ -32,8 +34,11 @@ const getAvatarUrl = (avatarPath) => {
   return `${baseUrl}${cleanPath}`;
 };
 
-const TalentCard = ({ talent, onViewProfile }) => {
-  // --- NOUVEAU : États pour stocker les avis ---
+const TalentCard = ({ talent }) => {
+  // 2. INITIALISATION DU HOOK
+  const navigate = useNavigate();
+
+  // --- États pour stocker les avis ---
   const [stats, setStats] = useState({ average: 0, count: 0, loading: true });
 
   // ✅ AJOUT DE VÉRIFICATIONS DE SÉCURITÉ
@@ -57,7 +62,7 @@ const TalentCard = ({ talent, onViewProfile }) => {
       ? `${profile.firstName} ${profile.lastName}`
       : profile.firstName || profile.lastName || "Utilisateur");
 
-  // --- NOUVEAU : Récupération et calcul des notes ---
+  // --- Récupération et calcul des notes ---
   useEffect(() => {
     let isMounted = true;
 
@@ -74,13 +79,11 @@ const TalentCard = ({ talent, onViewProfile }) => {
           );
 
         if (response.success && response.data) {
-          // LE FIX EST ICI : On récupère directement les stats envoyées par le backend
-          // au lieu de les recalculer
           const { averageRating, totalRecommendations } = response.data;
 
           if (isMounted) {
             setStats({
-              average: Number(averageRating) || 0, // S'assure que c'est un nombre
+              average: Number(averageRating) || 0,
               count: Number(totalRecommendations) || 0,
               loading: false,
             });
@@ -101,7 +104,20 @@ const TalentCard = ({ talent, onViewProfile }) => {
     };
   }, [talent]);
 
-  // --- NOUVEAU : Fonction pour afficher les étoiles ---
+  // --- 3. FONCTION DE NAVIGATION ---
+  const handleCardClick = () => {
+    // Récupération sécurisée de l'ID
+    const talentId = talent.id || talent.userId;
+
+    if (talentId) {
+      // Redirection vers la route : /feedback/talent/:id
+      navigate(`/feedback/talent/${talentId}`);
+    } else {
+      console.error("Impossible de naviguer : ID du talent introuvable");
+    }
+  };
+
+  // --- Fonction pour afficher les étoiles ---
   const renderStars = (rating) => {
     return (
       <div className="flex text-yellow-400">
@@ -132,15 +148,15 @@ const TalentCard = ({ talent, onViewProfile }) => {
 
   return (
     <div
-      onClick={onViewProfile}
+      onClick={handleCardClick} // 4. APPLICATION DU CLICK SUR LA CARTE
       className="bg-white rounded-2xl shadow-md p-6 flex flex-col items-center text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group cursor-pointer"
     >
       {/* Bouton Options */}
       <button
         className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
         onClick={(e) => {
-          e.stopPropagation(); // Empêcher de déclencher onViewProfile
-          // Ajouter la logique du menu options ici
+          e.stopPropagation(); // 5. EMPÊCHE LA REDIRECTION lors du clic sur les options
+          // Ajouter la logique du menu options ici (ex: signaler, bloquer...)
         }}
       >
         <svg
@@ -166,7 +182,7 @@ const TalentCard = ({ talent, onViewProfile }) => {
         }}
       />
 
-      {/* --- NOUVEAU : Affichage des étoiles sous le nom --- */}
+      {/* Affichage des étoiles sous le nom */}
       <div className="flex items-center gap-2 mt-1 mb-2 h-6">
         {stats.loading ? (
           // Petit squelette de chargement discret

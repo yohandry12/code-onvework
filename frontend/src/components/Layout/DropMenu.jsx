@@ -64,7 +64,7 @@ const UserDropdownMenu = ({ user, logout }) => {
           <img
             src={avatarSrc}
             alt={fullName}
-            className="w-8 h-8 rounded-full object-cover border border-gray-200 bg-gray-100"
+            className="w-8 h-8 rounded-full object-cover border-4 border-gray-200 bg-gray-100"
             onError={(e) => {
               // Si l'image principale plante, on la remplace par l'image des initiales
               e.target.onerror = null;
