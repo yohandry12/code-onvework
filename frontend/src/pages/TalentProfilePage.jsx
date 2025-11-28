@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiService } from "../services/api";
 import TalentReviews from "../components/UI/TalentReviews";
@@ -19,7 +19,11 @@ const TalentProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const dataFetchedRef = useRef(false);
+
   useEffect(() => {
+    if (dataFetchedRef.current === id) return;
+
     const fetchTalent = async () => {
       try {
         setLoading(true);
@@ -39,6 +43,7 @@ const TalentProfilePage = () => {
     };
 
     fetchTalent();
+    dataFetchedRef.current = id;
   }, [id]);
 
   if (loading)

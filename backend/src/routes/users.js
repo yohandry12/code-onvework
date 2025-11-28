@@ -8,32 +8,13 @@ const {
   sequelize,
 } = require("../models"); // Importer tous les modèles nécessaires
 const { Op } = require("sequelize"); // Importer les opérateurs Sequelize
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, optionalAuth } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
 const { findMatchingJobs } = require("../services/aiMatchingService");
 const { getCompletedJobsCount } = require("../utils/stats");
-const jwt = require("jsonwebtoken");
 
 module.exports = function (io) {
   const router = express.Router();
-
-  // --- Middleware d'authentification OPTIONNELLE ---
-  // Permet de savoir qui visite si un token est présent, sinon continue en invité
-  const optionalAuth = (req, res, next) => {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
-
-    if (token == null) {
-      return next(); // Pas de token, c'est un visiteur anonyme
-    }
-
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-      if (!err) {
-        req.user = user; // Token valide, on enregistre l'utilisateur
-      }
-      next();
-    });
-  };
 
   // --- GET /api/users/search - Recherche d'utilisateurs (traduit pour Sequelize) ---
   router.get("/search", async (req, res) => {
