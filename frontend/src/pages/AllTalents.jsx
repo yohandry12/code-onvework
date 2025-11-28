@@ -7,7 +7,6 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
-// import FreelancerProfileModal from "../components/UI/FreelancerProfileModal"; // SUPPRIMÉ
 
 // Composant pour la pagination
 const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
