@@ -178,7 +178,7 @@ const FreelancerCard = ({ user }) => {
 
   return (
     <div
-      onClick={onViewProfile}
+      // onClick={onViewProfile}
       className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm hover:shadow-md 
                  hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col items-center gap-4 p-6"
     >
@@ -268,7 +268,7 @@ const Home = () => {
   const [loadingJobs, setLoadingJobs] = useState(true);
   const [loadingFreelancers, setLoadingFreelancers] = useState(true);
   const [selectedFreelancer, setSelectedFreelancer] = useState(null);
-  const [isModalLoading, setIsModalLoading] = useState(false);
+  // const [isModalLoading, setIsModalLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -304,7 +304,7 @@ const Home = () => {
   }, []);
 
   const handleViewProfile = async (freelancerPreview) => {
-    setIsModalLoading(true);
+    // setIsModalLoading(true);
     // setSelectedFreelancer(freelancerPreview); // Affiche la modale avec les données de base
 
     try {
@@ -318,7 +318,7 @@ const Home = () => {
     } catch (error) {
       console.error("Erreur lors du chargement du profil détaillé:", error);
     } finally {
-      setIsModalLoading(false);
+      // setIsModalLoading(false);
     }
   };
 
