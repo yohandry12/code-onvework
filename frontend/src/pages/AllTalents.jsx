@@ -1,14 +1,17 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { apiService } from "../services/api";
 import LoadingSpinner from "../components/UI/LoadingSpinner";
-import TalentCard from "../components/UI/TalentCard"; 
+import TalentCard from "../components/UI/TalentCard";
 import {
   MagnifyingGlassIcon as SearchIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
+import FreelancerProfileModal from "../components/UI/FreelancerProfileModal";
+import { useAuth } from "../contexts/AuthContext";
 
-// --- Pagination (Inchangé) ---
+// endpoint pour recuperer les avis de chaque candidat
+// Nouveau composant pour les boutons de pagination
 const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
 
@@ -35,17 +38,64 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
   );
 };
 
+const FreelancerCard = ({ user, onViewProfile }) => {
+  const title =
+    user.profile.profession ||
+    (user.profile.skills && user.profile.skills[0]) ||
+    "Talent Freelance";
+  return (
+    <div
+      onClick={onViewProfile}
+      className="bg-gray-800/50 rounded-2xl border border-white/10 p-6 flex flex-col items-center gap-4 hover:border-emerald-400/50 transition-all duration-300 cursor-pointer"
+    >
+      <div className="relative">
+        <img
+          src={
+            user.profile.avatar ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(
+              user.profile.fullName
+            )}&background=2dd4bf&color=000&bold=true`
+          }
+          alt={user.profile.fullName}
+          className="w-20 h-20 rounded-full object-cover"
+        />
+      </div>
+      <div className="text-center">
+        <h3 className="text-lg font-bold text-white">
+          {user.profile.fullName}
+        </h3>
+        <p className="text-sm text-gray-400">{title}</p>
+
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        {user.profile.skills?.slice(0, 3).map((skill, idx) => (
+          <span
+            key={idx}
+            className="px-3 py-1 text-xs bg-gray-700 text-gray-300 rounded-full"
+          >
+            {skill}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const AllTalents = () => {
+  const { user } = useAuth();
   const [talents, setTalents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Pagination
+  // Nouveaux états pour la pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  // Fetch des talents
+  const [selectedFreelancer, setSelectedFreelancer] = useState(null);
+  const [isModalLoading, setIsModalLoading] = useState(false);
+
+  // Utilisation de useCallback pour optimiser la fonction de fetch
   const fetchTalents = useCallback(async (page, query) => {
     try {
       setLoading(true);
@@ -73,14 +123,15 @@ const AllTalents = () => {
     fetchTalents(1, "");
   }, [fetchTalents]);
 
-  // Recherche avec délai (debounce)
+  // Déclencher une nouvelle recherche lorsque l'utilisateur tape (avec un délai)
   useEffect(() => {
+    // On met un délai (debounce) pour ne pas appeler l'API à chaque touche
     const timer = setTimeout(() => {
-      setCurrentPage(1);
+      setCurrentPage(1); // Revenir à la première page à chaque nouvelle recherche
       fetchTalents(1, searchTerm);
-    }, 500);
+    }, 500); // Délai de 500ms
 
-    return () => clearTimeout(timer);
+    return () => clearTimeout(timer); // Nettoyer le minuteur
   }, [searchTerm, fetchTalents]);
 
   const handlePageChange = (newPage) => {
@@ -90,10 +141,38 @@ const AllTalents = () => {
     }
   };
 
+  const handleViewProfile = async (freelancerPreview) => {
+    // 1. Indiquer que la modale est en train de charger
+    setIsModalLoading(true);
+    setSelectedFreelancer(freelancerPreview); // On peut pré-remplir la modale avec les données de base
+
+    try {
+      // 2. APPEL CRUCIAL À L'API qui déclenche l'incrémentation du compteur
+      const response = await apiService.users.getProfile(freelancerPreview.id);
+
+      // 3. Mettre à jour la modale avec les données complètes et fraîches
+      if (response.success) {
+        setSelectedFreelancer(response.user);
+      } else {
+        setError("Impossible de charger le profil détaillé.");
+      }
+    } catch (err) {
+      setError("Une erreur est survenue lors du chargement du profil.");
+      console.error(err);
+    } finally {
+      // 4. Arrêter l'état de chargement de la modale
+      setIsModalLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setSelectedFreelancer(null);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* En-tête */}
+        {/* En-tête et barre de recherche (inchangés) */}
         <div className="text-center md:text-left mb-8">
           <h1 className="text-4xl font-extrabold text-gray-900">
             Découvrez nos Freelances
@@ -102,8 +181,6 @@ const AllTalents = () => {
             Trouvez le talent parfait pour votre prochain projet.
           </p>
         </div>
-
-        {/* Barre de recherche */}
         <div className="relative mb-8">
           <input
             type="text"
@@ -128,10 +205,10 @@ const AllTalents = () => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
               {talents.map((talent) => (
-                // On affiche juste la carte. C'est elle qui gère le clic maintenant.
                 <TalentCard
                   key={talent.id}
                   talent={talent}
+                  onViewProfile={() => handleViewProfile(talent)}
                 />
               ))}
             </div>
@@ -149,6 +226,12 @@ const AllTalents = () => {
           </div>
         )}
       </div>
+      {selectedFreelancer && (
+        <FreelancerProfileModal
+          freelancer={selectedFreelancer}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 };
