@@ -73,6 +73,7 @@ const CreateJob = () => {
     locationType: "distanciel/télétravail",
     locationCity: "",
     locationCountry: "Cameroun",
+    isLocationRestricted: false,
     skills: "",
     experience: "intermediate",
     education: "none",
@@ -274,6 +275,7 @@ const CreateJob = () => {
         city: form.locationCity,
         country: form.locationCountry || "Cameroun",
       },
+      isLocationRestricted: form.isLocationRestricted,
 
       // ✅ CORRECTION : Gérer les cas où c'est déjà un tableau OU une chaîne
       skills: Array.isArray(form.skills)
@@ -646,6 +648,32 @@ const CreateJob = () => {
                   />
                 </div>
               </div>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mt-4">
+              <label className="flex items-start cursor-pointer">
+                <div className="flex items-center h-5">
+                  <input
+                    name="isLocationRestricted"
+                    type="checkbox"
+                    checked={form.isLocationRestricted}
+                    onChange={handleChange}
+                    className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    disabled={!form.locationCity} // Désactivé si pas de ville choisie
+                  />
+                </div>
+                <div className="ml-3">
+                  <span className="block text-sm font-medium text-blue-900">
+                    Restreindre aux candidats locaux uniquement
+                  </span>
+                  <p className="text-xs text-blue-700 mt-1">
+                    Si activé, seuls les candidats dont le profil indique "
+                    <span className="font-bold">
+                      {form.locationCity || "la ville sélectionnée"}
+                    </span>
+                    " pourront postuler.
+                  </p>
+                </div>
+              </label>
             </div>
           </div>
         );

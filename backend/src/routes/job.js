@@ -157,19 +157,23 @@ module.exports = function (io) {
           education,
           languages,
           clonedFromId,
+          isLocationRestricted, // Récupération du champ de restriction
+          targetClientId, // Récupération de l'ID du client cible (si Admin)
           ...otherFields
         } = req.body;
-        const clientUser = req.user;
 
+        const currentUser = req.user; // L'utilisateur connecté (Client ou Admin)
+
+        // 1. Validation des champs obligatoires
         if (!title || !description || !budget?.min || !budget?.max) {
           return res
             .status(400)
             .json({ success: false, error: "Champs obligatoires manquants." });
         }
 
+        // 2. Gestion de la Ville (CityId)
         let cityIdToSave = null;
         if (location && location.city) {
-          // On cherche la ville (insensible à la casse)
           const cityFound = await City.findOne({
             where: sequelize.where(
               sequelize.fn("LOWER", sequelize.col("name")),
@@ -181,54 +185,106 @@ module.exports = function (io) {
           }
         }
 
-        // Récupérer le profil client pour avoir les infos complètes
-        const clientProfile = await ClientProfile.findOne({
-          where: { userId: clientUser.id },
-        });
+        // 3. Détermination du Propriétaire de la mission (Owner)
+        let ownerId = currentUser.id;
+        let ownerName = `${currentUser.firstName} ${currentUser.lastName}`;
+        let ownerCompany = null;
+        let initialStatus = "pending"; // Par défaut, en attente de validation
 
+        // CAS A : C'est un ADMIN qui crée pour un CLIENT
+        if (currentUser.role === "admin" && targetClientId) {
+          const targetUser = await User.findByPk(targetClientId, {
+            include: [{ model: ClientProfile, as: "clientProfile" }],
+          });
+
+          if (!targetUser) {
+            return res
+              .status(404)
+              .json({
+                success: false,
+                error: "Le client sélectionné n'existe pas.",
+              });
+          }
+          if (targetUser.role !== "client") {
+            return res
+              .status(400)
+              .json({
+                success: false,
+                error: "L'utilisateur cible n'est pas un client.",
+              });
+          }
+
+          // On remplace les infos du créateur par celles du client cible
+          ownerId = targetUser.id;
+          ownerName = `${targetUser.firstName} ${targetUser.lastName}`;
+          ownerCompany = targetUser.clientProfile?.company || null;
+          initialStatus = "published"; // L'admin publie directement, pas besoin de validation
+        }
+        // CAS B : C'est un CLIENT qui crée pour lui-même
+        else {
+          const clientProfile = await ClientProfile.findOne({
+            where: { userId: currentUser.id },
+          });
+          ownerCompany = clientProfile?.company || null;
+          // Le statut reste "pending" (en attente de modération)
+        }
+
+        // 4. Création de la mission
         const newJob = await Job.create({
           title,
           description,
           budgetMin: budget.min,
           budgetMax: budget.max,
           budgetCurrency: budget.currency,
+
+          // Localisation
           locationType: location.type,
           locationCity: location.city,
           locationCountry: location.country,
           cityId: cityIdToSave,
+          isLocationRestricted: isLocationRestricted || false, // Enregistrement de la restriction
 
-          // On assigne les champs "aplatis"
+          // Détails
           skills,
           experience,
           education,
           languages,
 
-          clientId: clientUser.id,
-          // --- CORRECTION CLÉ : On utilise les champs de l'utilisateur de base (`req.user`) ---
-          clientName: `${clientUser.firstName} ${clientUser.lastName}`,
-          clientCompany: clientProfile?.company || null, // 'company' est spécifique au profil
-          clonedFromId: clonedFromId || null,
+          // Propriétaire et Statut (Calculés à l'étape 3)
+          clientId: ownerId,
+          clientName: ownerName,
+          clientCompany: ownerCompany,
+          status: initialStatus,
 
+          clonedFromId: clonedFromId || null,
           ...otherFields,
         });
 
         logger.info("Mission créée", {
           jobId: newJob.id,
-          clientId: clientUser.id,
+          clientId: ownerId,
+          createdBy: currentUser.role,
         });
+
         io.emit("new-job-posted", newJob);
 
-        // Créer une activité pour le client
+        // 5. Créer une activité pour le propriétaire de la mission (Le Client)
         try {
+          const activityMessage =
+            currentUser.role === "admin"
+              ? `Une nouvelle mission a été publiée pour vous par l'administrateur : ${title}`
+              : `Vous avez publié une nouvelle mission : ${title}`;
+
           const activity = await Activity.create({
-            userId: clientUser.id,
+            userId: ownerId, // L'activité apparaît chez le client propriétaire
             type: "job",
-            message: `Vous avez publié une nouvelle mission : ${title}`,
+            message: activityMessage,
             referenceId: newJob.id,
             referenceType: "job",
             status: "new",
           });
-          io.to(`user-${clientUser.id}`).emit("activity", activity);
+
+          io.to(`user-${ownerId}`).emit("activity", activity);
         } catch (err) {
           logger.warn(
             "Impossible de créer l'activité de publication :",
@@ -238,7 +294,7 @@ module.exports = function (io) {
 
         res.status(201).json({ success: true, job: newJob });
       } catch (error) {
-        // Sécurité : éviter d'utiliser instanceof sur une valeur qui peut être undefined
+        // Sécurité : Gestion des erreurs de validation Sequelize
         if (
           error &&
           (error.name === "SequelizeValidationError" ||
@@ -696,6 +752,33 @@ module.exports = function (io) {
             error: "Cette mission n'accepte plus de candidatures.",
           });
         }
+
+        // --- DEBUT : VÉRIFICATION DE LA RESTRICTION GÉOGRAPHIQUE ---
+        if (job.isLocationRestricted) {
+          // On récupère le profil du candidat pour avoir sa ville
+          const candidateProfile = await CandidateProfile.findOne({
+            where: { userId: candidateId },
+            attributes: ["location"], // On suppose que location est stocké en JSON { city: "...", country: "..." }
+          });
+
+          // Normalisation pour comparaison (minuscule, sans espace)
+          const jobCity = (job.locationCity || "").trim().toLowerCase();
+
+          // Gérer le cas où location est un objet JSON ou des champs séparés selon votre DB
+          // Ici je suppose que c'est stocké dans un champ JSON 'location' comme vu précédemment
+          const candidateCityRaw = candidateProfile?.location?.city || "";
+          const candidateCity = candidateCityRaw.trim().toLowerCase();
+
+          if (!candidateCity || !jobCity || jobCity !== candidateCity) {
+            await t.rollback();
+            return res.status(400).json({
+              success: false,
+              error:
+                "Le recruteur recherche uniquement les candidats résidant dans la ville de la mission.",
+            });
+          }
+        }
+        // --- FIN VÉRIFICATION ---
 
         // Étape 2 : Vérifier si le candidat a déjà postulé
         // TRADUCTION: findOne({ job: jobId, candidate: candidateId }) devient findOne({ where: { ... } })

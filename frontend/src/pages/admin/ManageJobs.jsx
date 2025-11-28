@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BriefcaseIcon,
   FunnelIcon,
@@ -9,6 +10,7 @@ import {
   ArrowPathIcon,
   TrashIcon,
   EyeIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 import { apiService } from "../../services/api";
 import { format } from "date-fns";
@@ -56,6 +58,7 @@ const STATUS_BADGES = {
 };
 
 const ManageJobs = () => {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -128,6 +131,14 @@ const ManageJobs = () => {
           <BriefcaseIcon className="h-8 w-8 mr-2 text-indigo-600" />
           Gestion des offres d'emploi
         </h1>
+
+        <button
+          onClick={() => navigate("/admin/jobs/create")}
+          className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm transition-colors"
+        >
+          <PlusIcon className="h-5 w-5 mr-2" />
+          Créer une offre
+        </button>
 
         {/* Filtres */}
         <div className="flex items-center gap-4">

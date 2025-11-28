@@ -24,7 +24,6 @@ db.AdminProfile = userModels.AdminProfile;
 // Import des autres modèles
 db.Application = require("./Application")(sequelize);
 db.Job = require("./Job")(sequelize);
-db.Attachment = require("./Attachment")(sequelize);
 db.Testimonial = require("./Testimonial")(sequelize);
 db.Report = require("./Report")(sequelize);
 db.Recommendation = require("./Recommendation")(sequelize);
@@ -131,9 +130,6 @@ db.Report.belongsTo(db.User, {
   constraints: false,
   as: "user",
 });
-
-db.User.hasMany(db.Attachment, { foreignKey: "ownerId", as: "attachments" });
-db.Attachment.belongsTo(db.User, { foreignKey: "ownerId", as: "owner" });
 
 // Une recommandation appartient à UNE SEULE mission (Job)
 db.Job.hasMany(db.Recommendation, {

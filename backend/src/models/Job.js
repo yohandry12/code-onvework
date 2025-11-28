@@ -99,6 +99,14 @@ module.exports = (sequelize) => {
       locationCity: { type: DataTypes.STRING, field: "location_city" },
       locationCountry: { type: DataTypes.STRING, field: "location_country" },
 
+      isLocationRestricted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        field: "is_location_restricted",
+        comment:
+          "Si vrai, seuls les candidats de la même ville peuvent postuler",
+      },
+
       experience: {
         type: DataTypes.ENUM("junior", "intermediate", "senior", "expert"),
         defaultValue: "intermediate",

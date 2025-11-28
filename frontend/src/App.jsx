@@ -41,6 +41,7 @@ import AdminUserDetails from "./pages/Admin/AdminUserDetails";
 import RecommendationsList from "./pages/RecommendationsList";
 import Unauthorized from "./pages/Unauthorized";
 import ApiDocumentation from "./pages/ApiDocumentation";
+import AdminCreateJob from "./pages/admin/AdminCreateJob";
 // --- LAYOUTS ET COMPOSANTS ---
 import Header from "./components/Layout/Header";
 import Footer from "./components/Layout/Footer";
@@ -169,6 +170,7 @@ function AppRoutes() {
             <Route path="users" element={<ManageUsers />} />
             <Route path="recommandations" element={<AdminRecommendations />} />
             <Route path="/admin/users/:id" element={<AdminUserDetails />} />
+            <Route path="/admin/jobs/create" element={<AdminCreateJob />} />
           </Route>
         </Route>
 

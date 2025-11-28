@@ -12,9 +12,28 @@ const { authenticateToken } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
 const { findMatchingJobs } = require("../services/aiMatchingService");
 const { getCompletedJobsCount } = require("../utils/stats");
+const jwt = require("jsonwebtoken");
 
 module.exports = function (io) {
   const router = express.Router();
+
+  // --- Middleware d'authentification OPTIONNELLE ---
+  // Permet de savoir qui visite si un token est présent, sinon continue en invité
+  const optionalAuth = (req, res, next) => {
+    const authHeader = req.headers["authorization"];
+    const token = authHeader && authHeader.split(" ")[1];
+
+    if (token == null) {
+      return next(); // Pas de token, c'est un visiteur anonyme
+    }
+
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+      if (!err) {
+        req.user = user; // Token valide, on enregistre l'utilisateur
+      }
+      next();
+    });
+  };
 
   // --- GET /api/users/search - Recherche d'utilisateurs (traduit pour Sequelize) ---
   router.get("/search", async (req, res) => {
@@ -145,10 +164,10 @@ module.exports = function (io) {
   });
 
   // --- GET /api/users/:id/profile - Récupérer et mettre à jour le profil (traduit pour Sequelize) ---
-  router.get("/:id/profile", authenticateToken, async (req, res) => {
+  router.get("/:id/profile", optionalAuth, async (req, res) => {
     try {
       const userIdToView = req.params.id;
-      const viewer = req.user;
+      const viewer = req.user; // Sera 'undefined' si l'utilisateur n'est pas connecté
 
       // Récupérer l'utilisateur à voir AVEC son profil associé
       const user = await User.findByPk(userIdToView, {
@@ -164,24 +183,32 @@ module.exports = function (io) {
           .json({ success: false, error: "Utilisateur non trouvé" });
       }
 
-      // La logique de condition reste la même
-      const isViewerClientOrAdmin =
-        viewer.role === "client" || viewer.role === "admin";
-      const isViewingAnotherUser = viewer.id.toString() !== user.id.toString();
-      const isViewedUserCandidate = user.role === "candidate";
+      // =================================================================
+      // --- CORRECTION : ON VÉRIFIE D'ABORD SI LE VIEWER EXISTE ---
+      // =================================================================
+      if (viewer) {
+        // Ces lignes ne s'exécutent QUE si l'utilisateur est connecté
+        const isViewerClientOrAdmin =
+          viewer.role === "client" || viewer.role === "admin";
 
-      if (
-        isViewerClientOrAdmin &&
-        isViewingAnotherUser &&
-        isViewedUserCandidate &&
-        user.candidateProfile
-      ) {
-        // Incrémenter le compteur sur la table de profil séparée
-        await user.candidateProfile.increment("profileViewCount", { by: 1 });
-        logger.info(
-          `Vue du profil candidat ${user.id} incrémentée par ${viewer.id}`
-        );
+        // Conversion en string pour être sûr de comparer les IDs correctement
+        const isViewingAnotherUser = String(viewer.id) !== String(user.id);
+        const isViewedUserCandidate = user.role === "candidate";
+
+        if (
+          isViewerClientOrAdmin &&
+          isViewingAnotherUser &&
+          isViewedUserCandidate &&
+          user.candidateProfile
+        ) {
+          // Incrémenter le compteur sur la table de profil séparée
+          await user.candidateProfile.increment("profileViewCount", { by: 1 });
+          logger.info(
+            `Vue du profil candidat ${user.id} incrémentée par ${viewer.id}`
+          );
+        }
       }
+      // =================================================================
 
       // getPublicProfile est une méthode d'instance, elle fonctionnera toujours
       const userResponse = user.getPublicProfile();
@@ -191,6 +218,7 @@ module.exports = function (io) {
         userResponse.profile = user.candidateProfile.get({ plain: true });
       if (user.clientProfile)
         userResponse.profile = user.clientProfile.get({ plain: true });
+
       if (user.role === "candidate" && user.candidateProfile) {
         userResponse.profile.completedJobs = await getCompletedJobsCount(
           user.id
