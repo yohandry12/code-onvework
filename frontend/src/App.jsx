@@ -42,6 +42,7 @@ import RecommendationsList from "./pages/RecommendationsList";
 import Unauthorized from "./pages/Unauthorized";
 import ApiDocumentation from "./pages/ApiDocumentation";
 import AdminCreateJob from "./pages/admin/AdminCreateJob";
+import TalentProfilePage from "./pages/TalentProfilePage";
 // --- LAYOUTS ET COMPOSANTS ---
 import Header from "./components/Layout/Header";
 import Footer from "./components/Layout/Footer";
@@ -132,6 +133,7 @@ function AppRoutes() {
             <Route path="/client/job-history" element={<JobHistory />} />
             <Route path="/clients/:clientId" element={<ClientProfilePage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/talents/:id" element={<TalentProfilePage />} />
           </Route>
         </Route>
 

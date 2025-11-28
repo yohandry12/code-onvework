@@ -7,11 +7,9 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
-import FreelancerProfileModal from "../components/UI/FreelancerProfileModal";
-import { useAuth } from "../contexts/AuthContext";
+// import FreelancerProfileModal from "../components/UI/FreelancerProfileModal"; // SUPPRIMÉ
 
-// endpoint pour recuperer les avis de chaque candidat
-// Nouveau composant pour les boutons de pagination
+// Composant pour la pagination
 const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
 
@@ -20,80 +18,36 @@ const PaginationControls = ({ currentPage, totalPages, onPageChange }) => {
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="p-2 rounded-full bg-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+        className="p-2 rounded-full bg-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
       >
-        <ChevronLeftIcon className="w-5 h-5" />
+        <ChevronLeftIcon className="w-5 h-5 text-gray-600" />
       </button>
-      <span className="font-medium">
+      <span className="font-medium text-gray-700">
         Page {currentPage} sur {totalPages}
       </span>
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="p-2 rounded-full bg-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+        className="p-2 rounded-full bg-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100 transition-colors"
       >
-        <ChevronRightIcon className="w-5 h-5" />
+        <ChevronRightIcon className="w-5 h-5 text-gray-600" />
       </button>
     </div>
   );
 };
 
-const FreelancerCard = ({ user, onViewProfile }) => {
-  const title =
-    user.profile.profession ||
-    (user.profile.skills && user.profile.skills[0]) ||
-    "Talent Freelance";
-  return (
-    <div
-      onClick={onViewProfile}
-      className="bg-gray-800/50 rounded-2xl border border-white/10 p-6 flex flex-col items-center gap-4 hover:border-emerald-400/50 transition-all duration-300 cursor-pointer"
-    >
-      <div className="relative">
-        <img
-          src={
-            user.profile.avatar ||
-            `https://ui-avatars.com/api/?name=${encodeURIComponent(
-              user.profile.fullName
-            )}&background=2dd4bf&color=000&bold=true`
-          }
-          alt={user.profile.fullName}
-          className="w-20 h-20 rounded-full object-cover"
-        />
-      </div>
-      <div className="text-center">
-        <h3 className="text-lg font-bold text-white">
-          {user.profile.fullName}
-        </h3>
-        <p className="text-sm text-gray-400">{title}</p>
-
-      </div>
-      <div className="flex flex-wrap justify-center gap-2">
-        {user.profile.skills?.slice(0, 3).map((skill, idx) => (
-          <span
-            key={idx}
-            className="px-3 py-1 text-xs bg-gray-700 text-gray-300 rounded-full"
-          >
-            {skill}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const AllTalents = () => {
-  const { user } = useAuth();
+  // Plus besoin de user ici pour l'instant, sauf si vous voulez personnaliser l'accueil
   const [talents, setTalents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Nouveaux états pour la pagination
+  // États pour la pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const [selectedFreelancer, setSelectedFreelancer] = useState(null);
-  const [isModalLoading, setIsModalLoading] = useState(false);
+  // --- SUPPRESSION DES ÉTATS DE LA MODALE ---
 
   // Utilisation de useCallback pour optimiser la fonction de fetch
   const fetchTalents = useCallback(async (page, query) => {
@@ -125,13 +79,12 @@ const AllTalents = () => {
 
   // Déclencher une nouvelle recherche lorsque l'utilisateur tape (avec un délai)
   useEffect(() => {
-    // On met un délai (debounce) pour ne pas appeler l'API à chaque touche
     const timer = setTimeout(() => {
       setCurrentPage(1); // Revenir à la première page à chaque nouvelle recherche
       fetchTalents(1, searchTerm);
     }, 500); // Délai de 500ms
 
-    return () => clearTimeout(timer); // Nettoyer le minuteur
+    return () => clearTimeout(timer);
   }, [searchTerm, fetchTalents]);
 
   const handlePageChange = (newPage) => {
@@ -141,38 +94,12 @@ const AllTalents = () => {
     }
   };
 
-  const handleViewProfile = async (freelancerPreview) => {
-    // 1. Indiquer que la modale est en train de charger
-    setIsModalLoading(true);
-    setSelectedFreelancer(freelancerPreview); // On peut pré-remplir la modale avec les données de base
-
-    try {
-      // 2. APPEL CRUCIAL À L'API qui déclenche l'incrémentation du compteur
-      const response = await apiService.users.getProfile(freelancerPreview.id);
-
-      // 3. Mettre à jour la modale avec les données complètes et fraîches
-      if (response.success) {
-        setSelectedFreelancer(response.user);
-      } else {
-        setError("Impossible de charger le profil détaillé.");
-      }
-    } catch (err) {
-      setError("Une erreur est survenue lors du chargement du profil.");
-      console.error(err);
-    } finally {
-      // 4. Arrêter l'état de chargement de la modale
-      setIsModalLoading(false);
-    }
-  };
-
-  const handleCloseModal = () => {
-    setSelectedFreelancer(null);
-  };
+  // --- SUPPRESSION DES FONCTIONS handleViewProfile et handleCloseModal ---
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* En-tête et barre de recherche (inchangés) */}
+        {/* En-tête et barre de recherche */}
         <div className="text-center md:text-left mb-8">
           <h1 className="text-4xl font-extrabold text-gray-900">
             Découvrez nos Freelances
@@ -181,13 +108,14 @@ const AllTalents = () => {
             Trouvez le talent parfait pour votre prochain projet.
           </p>
         </div>
+
         <div className="relative mb-8">
           <input
             type="text"
-            placeholder="Rechercher..."
+            placeholder="Rechercher par nom, compétence ou métier..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 text-lg border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-shadow"
+            className="w-full pl-12 pr-4 py-3 text-lg border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow shadow-sm"
           />
           <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" />
         </div>
@@ -200,6 +128,12 @@ const AllTalents = () => {
         ) : error ? (
           <div className="text-center py-12">
             <p className="text-red-500 font-semibold">{error}</p>
+            <button
+              onClick={() => fetchTalents(1, searchTerm)}
+              className="mt-4 text-blue-600 hover:underline"
+            >
+              Réessayer
+            </button>
           </div>
         ) : talents.length > 0 ? (
           <>
@@ -208,7 +142,7 @@ const AllTalents = () => {
                 <TalentCard
                   key={talent.id}
                   talent={talent}
-                  onViewProfile={() => handleViewProfile(talent)}
+                  // Plus besoin de passer onViewProfile, TalentCard gère la navigation
                 />
               ))}
             </div>
@@ -219,19 +153,16 @@ const AllTalents = () => {
             />
           </>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-xl text-gray-500">
+          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+            <p className="text-xl text-gray-500 font-medium">
               Aucun talent ne correspond à votre recherche.
             </p>
+            <p className="text-gray-400 mt-2">Essayez d'autres mots-clés.</p>
           </div>
         )}
       </div>
-      {selectedFreelancer && (
-        <FreelancerProfileModal
-          freelancer={selectedFreelancer}
-          onClose={handleCloseModal}
-        />
-      )}
+
+      {/* SUPPRESSION DE LA MODALE ICI */}
     </div>
   );
 };

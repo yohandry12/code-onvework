@@ -17,14 +17,14 @@ import {
   Sparkles,
   Eye,
   User,
-  Search as MagnifyingGlassIcon,
+  Search, // Utilisation de Search de Lucide
   UserPlus,
 } from "lucide-react";
 import { apiService } from "../../services/api";
 import AIChatAssistant from "../../components/UI/AIChatAssistant";
 import AIFormField from "../../components/UI/AIFormField";
 
-// --- Constantes (Mêmes que CreateJob) ---
+// --- CONSTANTES ---
 const categories = [
   { value: "development", label: "Développement", icon: "💻" },
   { value: "design", label: "Design", icon: "🎨" },
@@ -63,17 +63,20 @@ const durationUnits = [
 ];
 
 const AdminCreateJob = () => {
-  // On commence à l'étape 0 (Sélection Client)
+  const navigate = useNavigate();
+
+  // Étape courante (0 = Sélection Client)
   const [currentStep, setCurrentStep] = useState(0);
 
   // --- ÉTATS POUR LA SÉLECTION CLIENT ---
   const [clientSearchTerm, setClientSearchTerm] = useState("");
-  const [clients, setClients] = useState([]); // Liste chargée depuis l'API
+  const [clients, setClients] = useState([]);
   const [filteredClients, setFilteredClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const clientWrapperRef = useRef(null);
 
+  // --- ÉTATS FORMULAIRE ---
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -102,9 +105,8 @@ const AdminCreateJob = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
-  // --- ÉTATS POUR L'IA ET L'AUTOCOMPLÉTION VILLE ---
+  // --- ÉTATS IA & AUTOCOMPLETE VILLE ---
   const [activeField, setActiveField] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [initialPrompt, setInitialPrompt] = useState("");
@@ -115,18 +117,17 @@ const AdminCreateJob = () => {
   const [allCities, setAllCities] = useState([]);
   const [citySuggestions, setCitySuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const wrapperRef = useRef(null);
+  const cityWrapperRef = useRef(null);
 
-  // --- CHARGEMENT INITIAL (Villes & Clients) ---
+  // --- CHARGEMENT INITIAL ---
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Charger les villes
+        // 1. Charger les villes
         const citiesRes = await apiService.cities.getAll();
         setAllCities((citiesRes.data || []).map((c) => c.name));
 
-        // Charger les clients (Admin only)
-        // On suppose que cette route existe et filtre par role='client'
+        // 2. Charger les clients (Admin only)
         const clientsRes = await apiService.users.adminGetAll({
           role: "client",
           limit: 1000,
@@ -145,7 +146,7 @@ const AdminCreateJob = () => {
   const handleClientSearch = (e) => {
     const term = e.target.value;
     setClientSearchTerm(term);
-    setSelectedClient(null); // Reset si on tape
+    setSelectedClient(null);
     setShowClientDropdown(true);
 
     if (term) {
@@ -174,7 +175,7 @@ const AdminCreateJob = () => {
     setError("");
   };
 
-  // Click outside pour client dropdown
+  // Fermer dropdown client au clic dehors
   useEffect(() => {
     function handleClickOutside(event) {
       if (
@@ -188,7 +189,7 @@ const AdminCreateJob = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [clientWrapperRef]);
 
-  // --- LOGIQUE AUTOCOMPLÉTION VILLE (Identique à CreateJob) ---
+  // --- LOGIQUE AUTOCOMPLÉTION VILLE ---
   const handleCityChange = (e) => {
     const userInput = e.target.value;
     setForm((prev) => ({ ...prev, locationCity: userInput }));
@@ -202,35 +203,41 @@ const AdminCreateJob = () => {
       setShowSuggestions(false);
     }
   };
+
   const selectCity = (cityName) => {
     setForm((prev) => ({ ...prev, locationCity: cityName }));
     setShowSuggestions(false);
   };
+
+  // Fermer dropdown ville au clic dehors
   useEffect(() => {
     function handleClickOutside(event) {
-      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+      if (
+        cityWrapperRef.current &&
+        !cityWrapperRef.current.contains(event.target)
+      ) {
         setShowSuggestions(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [wrapperRef]);
+  }, [cityWrapperRef]);
 
-  // --- ÉTAPES ---
+  // --- GESTION FORMULAIRE ---
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    if (name === "locationCountry") return;
+    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
+  };
+
   const steps = [
-    { number: 0, title: "Sélection du Client", icon: User }, // <--- NOUVELLE ÉTAPE
+    { number: 0, title: "Sélection du Client", icon: User },
     { number: 1, title: "Informations générales", icon: FileText },
     { number: 2, title: "Budget & Localisation", icon: DollarSign },
     { number: 3, title: "Prérequis candidats", icon: Users },
     { number: 4, title: "Planification", icon: Calendar },
     { number: 5, title: "Options avancées", icon: Star },
   ];
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    if (name === "locationCountry") return;
-    setForm({ ...form, [name]: type === "checkbox" ? checked : value });
-  };
 
   const nextStep = () => {
     if (currentStep === 0 && !selectedClient) {
@@ -239,7 +246,7 @@ const AdminCreateJob = () => {
     }
     if (currentStep < 5) {
       setCurrentStep(currentStep + 1);
-      setError(""); // Clear error on change
+      setError("");
     }
   };
 
@@ -247,9 +254,8 @@ const AdminCreateJob = () => {
     if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
 
-  // --- SOUMISSION ---
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Juste au cas où
+    e.preventDefault();
     handleFinalSubmit();
   };
 
@@ -263,7 +269,7 @@ const AdminCreateJob = () => {
     setError("");
 
     const jobData = {
-      // ... Données du formulaire
+      // Données standards
       title: form.title,
       description: form.description,
       category: form.category,
@@ -279,6 +285,8 @@ const AdminCreateJob = () => {
         country: form.locationCountry || "Cameroun",
       },
       isLocationRestricted: form.isLocationRestricted,
+
+      // Tableaux
       skills: Array.isArray(form.skills)
         ? form.skills
         : form.skills
@@ -291,21 +299,22 @@ const AdminCreateJob = () => {
         : form.languages
         ? form.languages.split(",").map((l) => l.trim())
         : [],
+      tags: Array.isArray(form.tags)
+        ? form.tags
+        : form.tags
+        ? form.tags.split(",").map((t) => t.trim())
+        : [],
+
       deadline: form.deadline || null,
       startDate: form.startDate || null,
       durationValue:
         form.durationUnit === "projet" ? null : Number(form.durationValue),
       durationUnit: form.durationUnit,
       featured: form.featured,
-      tags: Array.isArray(form.tags)
-        ? form.tags
-        : form.tags
-        ? form.tags.split(",").map((t) => t.trim())
-        : [],
       isUrgent: form.isUrgent,
 
-      // --- CHAMP ADMIN ---
-      targetClientId: selectedClient.id, // On envoie l'ID du client choisi
+      // CHAMP ADMIN SPÉCIFIQUE
+      targetClientId: selectedClient.id,
     };
 
     try {
@@ -320,7 +329,7 @@ const AdminCreateJob = () => {
     }
   };
 
-  // --- LOGIQUE IA (Inchangée) ---
+  // --- IA HELPERS ---
   const handleAIAssist = (fieldName, fieldLabel) => {
     setInitialPrompt(`Peux-tu m'aider à remplir le champ "${fieldLabel}" ?`);
     setIsChatOpen(true);
@@ -353,28 +362,27 @@ const AdminCreateJob = () => {
     }
   };
 
-  // --- RENDU DU CONTENU DES ÉTAPES ---
+  // --- RENDU DES ÉTAPES ---
   const getStepContent = () => {
     switch (currentStep) {
-      case 0: // --- ÉTAPE SÉLECTION CLIENT ---
+      case 0: // SÉLECTION CLIENT
         return (
           <div className="space-y-6">
             <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
               <div className="flex items-center">
                 <User className="hidden md:inline h-5 w-5 text-indigo-500 mr-2" />
                 <span className="text-indigo-700 font-medium">
-                  Étape Préliminaire - Propriétaire de la mission
+                  Étape Préliminaire - Propriétaire
                 </span>
               </div>
               <p className="text-indigo-600 text-sm mt-1 ml-7">
-                En tant qu'administrateur, vous devez spécifier à quel client
-                cette mission sera attribuée.
+                Spécifiez pour quel client vous créez cette mission.
               </p>
             </div>
 
             <div className="relative" ref={clientWrapperRef}>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Rechercher un client existant *
+                Rechercher un client *
               </label>
               <div className="relative">
                 <input
@@ -386,14 +394,13 @@ const AdminCreateJob = () => {
                     error && !selectedClient
                       ? "border-red-300 ring-1 ring-red-300"
                       : "border-gray-300"
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
+                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500`}
                   placeholder="Nom, Email ou Entreprise..."
                   autoComplete="off"
                 />
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
               </div>
 
-              {/* Liste déroulante Client */}
               {showClientDropdown && filteredClients.length > 0 && (
                 <ul className="absolute z-20 w-full bg-white border border-gray-200 rounded-xl shadow-xl mt-1 max-h-60 overflow-y-auto">
                   {filteredClients.map((client) => (
@@ -421,34 +428,31 @@ const AdminCreateJob = () => {
                 </ul>
               )}
 
-              {/* Message si client non trouvé */}
               {clientSearchTerm &&
                 filteredClients.length === 0 &&
                 !selectedClient && (
-                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-in fade-in">
+                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
                     <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0" />
                     <div>
                       <h4 className="font-bold text-red-800 text-sm">
                         Client introuvable
                       </h4>
                       <p className="text-red-700 text-sm mt-1">
-                        Aucun client ne correspond à votre recherche. Vous devez
-                        impérativement créer le compte client avant de pouvoir
-                        publier une mission pour lui.
+                        Vous devez créer le compte client avant de publier une
+                        mission.
                       </p>
                       <button
                         type="button"
-                        onClick={() => navigate("/admin/users")} // Redirection vers gestion users
-                        className="mt-3 flex items-center px-3 py-2 bg-white border border-red-200 rounded-lg text-red-700 text-sm font-medium hover:bg-red-50 transition-colors"
+                        onClick={() => navigate("/admin/users")}
+                        className="mt-3 flex items-center px-3 py-2 bg-white border border-red-200 rounded-lg text-red-700 text-sm font-medium hover:bg-red-50"
                       >
-                        <UserPlus className="w-4 h-4 mr-2" />
-                        Aller créer un client
+                        <UserPlus className="w-4 h-4 mr-2" /> Aller créer un
+                        client
                       </button>
                     </div>
                   </div>
                 )}
 
-              {/* Confirmation client sélectionné */}
               {selectedClient && (
                 <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
                   <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold">
@@ -470,7 +474,7 @@ const AdminCreateJob = () => {
           </div>
         );
 
-      case 1: // Infos Générales (Identique CreateJob)
+      case 1: // INFOS GÉNÉRALES
         return (
           <div className="space-y-6">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -481,7 +485,6 @@ const AdminCreateJob = () => {
                 </span>
               </div>
             </div>
-            {/* ... (Champs Titre, Description, Categorie, Type - Identique à CreateJob) ... */}
             <div>
               <AIFormField
                 label="Titre de la mission *"
@@ -499,7 +502,7 @@ const AdminCreateJob = () => {
                     onChange={handleChange}
                     disabled={isGenerating && activeField === "title"}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-400"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Ex: Développeur React"
                   />
                   {isGenerating && activeField === "title" && (
@@ -527,7 +530,7 @@ const AdminCreateJob = () => {
                     onChange={handleChange}
                     disabled={isGenerating && activeField === "description"}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-400 resize-none"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     rows={6}
                     placeholder="Description..."
                   />
@@ -549,7 +552,7 @@ const AdminCreateJob = () => {
                   value={form.category}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
                 >
                   {categories.map((cat) => (
                     <option key={cat.value} value={cat.value}>
@@ -567,7 +570,7 @@ const AdminCreateJob = () => {
                   value={form.type}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white capitalize"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white capitalize"
                 >
                   {types.map((t) => (
                     <option key={t} value={t}>
@@ -580,7 +583,7 @@ const AdminCreateJob = () => {
           </div>
         );
 
-      case 2: // Budget & Localisation (Copier-coller de CreateJob avec Autocomplete)
+      case 2: // BUDGET & LOCALISATION
         return (
           <div className="space-y-6">
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
@@ -591,64 +594,83 @@ const AdminCreateJob = () => {
                 </span>
               </div>
             </div>
-            {/* ... Champs Budget ... */}
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <DollarSign className="h-5 w-5 mr-2 text-blue-500" /> Budget
               </h3>
-              <div className="grid grid-cols-3 gap-4">
-                <input
-                  name="budgetMin"
-                  type="number"
-                  placeholder="Min"
-                  value={form.budgetMin}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl"
-                />
-                <input
-                  name="budgetMax"
-                  type="number"
-                  placeholder="Max"
-                  value={form.budgetMax}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl"
-                />
-                <select
-                  name="budgetCurrency"
-                  value={form.budgetCurrency}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
-                >
-                  {currencies.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Min *
+                  </label>
+                  <input
+                    name="budgetMin"
+                    type="number"
+                    placeholder="500"
+                    value={form.budgetMin}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Max *
+                  </label>
+                  <input
+                    name="budgetMax"
+                    type="number"
+                    placeholder="2000"
+                    value={form.budgetMax}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Devise
+                  </label>
+                  <select
+                    name="budgetCurrency"
+                    value={form.budgetCurrency}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
+                  >
+                    {currencies.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
-            {/* ... Champs Localisation ... */}
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <MapPin className="h-5 w-5 mr-2 text-blue-500" /> Localisation
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <select
-                  name="locationType"
-                  value={form.locationType}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
-                >
-                  {locationTypes.map((l) => (
-                    <option key={l} value={l}>
-                      {l}
-                    </option>
-                  ))}
-                </select>
-
-                {/* AUTOCOMPLETE VILLE */}
-                <div className="relative" ref={wrapperRef}>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mode
+                  </label>
+                  <select
+                    name="locationType"
+                    value={form.locationType}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
+                  >
+                    {locationTypes.map((l) => (
+                      <option key={l} value={l}>
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="relative" ref={cityWrapperRef}>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Ville
+                  </label>
                   <div className="relative">
                     <input
                       type="text"
@@ -679,28 +701,38 @@ const AdminCreateJob = () => {
                     </ul>
                   )}
                 </div>
-
-                <input
-                  name="locationCountry"
-                  value="Cameroun"
-                  disabled
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-500"
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Pays
+                  </label>
+                  <input
+                    name="locationCountry"
+                    value="Cameroun"
+                    disabled
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100 text-gray-500"
+                  />
+                </div>
               </div>
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mt-4">
                 <label className="flex items-start cursor-pointer">
-                  <input
-                    name="isLocationRestricted"
-                    type="checkbox"
-                    checked={form.isLocationRestricted}
-                    onChange={handleChange}
-                    className="mt-1 w-5 h-5 text-blue-600 rounded"
-                    disabled={!form.locationCity}
-                  />
+                  <div className="flex items-center h-5">
+                    <input
+                      name="isLocationRestricted"
+                      type="checkbox"
+                      checked={form.isLocationRestricted}
+                      onChange={handleChange}
+                      className="w-5 h-5 text-blue-600 rounded"
+                      disabled={!form.locationCity}
+                    />
+                  </div>
                   <div className="ml-3">
                     <span className="block text-sm font-medium text-blue-900">
-                      Restreindre aux candidats locaux
+                      Restreindre aux candidats locaux uniquement
                     </span>
+                    <p className="text-xs text-blue-700 mt-1">
+                      Si activé, seuls les candidats de{" "}
+                      {form.locationCity || "cette ville"} pourront postuler.
+                    </p>
                   </div>
                 </label>
               </div>
@@ -708,38 +740,237 @@ const AdminCreateJob = () => {
           </div>
         );
 
-      // ... LES CAS 3, 4, 5 SONT IDENTIQUES À CreateJob.jsx (Copier-coller le contenu des cases) ...
-      // Pour alléger la réponse, je mets le code essentiel, mais dans votre fichier final, copiez les cases 3, 4 et 5 exactement comme dans CreateJob.jsx.
-      case 3:
-        return <div>{/* Copier contenu case 3 de CreateJob */}</div>;
-      case 4:
-        return <div>{/* Copier contenu case 4 de CreateJob */}</div>;
-      case 5:
+      case 3: // PRÉREQUIS
         return (
           <div className="space-y-6">
-            {/* ... */}
-            {/* Bloc de prévisualisation */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center">
+                <Users className="hidden md:inline h-5 w-5 text-purple-500 mr-2" />
+                <span className="text-purple-700 font-medium">
+                  Étape 3/5 - Profil candidat idéal
+                </span>
+              </div>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Users className="h-5 w-5 mr-2 text-blue-500" /> Prérequis
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Niveau d'expérience
+                  </label>
+                  <select
+                    name="experience"
+                    value={form.experience}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
+                  >
+                    {experienceLevels.map((lvl) => (
+                      <option key={lvl.value} value={lvl.value}>
+                        {lvl.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Niveau d'études
+                  </label>
+                  <select
+                    name="education"
+                    value={form.education}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
+                  >
+                    {educationLevels.map((lvl) => (
+                      <option key={lvl.value} value={lvl.value}>
+                        {lvl.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <AIFormField
+                  label="Compétences techniques"
+                  name="skills"
+                  onFocus={() => setActiveField("skills")}
+                  onBlur={() => setActiveField(null)}
+                  onAIAssist={handleAIGenerateForField}
+                  isAIAssistantActive={activeField === "skills"}
+                  isGeneratingAI={isGenerating && activeField === "skills"}
+                >
+                  <input
+                    name="skills"
+                    value={form.skills}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl"
+                    placeholder="React, Node.js..."
+                  />
+                </AIFormField>
+                <AIFormField
+                  label="Langues requises"
+                  name="languages"
+                  onFocus={() => setActiveField("languages")}
+                  onBlur={() => setActiveField(null)}
+                  onAIAssist={handleAIGenerateForField}
+                  isAIAssistantActive={activeField === "languages"}
+                  isGeneratingAI={isGenerating && activeField === "languages"}
+                >
+                  <input
+                    name="languages"
+                    value={form.languages}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl"
+                    placeholder="Français, Anglais..."
+                  />
+                </AIFormField>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 4: // PLANIFICATION
+        return (
+          <div className="space-y-6">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center">
+                <Calendar className="hidden md:inline h-5 w-5 text-orange-500 mr-2" />
+                <span className="text-orange-700 font-medium">
+                  Étape 4/5 - Planning du projet
+                </span>
+              </div>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Clock className="h-5 w-5 mr-2 text-blue-500" /> Durée
+              </h3>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Durée estimée *
+                </label>
+                <div className="flex gap-2">
+                  <div className="w-1/2">
+                    <input
+                      name="durationValue"
+                      type="number"
+                      min="1"
+                      value={form.durationValue}
+                      onChange={handleChange}
+                      disabled={form.durationUnit === "projet"}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl disabled:bg-gray-100"
+                      placeholder="Ex: 3"
+                    />
+                  </div>
+                  <div className="w-1/2">
+                    <select
+                      name="durationUnit"
+                      value={form.durationUnit}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
+                    >
+                      {durationUnits.map((unit) => (
+                        <option key={unit.value} value={unit.value}>
+                          {unit.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 5: // OPTIONS & PREVIEW
+        return (
+          <div className="space-y-6">
+            <div className="bg-pink-50 border border-pink-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center">
+                <Star className="hidden md:inline h-5 w-5 text-pink-500 mr-2" />
+                <span className="text-pink-700 font-medium">
+                  Étape 5/5 - Options et finalisation
+                </span>
+              </div>
+            </div>
+
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold text-blue-900 flex items-center">
-                  <Eye className="h-5 w-5 mr-2" />
-                  Aperçu de votre mission
+                  <Eye className="h-5 w-5 mr-2" /> Aperçu
                 </h3>
                 <p className="text-sm text-blue-700 mt-1">
-                  Visualisez votre offre telle qu'elle apparaîtra aux candidats
-                  avant de valider.
+                  Vérifiez l'offre avant de valider.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowPreviewModal(true)}
-                className="px-5 py-2.5 bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 hover:border-blue-300 rounded-lg font-medium shadow-sm transition-all flex items-center whitespace-nowrap"
+                className="px-5 py-2.5 bg-white text-blue-600 border border-blue-200 hover:bg-blue-50 rounded-lg font-medium shadow-sm flex items-center"
               >
-                <Eye className="h-4 w-4 mr-2" />
-                Voir l'aperçu
+                <Eye className="h-4 w-4 mr-2" /> Voir l'aperçu
               </button>
             </div>
-            {/* ... */}
+
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Tag className="h-5 w-5 mr-2 text-blue-500" /> Tags
+              </h3>
+              <AIFormField
+                label="Tags de recherche"
+                name="tags"
+                onFocus={() => setActiveField("tags")}
+                onBlur={() => setActiveField(null)}
+                onAIAssist={handleAIGenerateForField}
+                isAIAssistantActive={activeField === "tags"}
+                isGeneratingAI={isGenerating && activeField === "tags"}
+              >
+                <input
+                  name="tags"
+                  value={form.tags}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl"
+                  placeholder="urgent, remote..."
+                />
+              </AIFormField>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Zap className="h-5 w-5 mr-2 text-blue-500" /> Promotion
+              </h3>
+              <div className="space-y-4">
+                <label className="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
+                  <input
+                    name="featured"
+                    type="checkbox"
+                    checked={form.featured}
+                    onChange={handleChange}
+                    className="w-5 h-5 text-blue-600 rounded"
+                  />
+                  <div className="ml-4">
+                    <span className="font-medium text-gray-900">
+                      Mission en vedette
+                    </span>
+                  </div>
+                </label>
+                <label className="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
+                  <input
+                    name="isUrgent"
+                    type="checkbox"
+                    checked={form.isUrgent}
+                    onChange={handleChange}
+                    className="w-5 h-5 text-red-600 rounded"
+                  />
+                  <div className="ml-4">
+                    <span className="font-medium text-gray-900">
+                      Mission urgente
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
           </div>
         );
 
@@ -760,7 +991,7 @@ const AdminCreateJob = () => {
           </p>
         </div>
 
-        {/* Barre de progression (Adaptée pour 6 étapes : 0 à 5) */}
+        {/* PROGRESS BAR */}
         <div className="hidden md:inline mb-8">
           <div className="flex justify-between items-center">
             {steps.map((step, index) => {
@@ -804,6 +1035,7 @@ const AdminCreateJob = () => {
           </div>
         </div>
 
+        {/* FORMULAIRE */}
         <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
           {error && (
             <div className="bg-red-50 border-l-4 border-red-400 p-4 m-6">
@@ -872,43 +1104,48 @@ const AdminCreateJob = () => {
               Mission Créée !
             </h2>
             <p className="text-gray-600 mb-6">
-              La mission a été attribuée à{" "}
-              <strong>{selectedClient?.profile?.firstName}</strong> et publiée
-              avec succès.
+              Attribuée à <strong>{selectedClient?.profile?.firstName}</strong>{" "}
+              et publiée.
             </p>
             <button
               onClick={() => navigate("/admin/jobs")}
               className="w-full py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800"
             >
-              Retour à la gestion
+              Retour
             </button>
           </div>
         </div>
       )}
 
-      {/* PREVIEW MODAL (Copier le code de CreateJob pour le rendu) */}
+      {/* PREVIEW MODAL */}
       {showPreviewModal && (
-        // ... Collez ici le code de la modale de prévisualisation de CreateJob ...
-        // ... En adaptant juste les boutons d'action ...
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm overflow-y-auto">
-          {/* ... Contenu de la preview ... */}
           <div className="bg-white rounded-2xl w-full max-w-3xl p-8 relative">
             <button
               onClick={() => setShowPreviewModal(false)}
-              className="absolute top-4 right-4"
+              className="absolute top-4 right-4 bg-gray-100 p-2 rounded-full hover:bg-gray-200"
             >
               X
             </button>
-            <h2 className="text-2xl font-bold mb-4">{form.title}</h2>
-            <p className="mb-4">{form.description}</p>
-            {/* ... Détails ... */}
+            <h2 className="text-2xl font-bold mb-4">
+              {form.title || "Titre de la mission"}
+            </h2>
+            <div className="flex gap-4 text-sm text-gray-500 mb-4">
+              <span>{form.category}</span> • <span>{form.type}</span> •{" "}
+              <span>
+                {form.locationCity}, {form.locationCountry}
+              </span>
+            </div>
+            <div className="prose max-w-none bg-gray-50 p-4 rounded-lg mb-4 whitespace-pre-wrap">
+              {form.description || "Aucune description."}
+            </div>
             <div className="flex justify-end mt-6">
               <button
                 onClick={() => {
                   setShowPreviewModal(false);
                   handleFinalSubmit();
                 }}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg"
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
               >
                 Confirmer et Publier
               </button>

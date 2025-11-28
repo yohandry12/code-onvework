@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   EnvelopeIcon,
   BriefcaseIcon,
@@ -36,7 +37,8 @@ const getAvatarUrl = (avatarPath) => {
   return `${baseUrl}${cleanPath}`;
 };
 
-const TalentCard = ({ talent, onViewProfile }) => {
+const TalentCard = ({ talent }) => {
+  const navigate = useNavigate();
   // --- NOUVEAU : États pour stocker les avis ---
   const [stats, setStats] = useState({ average: 0, count: 0, loading: true });
 
@@ -136,7 +138,7 @@ const TalentCard = ({ talent, onViewProfile }) => {
 
   return (
     <div
-      onClick={onViewProfile}
+      onClick={() => navigate(`/talents/${talent.id || talent.userId}`)}
       className="bg-white rounded-2xl shadow-md p-6 flex flex-col items-center text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative group cursor-pointer"
     >
       {/* Bouton Options */}
