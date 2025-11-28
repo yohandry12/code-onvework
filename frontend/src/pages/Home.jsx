@@ -4,7 +4,6 @@ import { useAuth } from "../contexts/AuthContext";
 import { apiService } from "../services/api";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
-import FreelancerProfileModal from "../components/UI/FreelancerProfileModal";
 import TestimonialsSection from "../pages/TestimonialsSection";
 import homeIllustration from "../assets/images/home.jpg";
 
@@ -98,7 +97,7 @@ const getAvatarUrl = (avatarPath) => {
   return `${baseUrl}${cleanPath}`;
 };
 
-const FreelancerCard = ({ user, onViewProfile }) => {
+const FreelancerCard = ({ user }) => {
   const profile = user.profile || {};
   const title =
     profile.profession ||
@@ -306,7 +305,7 @@ const Home = () => {
 
   const handleViewProfile = async (freelancerPreview) => {
     setIsModalLoading(true);
-    setSelectedFreelancer(freelancerPreview); // Affiche la modale avec les données de base
+    // setSelectedFreelancer(freelancerPreview); // Affiche la modale avec les données de base
 
     try {
       // APPEL API qui déclenche l'incrémentation du compteur !
@@ -323,9 +322,9 @@ const Home = () => {
     }
   };
 
-  const handleCloseModal = () => {
-    setSelectedFreelancer(null);
-  };
+  // const handleCloseModal = () => {
+  //   setSelectedFreelancer(null);
+  // };
 
   const onSearch = (e) => {
     e.preventDefault();
@@ -459,7 +458,7 @@ const Home = () => {
                   <FreelancerCard
                     key={freelancer.id}
                     user={freelancer}
-                    onViewProfile={() => setSelectedFreelancer(freelancer)}
+                    // onViewProfile={() => setSelectedFreelancer(freelancer)}
                   />
                 ))}{" "}
           </div>{" "}
@@ -468,12 +467,12 @@ const Home = () => {
       </main>
 
       {/* --- AFFICHAGE CONDITIONNEL DU MODAL --- */}
-      {selectedFreelancer && (
+      {/* {selectedFreelancer && (
         <FreelancerProfileModal
           freelancer={selectedFreelancer}
           onClose={handleCloseModal}
         />
-      )}
+      )} */}
     </div>
   );
 };
