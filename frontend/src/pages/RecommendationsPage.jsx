@@ -10,13 +10,12 @@ import {
   CalendarDaysIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
-import { apiService } from "../services/api";//importation de l'api service 
+import { apiService } from "../services/api";
 
-// Ce composant affiche un seul avis. Il sera répété pour chaque avis reçu.
+// --- COMPOSANT : CARTE D'AVIS ---
 const ReviewCard = ({ review }) => {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 mb-4 shadow-sm hover:shadow-md transition-shadow relative">
-      {/* En-tête : Nom + Date */}
       <div className="flex justify-between items-start">
         <div>
           <h4 className="font-bold text-gray-900 text-lg">
@@ -38,7 +37,6 @@ const ReviewCard = ({ review }) => {
         </span>
       </div>
 
-      {/* Étoiles */}
       <div className="flex text-yellow-400 my-3">
         {[1, 2, 3, 4, 5].map((star) => (
           <StarIcon
@@ -50,19 +48,16 @@ const ReviewCard = ({ review }) => {
         ))}
       </div>
 
-      {/* Commentaire */}
       <p className="text-gray-700 leading-relaxed mb-4 text-sm">
         {review.comment || "Aucun commentaire écrit."}
       </p>
 
-      {/* Pied de carte : Note et Badge Mission */}
       <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-2">
         <span className="text-gray-500 font-medium text-xs">
           Note donnée :{" "}
           <span className="text-gray-900 font-bold">{review.rating}/5</span>
         </span>
 
-        {/* Si l'avis est lié à une mission, on l'affiche */}
         {review.jobTitle && (
           <span className="bg-pink-50 text-pink-600 px-3 py-1 rounded-full text-xs font-bold border border-pink-100 truncate max-w-[150px]">
             {review.jobTitle}
@@ -75,49 +70,56 @@ const ReviewCard = ({ review }) => {
 
 // --- PAGE PRINCIPALE ---
 const RecommendationsPage = () => {
-  const { id } = useParams(); // L'ID du talent dans l'URL
+  const { id } = useParams();
   const navigate = useNavigate();
 
-  // États pour stocker les données API
+  // États
   const [talent, setTalent] = useState(null);
   const [reviews, setReviews] = useState([]);
+  // NOUVEAU : État pour la moyenne venant du backend
+  const [averageRating, setAverageRating] = useState(0); 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // --- Chargement des données ---
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // 1. Récupérer le profil public du talent
-        // On utilise apiService.users.getProfile(id)
+        // 1. Profil
         const profileResponse = await apiService.users.getProfile(id);
 
-        // 2. Récupérer les recommandations
-        // On utilise apiService.recommendations.getCandidateRecommendations(id)
+        // 2. Recommandations
         const reviewsResponse =
           await apiService.recommendations.getCandidateRecommendations(id);
 
-        // Mise à jour de l'état talent
+        // Mise à jour Profil
         if (profileResponse.success) {
           setTalent(profileResponse.data);
         } else {
-          // Fallback si la structure est différente (parfois data est direct)
           setTalent(profileResponse.data || profileResponse);
         }
 
-        // Mise à jour de l'état reviews
+        // Mise à jour Avis et Moyenne
         if (reviewsResponse.success && reviewsResponse.data) {
-          // L'API renvoie souvent { recommendations: [...], ... } ou directement le tableau
+          // Extraction des avis
           const recs =
             reviewsResponse.data.recommendations ||
             (Array.isArray(reviewsResponse.data) ? reviewsResponse.data : []);
           setReviews(recs);
+
+          // NOUVEAU : Extraction de la moyenne calculée par le backend
+          // Si le backend renvoie 'averageRating', on l'utilise directement
+          if (reviewsResponse.data.averageRating !== undefined) {
+             setAverageRating(Number(reviewsResponse.data.averageRating));
+          } else {
+             // Fallback au cas où le backend ne renvoie pas la moyenne (sécurité)
+             setAverageRating(0);
+          }
         }
       } catch (err) {
-        console.error("Erreur chargement page recommandation :", err);
+        console.error("Erreur chargement :", err);
         setError("Impossible de charger les informations du talent.");
       } finally {
         setLoading(false);
@@ -127,29 +129,23 @@ const RecommendationsPage = () => {
     if (id) fetchData();
   }, [id]);
 
-  // --- Gestion du chargement ---
   if (loading) {
     return (
       <div className="min-h-screen flex justify-center items-center bg-gray-50">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mb-4"></div>
-          <p className="text-gray-500 animate-pulse">
-            Chargement du profil...
-          </p>
+          <p className="text-gray-500 animate-pulse">Chargement du profil...</p>
         </div>
       </div>
     );
   }
 
-  // --- Gestion des erreurs ---
   if (error || !talent) {
     return (
       <div className="min-h-screen flex flex-col justify-center items-center bg-gray-50 p-4 text-center">
         <div className="bg-white p-8 rounded-xl shadow-md max-w-md w-full">
           <h2 className="text-xl font-bold text-red-600 mb-2">Oups !</h2>
-          <p className="text-gray-600 mb-6">
-            {error || "Utilisateur introuvable."}
-          </p>
+          <p className="text-gray-600 mb-6">{error || "Utilisateur introuvable."}</p>
           <button
             onClick={() => navigate(-1)}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
@@ -161,15 +157,12 @@ const RecommendationsPage = () => {
     );
   }
 
-  // Extraction propre des données pour éviter les crashs
-  // L'API renvoie parfois "profile" ou "candidateProfile"
   const userProfile = talent.profile || talent.candidateProfile || {};
   const fullName =
     userProfile.fullName ||
     `${userProfile.firstName || ""} ${userProfile.lastName || ""}`.trim() ||
     "Utilisateur";
   
-  // URL Avatar propre
   const getAvatarUrl = (path) => {
     if (!path) return `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`;
     if (path.startsWith("http")) return path;
@@ -180,10 +173,9 @@ const RecommendationsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      {/* Bouton Retour */}
       <div className="max-w-6xl mx-auto mb-6">
         <button
-          onClick={() => navigate(-1)} // Retour à la page précédente
+          onClick={() => navigate(-1)}
           className="flex items-center text-gray-500 hover:text-indigo-600 transition-colors font-medium bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-100 hover:shadow"
         >
           <ArrowLeftIcon className="w-4 h-4 mr-2" />
@@ -192,14 +184,10 @@ const RecommendationsPage = () => {
       </div>
 
       <div className="max-w-6xl mx-auto">
-        {/* =========================================================
-            1. HEADER CENTRÉ
-           ========================================================= */}
+        {/* HEADER */}
         <div className="bg-white rounded-2xl shadow-sm p-8 flex flex-col items-center text-center mb-8 border border-gray-100 relative overflow-hidden">
-          {/* Décoration d'arrière-plan (cercle flou) */}
           <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-r from-indigo-50 to-blue-50 opacity-50 z-0"></div>
 
-          {/* Avatar avec bordure */}
           <div className="relative z-10 mt-4">
             <img
               src={getAvatarUrl(userProfile.avatar)}
@@ -210,25 +198,19 @@ const RecommendationsPage = () => {
                 e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`;
               }}
             />
-            {/* Indicateur de disponibilité (vert si true) */}
             {userProfile.availability === "available" && (
               <span className="absolute bottom-4 right-2 bg-green-500 w-6 h-6 border-4 border-white rounded-full" title="Disponible"></span>
             )}
           </div>
 
-          {/* Nom & Profession */}
           <div className="z-10">
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">
-              {fullName}
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900 mb-1">{fullName}</h1>
             <p className="text-xl text-indigo-600 font-medium mb-6">
               {userProfile.profession || "Profession non renseignée"}
             </p>
           </div>
 
-          {/* Ligne de Contact (Centrée et en dessous) */}
           <div className="flex flex-wrap justify-center gap-4 sm:gap-8 border-t border-gray-100 pt-6 w-full max-w-2xl z-10">
-            {/* Email */}
             {talent.email && (
               <div className="flex items-center text-gray-600 group cursor-default">
                 <div className="p-2 bg-gray-50 rounded-full text-indigo-500 mr-2 border border-gray-100">
@@ -237,8 +219,6 @@ const RecommendationsPage = () => {
                 <span className="text-sm font-medium">{talent.email}</span>
               </div>
             )}
-
-            {/* Téléphone (si disponible) */}
             {userProfile.phone && (
               <div className="flex items-center text-gray-600 group cursor-default">
                 <div className="p-2 bg-gray-50 rounded-full text-green-500 mr-2 border border-gray-100">
@@ -247,17 +227,13 @@ const RecommendationsPage = () => {
                 <span className="text-sm font-medium">{userProfile.phone}</span>
               </div>
             )}
-
-            {/* Localisation */}
             {userProfile.location?.country && (
               <div className="flex items-center text-gray-600 group cursor-default">
                 <div className="p-2 bg-gray-50 rounded-full text-red-500 mr-2 border border-gray-100">
                   <MapPinIcon className="w-5 h-5" />
                 </div>
                 <span className="text-sm font-medium">
-                  {userProfile.location.city
-                    ? `${userProfile.location.city}, `
-                    : ""}
+                  {userProfile.location.city ? `${userProfile.location.city}, ` : ""}
                   {userProfile.location.country}
                 </span>
               </div>
@@ -265,11 +241,10 @@ const RecommendationsPage = () => {
           </div>
         </div>
 
-        {/* =========================================================
-            2. GRILLE PRINCIPALE (2 COLONNES)
-           ========================================================= */}
+        {/* CONTENU PRINCIPAL */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* --- COLONNE GAUCHE : AVIS --- */}
+          
+          {/* COLONNE GAUCHE : AVIS */}
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-800 flex items-center">
@@ -281,7 +256,6 @@ const RecommendationsPage = () => {
               </h2>
             </div>
 
-            {/* BOUCLE D'AFFICHAGE DES AVIS */}
             {reviews.length > 0 ? (
               <div className="space-y-4">
                 {reviews.map((review) => (
@@ -289,7 +263,6 @@ const RecommendationsPage = () => {
                 ))}
               </div>
             ) : (
-              // Message vide s'il n'y a pas d'avis
               <div className="bg-white rounded-xl p-10 text-center border border-dashed border-gray-300">
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4">
                   <StarIcon className="w-8 h-8 text-gray-300" />
@@ -304,9 +277,10 @@ const RecommendationsPage = () => {
             )}
           </div>
 
-          {/* --- COLONNE DROITE : INFO RESTANTES (SIDEBAR) --- */}
+          {/* COLONNE DROITE : DETAILS */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Bloc 1: Stats */}
+            
+            {/* Stats */}
             <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
               <h3 className="font-bold text-gray-900 mb-4 border-b pb-2 text-sm uppercase tracking-wide">
                 Activité
@@ -320,21 +294,16 @@ const RecommendationsPage = () => {
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 text-sm">Note moyenne</span>
                 <div className="flex items-center">
+                  {/* MODIFICATION ICI : On affiche l'état averageRating */}
                   <span className="font-bold text-gray-900 mr-1 text-lg">
-                    {/* Calcul de moyenne si l'API ne la fournit pas directement */}
-                    {reviews.length > 0
-                      ? (
-                          reviews.reduce((acc, r) => acc + Number(r.rating), 0) /
-                          reviews.length
-                        ).toFixed(1)
-                      : "0.0"}
+                    {Number(averageRating).toFixed(1)}
                   </span>
                   <StarIcon className="w-5 h-5 text-yellow-400" />
                 </div>
               </div>
             </div>
 
-            {/* Bloc 2: Compétences */}
+            {/* Compétences */}
             {userProfile.skills && userProfile.skills.length > 0 && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center border-b pb-2 text-sm uppercase tracking-wide">
@@ -354,7 +323,7 @@ const RecommendationsPage = () => {
               </div>
             )}
 
-            {/* Bloc 3: Bio */}
+            {/* Bio */}
             {userProfile.bio && (
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                 <h3 className="font-bold text-gray-900 mb-4 border-b pb-2 text-sm uppercase tracking-wide">
@@ -366,11 +335,9 @@ const RecommendationsPage = () => {
               </div>
             )}
 
-            {/* Bloc 4: Badge Vérifié */}
+            {/* Badge */}
             <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl p-6 text-white shadow-lg relative overflow-hidden">
-               {/* Cercle déco */}
                <div className="absolute -right-4 -top-4 w-24 h-24 bg-white opacity-10 rounded-full"></div>
-               
               <div className="flex items-center mb-3 relative z-10">
                 <CheckBadgeIcon className="w-8 h-8 text-yellow-300 mr-3" />
                 <h3 className="font-bold text-lg">Profil Vérifié</h3>
