@@ -9,20 +9,25 @@ import {
   MagnifyingGlassIcon,
   BriefcaseIcon,
   ArrowPathIcon,
-  MapPinIcon, // Ajout de l'icône
+  MapPinIcon,
+  XCircleIcon, // Icône pour le rejet
+  ClockIcon, // Icône pour l'attente
 } from "@heroicons/react/24/outline";
-import { Flame, Star, Sparkles } from "lucide-react";
+import { Flame, Star, Sparkles, CheckCircle } from "lucide-react"; // CheckCircle pour l'acceptation
 
-// --- JobCard (Inchangé) ---
-const JobCard = ({ job, onApply }) => {
+// --- JobCard ---
+const JobCard = ({ job, onApply, userApplication }) => {
   const isCompleted = job.status === "filled";
   const isRepublished = !!job.clonedFromId;
   const isFrozen = job.isFrozen;
   const isInProgress = job.status === "in_progress";
 
-  // --- 2. RÉCUPÉRATION DES NOUVELLES PROPS ---
   const isFeatured = job.featured;
   const isUrgent = job.isUrgent;
+
+  // --- LOGIQUE DU STATUT CANDIDAT ---
+  const hasApplied = !!userApplication;
+  const appStatus = userApplication?.status;
 
   const formatBudget = (min, max, currency) => {
     if (!min && !max) return "N/A";
@@ -33,30 +38,93 @@ const JobCard = ({ job, onApply }) => {
     )} ${currency || ""}`;
   };
 
-  // --- 3. CALCUL DU STYLE DU CONTENEUR ---
-  // Par défaut : Blanc classique
+  // Style du conteneur (inchangé)
   let containerStyle =
     "bg-white border-gray-200 hover:border-blue-500 hover:shadow-md";
-
-  // Logique de priorité visuelle :
   if (isCompleted || isFrozen) {
-    // Si fini ou gelé : Gris / Désactivé
     containerStyle = "bg-gray-50 border-gray-200 opacity-80";
   } else if (isUrgent) {
-    // Si Urgent : Teinte rouge légère + Bordure rouge
     containerStyle =
       "bg-red-50/40 border-red-200 hover:border-red-400 hover:shadow-red-100 hover:shadow-md";
   } else if (isFeatured) {
-    // Si Vedette : Teinte dorée légère + Bordure ambre
     containerStyle =
       "bg-amber-50/40 border-amber-200 hover:border-amber-400 hover:shadow-amber-100 hover:shadow-md";
   }
+
+  // --- LOGIQUE DU BOUTON ---
+  const getButtonConfig = () => {
+    // 1. Statuts globaux du Job (Prioritaires)
+    if (isCompleted)
+      return {
+        text: "Mission terminée",
+        style: "bg-gray-200 text-gray-500 cursor-not-allowed",
+        disabled: true,
+      };
+    if (isFrozen)
+      return {
+        text: "Suspendu",
+        style: "bg-gray-200 text-gray-500 cursor-not-allowed",
+        disabled: true,
+      };
+
+    // 2. Statuts personnels du candidat
+    if (hasApplied) {
+      if (appStatus === "rejected" || appStatus === "declined") {
+        return {
+          text: "Candidature rejetée",
+          style:
+            "bg-red-100 text-red-600 border border-red-200 cursor-not-allowed",
+          icon: <XCircleIcon className="w-5 h-5 mr-1" />,
+          disabled: true,
+        };
+      }
+      if (appStatus === "accepted") {
+        return {
+          text: "Vous avez été retenu !",
+          style: "bg-green-600 text-white cursor-not-allowed",
+          icon: <CheckCircle className="w-4 h-4 mr-1" />,
+          disabled: true,
+        };
+      }
+      // pending, reviewed
+      return {
+        text: "En attente de validation",
+        style:
+          "bg-amber-100 text-amber-700 border border-amber-200 cursor-not-allowed",
+        icon: <ClockIcon className="w-5 h-5 mr-1" />,
+        disabled: true,
+      };
+    }
+
+    // 3. Statut Job en cours (mais pas postulé ou pas retenu)
+    if (isInProgress)
+      return {
+        text: "En cours",
+        style: "bg-blue-100 text-blue-600 cursor-not-allowed",
+        disabled: true,
+      };
+
+    // 4. Bouton Postuler (Défaut)
+    if (isUrgent) {
+      return {
+        text: "Postuler",
+        style: "bg-red-600 text-white hover:bg-red-700 hover:shadow-red-200",
+        disabled: false,
+      };
+    }
+    return {
+      text: "Postuler",
+      style: "bg-gray-900 text-white hover:bg-gray-800",
+      disabled: false,
+    };
+  };
+
+  const btnConfig = getButtonConfig();
 
   return (
     <div
       className={`p-6 rounded-xl border transition-all duration-300 flex flex-col relative overflow-hidden ${containerStyle}`}
     >
-      {/* --- EFFET DÉCORATIF POUR LES MISSIONS VEDETTES --- */}
       {isFeatured && !isCompleted && !isFrozen && (
         <div className="absolute -top-6 -right-6 opacity-10 pointer-events-none rotate-12">
           <Sparkles className="w-32 h-32 text-amber-500" />
@@ -65,20 +133,15 @@ const JobCard = ({ job, onApply }) => {
 
       <div className="flex justify-between items-start z-10">
         <div className="flex-1">
-          {/* Ligne des badges */}
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <p className="text-xs text-gray-500 capitalize bg-gray-100 px-2 py-0.5 rounded-md">
               {job.experience || "Tout niveau"}
             </p>
-
-            {/* BADGE URGENT */}
             {isUrgent && !isCompleted && !isFrozen && (
               <span className="flex items-center bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-md border border-red-200 animate-pulse">
                 <Flame className="w-3 h-3 mr-1 fill-red-500" /> URGENT
               </span>
             )}
-
-            {/* BADGE PREMIUM/VEDETTE */}
             {isFeatured && !isCompleted && !isFrozen && (
               <span className="flex items-center bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-md border border-amber-200">
                 <Star className="w-3 h-3 mr-1 fill-amber-500" /> PREMIUM
@@ -96,8 +159,6 @@ const JobCard = ({ job, onApply }) => {
             >
               <Link to={`/jobs/${job.id}`}>{job.title}</Link>
             </h3>
-
-            {/* Badges de statut existants */}
             {isRepublished && (
               <span className="flex items-center bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full">
                 <ArrowPathIcon className="w-3 h-3 mr-1" /> Republiée
@@ -163,87 +224,67 @@ const JobCard = ({ job, onApply }) => {
             {job.applicationCount || 0} Candidature(s)
           </p>
         </div>
+
         <button
-          onClick={() => onApply(job)}
-          disabled={isCompleted || isFrozen || isInProgress}
-          className={`font-semibold px-6 py-2 rounded-lg transition-all text-sm shadow-sm
-            ${
-              isCompleted || isFrozen || isInProgress
-                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                : isUrgent
-                ? "bg-red-600 text-white hover:bg-red-700 hover:shadow-red-200" // Bouton rouge urgent
-                : "bg-amber-500 text-white hover:bg-amber-500"
-            }
-          `}
+          onClick={() => !btnConfig.disabled && onApply(job)}
+          disabled={btnConfig.disabled}
+          className={`font-semibold px-6 py-2 rounded-lg transition-all text-sm shadow-sm flex items-center justify-center ${btnConfig.style}`}
         >
-          {isCompleted
-            ? "Mission terminée"
-            : isFrozen
-            ? "Suspendu"
-            : isInProgress
-            ? "En cours"
-            : "Postuler"}
+          {btnConfig.icon}
+          {btnConfig.text}
         </button>
       </div>
     </div>
   );
 };
 
-// --- COMPOSANT FilterSidebar AVEC AUTOCOMPLETE VILLE ---
+// --- FilterSidebar (Reste identique) ---
 const FilterSidebar = ({ onFilterChange, categories }) => {
+  // ... (Code inchangé pour FilterSidebar)
+  // Je le laisse tel quel pour ne pas alourdir la réponse, il n'y a pas de modif ici.
   const [filters, setFilters] = useState({
     category: "",
     experienceLevel: [],
     minBudget: "",
     maxBudget: "",
-    city: "", // Ajout du champ ville
+    city: "",
   });
-
-  // États pour l'autocomplétion des villes
   const [allCities, setAllCities] = useState([]);
   const [citySuggestions, setCitySuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const wrapperRef = useRef(null); // Pour détecter le clic en dehors
+  const wrapperRef = useRef(null);
 
-  // 1. Charger toutes les villes au montage
   useEffect(() => {
     const fetchCities = async () => {
       try {
         const response = await apiService.cities.getAll();
-        // On stocke juste les noms des villes pour simplifier la recherche
         const cityNames = (response.data || []).map((c) => c.name);
         setAllCities(cityNames);
       } catch (err) {
-        console.error("Erreur chargement villes:", err);
+        console.error(err);
       }
     };
     fetchCities();
   }, []);
 
-  // 2. Gestionnaire de changement de l'input ville
   const handleCityChange = (e) => {
     const userInput = e.target.value;
     setFilters((prev) => ({ ...prev, city: userInput }));
-
     if (userInput.length > 0) {
-      // Filtrer les villes qui contiennent la saisie (insensible à la casse)
       const filtered = allCities.filter((city) =>
         city.toLowerCase().includes(userInput.toLowerCase())
       );
-      setCitySuggestions(filtered.slice(0, 5)); // Limiter à 5 suggestions
+      setCitySuggestions(filtered.slice(0, 5));
       setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
     }
   };
-
-  // 3. Sélection d'une ville dans la liste
   const selectCity = (cityName) => {
     setFilters((prev) => ({ ...prev, city: cityName }));
     setShowSuggestions(false);
   };
 
-  // 4. Fermer la liste si on clique ailleurs
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -264,15 +305,12 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
         : [...prev[group], value],
     }));
   };
-
   const handleSelectChange = (e) => {
     setFilters((prev) => ({ ...prev, category: e.target.value }));
   };
-
   const debouncedMinBudget = useDebounce(filters.minBudget, 500);
   const debouncedMaxBudget = useDebounce(filters.maxBudget, 500);
-  const debouncedCity = useDebounce(filters.city, 500); // Debounce pour la ville aussi
-
+  const debouncedCity = useDebounce(filters.city, 500);
   const memoizedOnFilterChange = useCallback(onFilterChange, [onFilterChange]);
 
   useEffect(() => {
@@ -281,7 +319,7 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
       experience: filters.experienceLevel.join(","),
       minBudget: debouncedMinBudget,
       maxBudget: debouncedMaxBudget,
-      city: debouncedCity, // On envoie la ville à l'API
+      city: debouncedCity,
     };
     memoizedOnFilterChange(apiFilters);
   }, [
@@ -316,14 +354,12 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
             Réinitialiser
           </button>
         </div>
-
-        {/* --- NOUVEAU FILTRE VILLE --- */}
         <div className="mb-6 relative" ref={wrapperRef}>
           <h4 className="font-semibold mb-3 text-gray-700">Ville</h4>
           <div className="relative">
             <input
               type="text"
-              placeholder="Ex: Douala, Yaoundé..."
+              placeholder="Ex: Douala..."
               value={filters.city}
               onChange={handleCityChange}
               onFocus={() => filters.city && setShowSuggestions(true)}
@@ -331,8 +367,6 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
             />
             <MapPinIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           </div>
-
-          {/* Liste de suggestions */}
           {showSuggestions && citySuggestions.length > 0 && (
             <ul className="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
               {citySuggestions.map((cityName, index) => (
@@ -347,7 +381,6 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
             </ul>
           )}
         </div>
-
         <div className="mb-6">
           <h4 className="font-semibold mb-3 text-gray-700">Catégorie</h4>
           <select
@@ -414,7 +447,7 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
   );
 };
 
-// --- COMPOSANT PRINCIPAL (Peu de changements, juste la réception du filtre) ---
+// --- COMPOSANT PRINCIPAL ---
 const Jobs = () => {
   const [jobs, setJobs] = useState([]);
   const [pagination, setPagination] = useState({});
@@ -431,6 +464,26 @@ const Jobs = () => {
 
   const [activeJobToApply, setActiveJobToApply] = useState(null);
   const [toast, setToast] = useState(null);
+
+  // --- NOUVEAU STATE POUR LES CANDIDATURES DE L'UTILISATEUR ---
+  const [userApplications, setUserApplications] = useState([]);
+
+  // Chargement des candidatures de l'utilisateur au montage
+  useEffect(() => {
+    if (user && user.role === "candidate") {
+      const fetchUserApps = async () => {
+        try {
+          const res = await apiService.applications.getByUser();
+          if (res.success) {
+            setUserApplications(res.data || []);
+          }
+        } catch (err) {
+          console.error("Erreur chargement candidatures:", err);
+        }
+      };
+      fetchUserApps();
+    }
+  }, [user]);
 
   const jobCategories = [
     { label: "Développement", value: "development" },
@@ -456,7 +509,6 @@ const Jobs = () => {
           page: currentPage,
           limit: 10,
         };
-        // Nettoyage des clés vides
         Object.keys(allFilters).forEach((key) => {
           if (
             allFilters[key] === "" ||
@@ -501,6 +553,17 @@ const Jobs = () => {
       return;
     }
     setActiveJobToApply(job);
+  };
+
+  const handleApplicationSuccess = () => {
+    setActiveJobToApply(null);
+    setToast({ type: "success", message: "Candidature envoyée !" });
+    // Rafraîchir la liste des candidatures pour mettre à jour les boutons
+    if (user?.role === "candidate") {
+      apiService.applications.getByUser().then((res) => {
+        if (res.success) setUserApplications(res.data || []);
+      });
+    }
   };
 
   return (
@@ -556,13 +619,22 @@ const Jobs = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {jobs.map((job) => (
-                  <JobCard
-                    key={job.id}
-                    job={job}
-                    onApply={() => handleApplyClick(job)}
-                  />
-                ))}
+                {jobs.map((job) => {
+                  // On cherche si l'utilisateur a candidaté à ce job
+                  const userApp = userApplications.find(
+                    (app) =>
+                      app.jobId === job.id || (app.job && app.job.id === job.id)
+                  );
+
+                  return (
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      userApplication={userApp} // On passe l'info au composant enfant
+                      onApply={() => handleApplyClick(job)}
+                    />
+                  );
+                })}
               </div>
             )}
 
@@ -586,10 +658,7 @@ const Jobs = () => {
           jobId={activeJobToApply.id}
           client={activeJobToApply.client}
           onClose={() => setActiveJobToApply(null)}
-          onSubmitted={() => {
-            setActiveJobToApply(null);
-            setToast({ type: "success", message: "Candidature envoyée !" });
-          }}
+          onSubmitted={handleApplicationSuccess}
         />
       )}
 

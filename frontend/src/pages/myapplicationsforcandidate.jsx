@@ -94,6 +94,7 @@ const MyApplications = () => {
       return applications.filter((app) =>
         [
           "rejected",
+          "declined",
           "withdrawn",
           "completed_by_candidate",
           "completed",
@@ -105,6 +106,14 @@ const MyApplications = () => {
     // Si le filtre est "accepted", on ne veut QUE les missions en cours, pas celles terminées
     if (activeFilter === "accepted") {
       return applications.filter((app) => app.status === "accepted");
+    }
+
+    // 2. Filtre "Refusées" (Si vous avez un onglet spécifique pour ça)
+    if (activeFilter === "rejected") {
+      // On affiche les candidatures rejetées par le client ET les offres déclinées par le candidat
+      return applications.filter(
+        (app) => app.status === "rejected" || app.status === "declined"
+      );
     }
 
     // Pour "pending" (En attente) et les autres cas simples

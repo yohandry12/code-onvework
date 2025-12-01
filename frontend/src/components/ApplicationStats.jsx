@@ -12,9 +12,12 @@ const ApplicationStats = ({ applications, activeFilter, onFilterChange }) => {
   const stats = {
     accepted: applications.filter((app) => app.status === "accepted").length,
     pending: applications.filter((app) => app.status === "pending").length,
-    rejected: applications.filter((app) => app.status === "rejected").length,
+    rejected: applications.filter(
+      (app) => app.status === "rejected" || app.status === "declined"
+    ).length,
     other: applications.filter(
-      (app) => !["accepted", "pending", "rejected"].includes(app.status)
+      (app) =>
+        !["accepted", "pending", "rejected", "declined"].includes(app.status)
     ).length,
   };
 

@@ -131,6 +131,14 @@ const ApplicationCard = forwardRef(
         badgeBorder: "border-purple-300",
         accent: "text-purple-600",
       },
+      declined: {
+        text: "Offre déclinée",
+        icon: XCircleIcon,
+        bgColor: "bg-gradient-to-br from-gray-50 to-slate-50", // Gris ou Rouge léger
+        badgeColor: "bg-red-100 text-red-700",
+        badgeBorder: "border-red-300",
+        accent: "text-red-600",
+      },
     };
 
     const currentStatus = statusInfo[status] || statusInfo.pending;
