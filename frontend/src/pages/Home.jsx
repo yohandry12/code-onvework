@@ -7,6 +7,7 @@ import { StarIcon } from "@heroicons/react/24/solid";
 // import FreelancerProfileModal from "../components/UI/FreelancerProfileModal"; // SUPPRIMÉ
 import TestimonialsSection from "../pages/TestimonialsSection";
 import homeIllustration from "../assets/images/home.jpg";
+import { Flame, Star, Sparkles } from "lucide-react";
 
 // --- Carte de catégorie ---
 const CategoryCard = ({ name, icon, onClick }) => (
@@ -25,10 +26,61 @@ const CategoryCard = ({ name, icon, onClick }) => (
 const JobCard = ({ job }) => {
   const isCompleted = job.status === "filled";
   const isRepublished = !!job.clonedFromId;
+  const isFrozen = job.isFrozen;
+  const isInProgress = job.status === "in_progress";
+
+  const isFeatured = job.featured;
+  const isUrgent = job.isUrgent;
+
+  // Calcul du style dynamique
+  let containerStyle =
+    "bg-white/80 backdrop-blur-md border border-gray-200 hover:border-blue-500 hover:shadow-md"; // Base pour la Home
+
+  if (isCompleted || isFrozen) {
+    containerStyle = "bg-gray-50/80 border-gray-200 opacity-80";
+  } else if (isUrgent) {
+    containerStyle =
+      "bg-red-50/60 border-red-200 hover:border-red-400 hover:shadow-red-100 hover:shadow-md";
+  } else if (isFeatured) {
+    containerStyle =
+      "bg-amber-50/60 border-amber-200 hover:border-amber-400 hover:shadow-amber-100 hover:shadow-md";
+  }
 
   return (
-    <article className="bg-white/70 backdrop-blur-md rounded-2xl border border-gray-200 p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col">
-      <div className="flex-1">
+    <article
+      className={`rounded-2xl p-6 shadow-sm transition-all duration-300 flex flex-col relative overflow-hidden ${containerStyle}`}
+    >
+      {/* Effet décoratif pour Vedette */}
+      {isFeatured && !isCompleted && !isFrozen && (
+        <div className="absolute -top-6 -right-6 opacity-10 pointer-events-none rotate-12">
+          <Sparkles className="w-32 h-32 text-amber-500" />
+        </div>
+      )}
+
+      <div className="flex-1 z-10">
+        {/* Badges */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {/* BADGE URGENT */}
+          {isUrgent && !isCompleted && !isFrozen && (
+            <span className="flex items-center bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded border border-red-200 animate-pulse">
+              <Flame className="w-3 h-3 mr-1 fill-red-500" /> URGENT
+            </span>
+          )}
+
+          {/* BADGE PREMIUM */}
+          {isFeatured && !isCompleted && !isFrozen && (
+            <span className="flex items-center bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-200">
+              <Star className="w-3 h-3 mr-1 fill-amber-500" /> PREMIUM
+            </span>
+          )}
+
+          {isRepublished && (
+            <span className="flex items-center bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded">
+              <ArrowPathIcon className="w-3 h-3 mr-1" /> Republiée
+            </span>
+          )}
+        </div>
+
         <div className="flex items-center gap-2 mb-3">
           <h3
             className={`text-lg font-bold line-clamp-2 ${
@@ -37,16 +89,8 @@ const JobCard = ({ job }) => {
           >
             <Link to={`/jobs/${job.id}`}>{job.title}</Link>
           </h3>
-
-          {isRepublished && (
-            <span className="flex items-center bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-1 rounded-full">
-              <ArrowPathIcon className="w-4 h-4 mr-1" />
-              Republiée
-            </span>
-          )}
-
           {isCompleted && (
-            <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-full">
+            <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-1 rounded-full whitespace-nowrap">
               Terminée
             </span>
           )}
@@ -56,11 +100,11 @@ const JobCard = ({ job }) => {
           {job.description}
         </p>
 
-        <div className="flex flex-wrap gap-2">
-          {job.requirements?.skills?.slice(0, 4).map((s, i) => (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {job.skills?.slice(0, 4).map((s, i) => (
             <span
               key={i}
-              className="text-xs px-3 py-1 rounded-full bg-amber-50 text-amber-700 font-medium"
+              className="text-xs px-2 py-1 rounded bg-white border border-gray-200 text-gray-600 font-medium"
             >
               {s}
             </span>
@@ -68,16 +112,22 @@ const JobCard = ({ job }) => {
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
-        <span className="text-sm text-gray-500">
+      <div className="mt-auto flex items-center justify-between border-t border-gray-200/60 pt-4 z-10">
+        <span className="text-sm text-gray-500 font-medium truncate max-w-[150px]">
           {job.client?.company ||
             (job.client?.firstName &&
               `${job.client.firstName} ${job.client.lastName}`) ||
-            "Entreprise inconnue"}
+            "Client"}
         </span>
         <Link
           to={`/jobs/${job.id}`}
-          className="text-sm px-4 py-2 rounded-lg bg-amber-400 text-white font-semibold hover:bg-amber-500 transition"
+          className={`text-sm px-5 py-2 rounded-lg font-semibold transition-colors shadow-sm
+            ${
+              isUrgent && !isCompleted
+                ? "bg-red-600 text-white hover:bg-red-700"
+                : "bg-gray-900 text-white hover:bg-gray-800"
+            }
+          `}
         >
           Voir
         </Link>

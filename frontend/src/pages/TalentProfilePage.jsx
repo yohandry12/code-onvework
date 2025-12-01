@@ -118,7 +118,10 @@ const TalentProfilePage = () => {
             </div>
             <div className="mt-4 flex items-center gap-2 text-green-600 bg-green-50 px-4 py-1.5 rounded-full text-sm font-medium">
               <BriefcaseIcon className="w-4 h-4" />
-              <span>{profile.completedJobs || 0} missions</span>
+              <span>
+                {profile.completedJobs || 0} mission
+                {(profile.completedJobs || 0) !== 1 ? "s" : ""}
+              </span>
             </div>
           </div>
 

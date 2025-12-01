@@ -6,6 +6,7 @@ const {
   ClientProfile,
   Job,
   sequelize,
+  Application,
 } = require("../models"); // Importer tous les modèles nécessaires
 const { Op } = require("sequelize"); // Importer les opérateurs Sequelize
 const { authenticateToken, optionalAuth } = require("../middleware/auth");
@@ -200,10 +201,19 @@ module.exports = function (io) {
       if (user.clientProfile)
         userResponse.profile = user.clientProfile.get({ plain: true });
 
-      if (user.role === "candidate" && user.candidateProfile) {
-        userResponse.profile.completedJobs = await getCompletedJobsCount(
-          user.id
-        );
+      if (user.role === "candidate") {
+        // Compter les candidatures avec statut 'completed' ou 'filled'
+        const completedCount = await Application.count({
+          where: {
+            candidateId: user.id,
+            status: { [Op.in]: ["completed", "filled"] }, // Vérifiez bien vos statuts en DB
+          },
+        });
+
+        // On l'injecte dans la réponse
+        if (userResponse.profile) {
+          userResponse.profile.completedJobs = completedCount;
+        }
       }
 
       res.json({ success: true, user: userResponse });
