@@ -11,6 +11,7 @@ import {
   ArrowPathIcon,
   MapPinIcon, // Ajout de l'icône
 } from "@heroicons/react/24/outline";
+import { Flame, Star, Sparkles } from "lucide-react";
 
 // --- JobCard (Inchangé) ---
 const JobCard = ({ job, onApply }) => {
@@ -18,6 +19,10 @@ const JobCard = ({ job, onApply }) => {
   const isRepublished = !!job.clonedFromId;
   const isFrozen = job.isFrozen;
   const isInProgress = job.status === "in_progress";
+
+  // --- 2. RÉCUPÉRATION DES NOUVELLES PROPS ---
+  const isFeatured = job.featured;
+  const isUrgent = job.isUrgent;
 
   const formatBudget = (min, max, currency) => {
     if (!min && !max) return "N/A";
@@ -28,33 +33,74 @@ const JobCard = ({ job, onApply }) => {
     )} ${currency || ""}`;
   };
 
+  // --- 3. CALCUL DU STYLE DU CONTENEUR ---
+  // Par défaut : Blanc classique
+  let containerStyle =
+    "bg-white border-gray-200 hover:border-blue-500 hover:shadow-md";
+
+  // Logique de priorité visuelle :
+  if (isCompleted || isFrozen) {
+    // Si fini ou gelé : Gris / Désactivé
+    containerStyle = "bg-gray-50 border-gray-200 opacity-80";
+  } else if (isUrgent) {
+    // Si Urgent : Teinte rouge légère + Bordure rouge
+    containerStyle =
+      "bg-red-50/40 border-red-200 hover:border-red-400 hover:shadow-red-100 hover:shadow-md";
+  } else if (isFeatured) {
+    // Si Vedette : Teinte dorée légère + Bordure ambre
+    containerStyle =
+      "bg-amber-50/40 border-amber-200 hover:border-amber-400 hover:shadow-amber-100 hover:shadow-md";
+  }
+
   return (
     <div
-      className={`bg-white p-6 rounded-lg border transition-all duration-300 flex flex-col ${
-        isCompleted
-          ? "border-gray-200 bg-gray-50"
-          : "border-gray-200 hover:border-blue-500 hover:shadow-md"
-      }`}
+      className={`p-6 rounded-xl border transition-all duration-300 flex flex-col relative overflow-hidden ${containerStyle}`}
     >
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="text-xs text-gray-500 mb-1 capitalize">
-            {job.experience || "Tout niveau"}
-          </p>
+      {/* --- EFFET DÉCORATIF POUR LES MISSIONS VEDETTES --- */}
+      {isFeatured && !isCompleted && !isFrozen && (
+        <div className="absolute -top-6 -right-6 opacity-10 pointer-events-none rotate-12">
+          <Sparkles className="w-32 h-32 text-amber-500" />
+        </div>
+      )}
+
+      <div className="flex justify-between items-start z-10">
+        <div className="flex-1">
+          {/* Ligne des badges */}
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <p className="text-xs text-gray-500 capitalize bg-gray-100 px-2 py-0.5 rounded-md">
+              {job.experience || "Tout niveau"}
+            </p>
+
+            {/* BADGE URGENT */}
+            {isUrgent && !isCompleted && !isFrozen && (
+              <span className="flex items-center bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-md border border-red-200 animate-pulse">
+                <Flame className="w-3 h-3 mr-1 fill-red-500" /> URGENT
+              </span>
+            )}
+
+            {/* BADGE PREMIUM/VEDETTE */}
+            {isFeatured && !isCompleted && !isFrozen && (
+              <span className="flex items-center bg-amber-100 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-md border border-amber-200">
+                <Star className="w-3 h-3 mr-1 fill-amber-500" /> PREMIUM
+              </span>
+            )}
+          </div>
+
           <div className="flex items-center gap-2">
             <h3
-              className={`text-lg font-semibold ${
+              className={`text-lg font-bold line-clamp-1 ${
                 isCompleted
                   ? "text-gray-500"
-                  : "text-gray-800 hover:text-blue-600"
+                  : "text-gray-900 hover:text-blue-600"
               }`}
             >
               <Link to={`/jobs/${job.id}`}>{job.title}</Link>
             </h3>
+
+            {/* Badges de statut existants */}
             {isRepublished && (
-              <span className="flex items-center bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-1 rounded-full">
-                <ArrowPathIcon className="w-4 h-4 mr-1" />
-                Republiée
+              <span className="flex items-center bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full">
+                <ArrowPathIcon className="w-3 h-3 mr-1" /> Republiée
               </span>
             )}
             {isCompleted && (
@@ -63,23 +109,24 @@ const JobCard = ({ job, onApply }) => {
               </span>
             )}
             {isFrozen && (
-              <span className="flex items-center bg-red-100 text-red-800 text-xs font-medium px-2.5 py-1 rounded-full">
+              <span className="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-1 rounded-full">
                 Signalé
               </span>
             )}
             {isInProgress && (
-              <span className="flex items-center bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+              <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full">
                 En cours
               </span>
             )}
           </div>
         </div>
-        <span className="text-xs text-gray-400">
+        <span className="text-xs text-gray-400 whitespace-nowrap ml-2">
           {new Date(job.createdAt).toLocaleDateString("fr-FR")}
         </span>
       </div>
+
       <p
-        className={`text-sm my-4 line-clamp-2 ${
+        className={`text-sm my-3 line-clamp-2 ${
           isCompleted ? "text-gray-500" : "text-gray-600"
         }`}
       >
@@ -87,11 +134,11 @@ const JobCard = ({ job, onApply }) => {
       </p>
 
       {Array.isArray(job.skills) && job.skills.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4 z-10 relative">
           {job.skills.slice(0, 5).map((skill) => (
             <span
               key={skill}
-              className="bg-gray-100 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-md"
+              className="bg-white/80 border border-gray-200 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-md"
             >
               {skill}
             </span>
@@ -99,11 +146,15 @@ const JobCard = ({ job, onApply }) => {
         </div>
       )}
 
-      <div className="flex justify-between items-center border-t pt-4 mt-auto">
+      <div className="flex justify-between items-center border-t border-gray-200/60 pt-4 mt-auto z-10 relative">
         <div className="flex items-center gap-4">
           <p
             className={`text-lg font-bold ${
-              isCompleted ? "text-gray-500" : "text-blue-600"
+              isCompleted
+                ? "text-gray-500"
+                : isFeatured
+                ? "text-amber-600"
+                : "text-blue-600"
             }`}
           >
             {formatBudget(job.budgetMin, job.budgetMax, job.budgetCurrency)}
@@ -115,7 +166,15 @@ const JobCard = ({ job, onApply }) => {
         <button
           onClick={() => onApply(job)}
           disabled={isCompleted || isFrozen || isInProgress}
-          className="font-semibold px-6 py-2 rounded-lg transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed bg-gray-800 text-white hover:bg-gray-900"
+          className={`font-semibold px-6 py-2 rounded-lg transition-all text-sm shadow-sm
+            ${
+              isCompleted || isFrozen || isInProgress
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                : isUrgent
+                ? "bg-red-600 text-white hover:bg-red-700 hover:shadow-red-200" // Bouton rouge urgent
+                : "bg-amber-500 text-white hover:bg-amber-500"
+            }
+          `}
         >
           {isCompleted
             ? "Mission terminée"

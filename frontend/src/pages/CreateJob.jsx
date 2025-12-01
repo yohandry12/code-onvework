@@ -15,6 +15,7 @@ import {
   Info,
   Zap,
   Sparkles,
+  Flame,
   ShieldCheck,
   Eye,
 } from "lucide-react";
@@ -955,57 +956,131 @@ const CreateJob = () => {
               </div>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Zap className="h-5 w-5 mr-2 text-blue-500" />
-                Options de promotion
+            {/* --- NOUVELLES OPTIONS DE PROMOTION (DESIGN REVAMP) --- */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center px-1">
+                <Zap className="h-5 w-5 mr-2 text-yellow-500" />
+                Booster votre annonce
               </h3>
 
-              <div className="space-y-4">
-                <label className="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* OPTION 1 : MISSION EN VEDETTE (OR/JAUNE) */}
+                <label
+                  className={`relative group cursor-pointer p-6 rounded-2xl border-2 transition-all duration-300 ease-in-out flex items-start gap-4 overflow-hidden
+                    ${
+                      form.featured
+                        ? "border-amber-400 bg-amber-50 shadow-lg shadow-amber-100 scale-[1.02]"
+                        : "border-gray-200 bg-white hover:border-amber-200 hover:bg-amber-50/30"
+                    }
+                  `}
+                >
                   <input
                     name="featured"
                     type="checkbox"
                     checked={form.featured}
                     onChange={handleChange}
-                    className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:outline-none focus:ring-blue-500"
+                    className="hidden" // On cache la checkbox native
                   />
-                  <div className="ml-4">
-                    <div className="flex items-center">
-                      <Star className="h-5 w-5 text-yellow-500 mr-2" />
-                      <span className="font-medium text-gray-900">
-                        Mission en vedette
-                      </span>
-                      {/* <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                        Premium
-                      </span> */}
+
+                  {/* Badge Absolu */}
+                  {form.featured && (
+                    <div className="absolute top-0 right-0 bg-amber-400 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider shadow-sm animate-in fade-in slide-in-from-top-2">
+                      Premium
                     </div>
-                    {/* <p className="text-sm text-gray-500 mt-1">
-                      Augmente la visibilité de votre mission de +200%
-                    </p> */}
+                  )}
+
+                  {/* Icône animée */}
+                  <div
+                    className={`flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300
+                      ${
+                        form.featured
+                          ? "bg-amber-400 text-white rotate-12 scale-110 shadow-md"
+                          : "bg-gray-100 text-gray-400 group-hover:bg-amber-100 group-hover:text-amber-500"
+                      }
+                    `}
+                  >
+                    <Star
+                      className={`w-8 h-8 transition-all ${
+                        form.featured
+                          ? "fill-white animate-[spin_3s_linear_infinite]"
+                          : ""
+                      }`}
+                    />
                   </div>
+
+                  <div className="flex-1">
+                    <h4
+                      className={`text-lg font-bold transition-colors ${
+                        form.featured ? "text-amber-900" : "text-gray-900"
+                      }`}
+                    >
+                      Mission en Vedette
+                    </h4>
+                    <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                      Votre offre apparaît en tête de liste et est mise en
+                      surbrillance pour une visibilité maximale.
+                    </p>
+                  </div>
+
+                  {/* Effet de particules (décoratif) */}
+                  {form.featured && (
+                    <Sparkles className="absolute bottom-2 right-2 w-12 h-12 text-amber-400 opacity-20 pointer-events-none" />
+                  )}
                 </label>
 
-                <label className="flex items-start md:items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors">
+                {/* OPTION 2 : MISSION URGENTE (ROUGE/FEU) */}
+                <label
+                  className={`relative group cursor-pointer p-6 rounded-2xl border-2 transition-all duration-300 ease-in-out flex items-start gap-4 overflow-hidden
+                    ${
+                      form.isUrgent
+                        ? "border-red-500 bg-red-50 shadow-lg shadow-red-100 scale-[1.02]"
+                        : "border-gray-200 bg-white hover:border-red-200 hover:bg-red-50/30"
+                    }
+                  `}
+                >
                   <input
                     name="isUrgent"
                     type="checkbox"
                     checked={form.isUrgent}
                     onChange={handleChange}
-                    className="w-5 h-5 text-red-600 border-gray-300 rounded focus:outline-none focus:ring-red-500 mt-1 md:mt-0"
+                    className="hidden"
                   />
-                  <div className="ml-4">
-                    <div className="flex items-center">
-                      <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                      <span className="font-medium text-gray-900">
-                        Mission urgente
-                      </span>
-                      {/* <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                        Gratuit
-                      </span> */}
+
+                  {/* Badge Absolu */}
+                  {form.isUrgent && (
+                    <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider shadow-sm animate-pulse">
+                      Urgent
                     </div>
-                    <p className="text-sm text-gray-500 mt-1 md:mt-0">
-                      Affiche un badge "Urgent" pour attirer l'attention
+                  )}
+
+                  {/* Icône animée */}
+                  <div
+                    className={`flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300
+                      ${
+                        form.isUrgent
+                          ? "bg-red-500 text-white shadow-md shadow-red-200"
+                          : "bg-gray-100 text-gray-400 group-hover:bg-red-100 group-hover:text-red-500"
+                      }
+                    `}
+                  >
+                    <Flame
+                      className={`w-8 h-8 transition-all ${
+                        form.isUrgent ? "fill-white animate-bounce" : ""
+                      }`}
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <h4
+                      className={`text-lg font-bold transition-colors ${
+                        form.isUrgent ? "text-red-900" : "text-gray-900"
+                      }`}
+                    >
+                      Recrutement Urgent
+                    </h4>
+                    <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                      Indiquez aux candidats que vous souhaitez recruter
+                      immédiatement. Ajoute un badge "Urgent".
                     </p>
                   </div>
                 </label>

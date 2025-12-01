@@ -7,6 +7,7 @@ import WithdrawConfirmModal from "../components/WithdrawConfirmModal";
 import MissionCompletionModal from "../components/UI/MissionCompletionModal";
 import EmptyState from "../components/EmptyState";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
 
 const MyApplications = () => {
   const [applications, setApplications] = useState([]);
@@ -45,9 +46,41 @@ const MyApplications = () => {
     fetchApplications();
   }, []);
 
+  // --- NOUVEAU : Gérer la réponse à une proposition ---
+  const handleProposalResponse = async (applicationId, response) => {
+    try {
+      // Appel à la route PATCH /:id/respond que nous avons créée côté backend
+      // response = 'accept' ou 'decline'
+      const res = await apiService.patch(
+        `/applications/${applicationId}/respond`,
+        {
+          response,
+        }
+      );
+
+      if (res.success) {
+        alert(
+          response === "accept"
+            ? "Mission acceptée ! 🎉"
+            : "Proposition déclinée."
+        );
+        // Rafraîchir la liste
+        const updatedApps = await apiService.applications.getByUser();
+        setApplications(updatedApps.data || []);
+      }
+    } catch (err) {
+      console.error("Erreur réponse proposition:", err);
+      alert("Une erreur est survenue.");
+    }
+  };
+
   // Filtrer les candidatures selon le filtre actif
   const getFilteredApplications = () => {
     if (activeFilter === "all") return applications;
+
+    if (activeFilter === "proposal") {
+      return applications.filter((app) => app.status === "proposal");
+    }
 
     // --- MODIFICATION START : Logique de filtrage améliorée ---
 
@@ -198,6 +231,7 @@ const MyApplications = () => {
                             jobTitle: app.job?.title || "",
                           })
                         }
+                        onRespond={handleProposalResponse}
                       />
                     ))}
                   </AnimatePresence>

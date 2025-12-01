@@ -8,7 +8,7 @@ const {
   CandidateProfile,
   sequelize,
 } = require("../models"); // Importer les modèles nécessaires
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requireRole } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
 const activitiesRouter = require("./activities");
 const {
@@ -16,6 +16,7 @@ const {
   sendMissionCompletedByCandidateEmail,
   sendMissionApprovedCandidateEmail,
   sendMissionApprovedClientEmail,
+  sendProposalResponseEmail,
 } = require("../services/mailService");
 
 module.exports = function (io) {
@@ -445,6 +446,77 @@ module.exports = function (io) {
       res.status(500).json({ success: false, error: "Erreur serveur" });
     }
   });
+
+  // --- PATCH /api/applications/:id/respond ---
+  router.patch(
+    "/:id/respond",
+    authenticateToken,
+    requireRole("candidate"),
+    async (req, res) => {
+      const t = await sequelize.transaction();
+      try {
+        const { id } = req.params;
+        const { response } = req.body; // 'accept' ou 'decline'
+        const candidateId = req.user.id;
+
+        const application = await Application.findByPk(id, {
+          include: ["job"],
+        });
+
+        if (!application) return res.status(404).json({ error: "Introuvable" });
+        if (application.candidateId !== candidateId)
+          return res.status(403).json({ error: "Non autorisé" });
+
+        // On ne peut répondre que si le statut est 'proposal'
+        if (application.status !== "proposal") {
+          return res.status(400).json({
+            error: "Cette offre n'est plus valide ou a déjà été traitée.",
+          });
+        }
+
+        let newStatus = "";
+        if (response === "accept") {
+          newStatus = "accepted";
+          // Passer le Job en 'in_progress'
+          await Job.update(
+            { status: "in_progress" },
+            { where: { id: application.jobId }, transaction: t }
+          );
+        } else if (response === "decline") {
+          newStatus = "declined";
+        } else {
+          return res.status(400).json({ error: "Réponse invalide" });
+        }
+
+        // Mise à jour
+        application.status = newStatus;
+        await application.save({ transaction: t });
+
+        // Notifications Client
+        const client = await User.findByPk(application.clientId);
+        await sendProposalResponseEmail(
+          client.email,
+          application.job.clientName, // Nom du client
+          `${req.user.firstName} ${req.user.lastName}`, // Nom candidat
+          application.job.title,
+          newStatus // 'accepted' ou 'declined'
+        );
+
+        io.to(`user-${application.clientId}`).emit("offer-response", {
+          applicationId: id,
+          status: newStatus,
+          candidateName: `${req.user.firstName} ${req.user.lastName}`,
+        });
+
+        await t.commit();
+        res.json({ success: true, status: newStatus });
+      } catch (error) {
+        await t.rollback();
+        logger.error(error);
+        res.status(500).json({ success: false, error: "Erreur serveur" });
+      }
+    }
+  );
 
   return router;
 };

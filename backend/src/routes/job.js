@@ -14,6 +14,7 @@ const { Op } = require("sequelize");
 const { authenticateToken, requireRole } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
 const upload = require("../middleware/upload");
+const { sendJobProposalEmail } = require("../services/mailService");
 
 module.exports = function (io) {
   const router = express.Router();
@@ -198,20 +199,16 @@ module.exports = function (io) {
           });
 
           if (!targetUser) {
-            return res
-              .status(404)
-              .json({
-                success: false,
-                error: "Le client sélectionné n'existe pas.",
-              });
+            return res.status(404).json({
+              success: false,
+              error: "Le client sélectionné n'existe pas.",
+            });
           }
           if (targetUser.role !== "client") {
-            return res
-              .status(400)
-              .json({
-                success: false,
-                error: "L'utilisateur cible n'est pas un client.",
-              });
+            return res.status(400).json({
+              success: false,
+              error: "L'utilisateur cible n'est pas un client.",
+            });
           }
 
           // On remplace les infos du créateur par celles du client cible
@@ -418,7 +415,11 @@ module.exports = function (io) {
         let relevantJobIds = allClientJobIds;
 
         if (status && status !== "all") {
-          if (status === "accepted") {
+          if (status === "published") {
+            // Si on cherche les missions publiées, on filtre sur la table JOB
+            jobWhereClause.status = "published";
+            // On ne filtre PAS les applications, car une mission publiée peut avoir 0 candidature
+          } else if (status === "accepted") {
             // "En mission" : jobs NON terminés avec candidatures acceptées
             const jobsInProgress = await Job.findAll({
               where: {
@@ -1216,6 +1217,102 @@ module.exports = function (io) {
         await t.rollback();
         logger.error("Erreur recommandation:", error);
         res.status(500).json({ success: false, error: "Erreur serveur." });
+      }
+    }
+  );
+
+  // --- POST /api/jobs/:jobId/recruit/:candidateId ---
+  router.post(
+    "/:jobId/recruit/:candidateId",
+    authenticateToken,
+    requireRole("client", "admin"),
+    async (req, res) => {
+      const t = await sequelize.transaction();
+      try {
+        const { jobId, candidateId } = req.params;
+        const { message } = req.body;
+        const clientId = req.user.id;
+
+        // 1. Vérifications
+        const job = await Job.findByPk(jobId, { transaction: t });
+        if (!job) return res.status(404).json({ error: "Mission introuvable" });
+
+        // Vérifier que le client est bien le propriétaire
+        if (job.clientId !== clientId && req.user.role !== "admin") {
+          return res.status(403).json({ error: "Non autorisé" });
+        }
+
+        if (job.status !== "published") {
+          return res
+            .status(400)
+            .json({ error: "La mission doit être publiée pour recruter." });
+        }
+
+        // Vérifier doublon (si une candidature ou une offre existe déjà)
+        const existingApp = await Application.findOne({
+          where: { jobId, candidateId },
+          transaction: t,
+        });
+        if (existingApp) {
+          return res.status(400).json({
+            error:
+              "Une interaction existe déjà avec ce candidat pour cette mission.",
+          });
+        }
+
+        // 2. Création de l'Application (Statut Proposal)
+        const newApplication = await Application.create(
+          {
+            jobId,
+            candidateId,
+            clientId,
+            status: "proposal", // <--- LE STATUT CLÉ
+            proposalMessage: message || "Bonjour, votre profil m'intéresse.",
+            coverLetter:
+              "Proposition de mission envoyée directement par le client. En attente de la réponse du candidat pour démarrer la collaboration.", // Remplissage par défaut
+          },
+          { transaction: t }
+        );
+
+        // 3. Notifications
+        const candidate = await User.findByPk(candidateId, {
+          include: [{ model: CandidateProfile, as: "candidateProfile" }],
+          transaction: t,
+        }); // Assurez-vous d'inclure le profil
+
+        // Email
+        if (candidate) {
+          // On récupère le prénom depuis candidateProfile
+          const candidateName = candidate.candidateProfile
+            ? candidate.candidateProfile.firstName
+            : "Candidat";
+
+          // Email
+          await sendJobProposalEmail(
+            candidate.email,
+            candidateName,
+            job.clientName,
+            job.title,
+            message
+          );
+
+          // Socket.io
+          io.to(`user-${candidateId}`).emit("offer-received", {
+            jobId,
+            jobTitle: job.title,
+            clientName: job.clientName,
+          });
+        }
+
+        await t.commit();
+        res.json({
+          success: true,
+          message: "Proposition envoyée avec succès !",
+        });
+      } catch (error) {
+        await t.rollback();
+        logger.error(error);
+        res.status(500).json({ success: false, error: "Erreur serveur" });
       }
     }
   );
