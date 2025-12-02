@@ -11,6 +11,7 @@ import {
   TrashIcon,
   EyeIcon,
   PlusIcon,
+  DocumentDuplicateIcon,
 } from "@heroicons/react/24/outline";
 import { apiService } from "../../services/api";
 import { format } from "date-fns";
@@ -120,6 +121,12 @@ const ManageJobs = () => {
         toast.error("Erreur lors de la suppression de l'offre d'emploi");
       }
     }
+  };
+
+  const handleClone = (jobId) => {
+    // On redirige vers la page de création ADMIN avec le paramètre cloneFrom
+    // L'admin pourra alors réattribuer cette mission clonée au même client ou à un autre
+    navigate(`/admin/jobs/create?cloneFrom=${jobId}`);
   };
 
   const totalPages = Math.ceil(totalJobs / filters.limit);
@@ -274,6 +281,17 @@ const ManageJobs = () => {
                         >
                           <EyeIcon className="h-5 w-5" />
                         </button>
+
+                        {job.status === "filled" && (
+                          <button
+                            onClick={() => handleClone(job.id)}
+                            className="text-cyan-600 hover:text-cyan-900"
+                            title="Cloner / Republier cette mission"
+                          >
+                            <DocumentDuplicateIcon className="h-5 w-5" />
+                          </button>
+                        )}
+
                         {job.isFrozen && (
                           <button
                             onClick={() => handleUnfreeze(job.id)}

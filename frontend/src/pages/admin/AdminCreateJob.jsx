@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Briefcase,
   MapPin,
@@ -19,6 +19,7 @@ import {
   User,
   Search, // Utilisation de Search de Lucide
   UserPlus,
+  Flame,
 } from "lucide-react";
 import { apiService } from "../../services/api";
 import AIChatAssistant from "../../components/UI/AIChatAssistant";
@@ -64,6 +65,7 @@ const durationUnits = [
 
 const AdminCreateJob = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Étape courante (0 = Sélection Client)
   const [currentStep, setCurrentStep] = useState(0);
@@ -105,6 +107,7 @@ const AdminCreateJob = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [clonedFromId, setClonedFromId] = useState(null);
 
   // --- ÉTATS IA & AUTOCOMPLETE VILLE ---
   const [activeField, setActiveField] = useState(null);
@@ -119,28 +122,102 @@ const AdminCreateJob = () => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const cityWrapperRef = useRef(null);
 
-  // --- CHARGEMENT INITIAL ---
+  // --- CHARGEMENT INITIAL & CLONAGE ---
   useEffect(() => {
-    const fetchData = async () => {
+    const initPage = async () => {
       try {
-        // 1. Charger les villes
-        const citiesRes = await apiService.cities.getAll();
-        setAllCities((citiesRes.data || []).map((c) => c.name));
+        setLoading(true);
 
-        // 2. Charger les clients (Admin only)
-        const clientsRes = await apiService.users.adminGetAll({
-          role: "client",
-          limit: 1000,
-        });
+        // 1. Charger Villes et Clients en parallèle
+        const [citiesRes, clientsRes] = await Promise.all([
+          apiService.cities.getAll(),
+          apiService.users.adminGetAll({ role: "client", limit: 1000 }),
+        ]);
+
+        if (citiesRes.success)
+          setAllCities((citiesRes.data || []).map((c) => c.name));
+
+        let loadedClients = [];
         if (clientsRes.success) {
-          setClients(clientsRes.users);
+          loadedClients = clientsRes.users;
+          setClients(loadedClients);
+        }
+
+        // 2. Vérifier si on est en mode Clonage
+        const searchParams = new URLSearchParams(location.search);
+        const jobToCloneId = searchParams.get("cloneFrom");
+
+        if (jobToCloneId) {
+          // Récupérer la mission à cloner
+          const cloneRes = await apiService.jobs.getJobForCloning(jobToCloneId);
+
+          if (cloneRes.success && cloneRes.job) {
+            const jobData = cloneRes.job;
+
+            // Remplir le formulaire
+            setForm({
+              title: jobData.title || "",
+              description: jobData.description || "",
+              category: jobData.category || "development",
+              type: jobData.type || "freelance",
+              budgetMin: jobData.budget?.min || "",
+              budgetMax: jobData.budget?.max || "",
+              budgetCurrency: jobData.budget?.currency || "EUR",
+              locationType: jobData.location?.type || "distanciel/télétravail",
+              locationCity: jobData.location?.city || "",
+              locationCountry: jobData.location?.country || "Cameroun",
+              isLocationRestricted: jobData.isLocationRestricted || false,
+
+              // Conversion array -> string pour les inputs si nécessaire, ou garder array selon votre logique API
+              // Ici je suppose que le backend renvoie des Arrays pour le clonage
+              skills: Array.isArray(jobData.skills)
+                ? jobData.skills.join(", ")
+                : jobData.skills || "",
+              tags: Array.isArray(jobData.tags)
+                ? jobData.tags.join(", ")
+                : jobData.tags || "",
+              languages: Array.isArray(jobData.languages)
+                ? jobData.languages.join(", ")
+                : jobData.languages || "",
+
+              experience: jobData.experience || "intermediate",
+              education: jobData.education || "none",
+              deadline: "", // On ne clone pas la deadline
+              startDate: "",
+              durationValue: jobData.durationValue || "",
+              durationUnit: jobData.durationUnit || "jours",
+              featured: jobData.featured || false,
+              isUrgent: jobData.isUrgent || false,
+            });
+
+            setClonedFromId(jobToCloneId);
+
+            // 3. Tenter de retrouver le client d'origine pour le pré-sélectionner
+            if (jobData.clientId && loadedClients.length > 0) {
+              const originalClient = loadedClients.find(
+                (c) => c.id === jobData.clientId
+              );
+              if (originalClient) {
+                setSelectedClient(originalClient);
+                setClientSearchTerm(
+                  `${originalClient.profile?.firstName} ${
+                    originalClient.profile?.lastName
+                  } (${originalClient.profile?.company || "Particulier"})`
+                );
+              }
+            }
+          }
         }
       } catch (err) {
-        console.error("Erreur chargement données:", err);
+        console.error("Erreur init:", err);
+        setError("Impossible de charger les données.");
+      } finally {
+        setLoading(false);
       }
     };
-    fetchData();
-  }, []);
+
+    initPage();
+  }, [location.search]);
 
   // --- LOGIQUE SÉLECTION CLIENT ---
   const handleClientSearch = (e) => {
@@ -314,6 +391,7 @@ const AdminCreateJob = () => {
       isUrgent: form.isUrgent,
 
       // CHAMP ADMIN SPÉCIFIQUE
+      clonedFromId: clonedFromId,
       targetClientId: selectedClient.id,
     };
 
@@ -936,37 +1014,132 @@ const AdminCreateJob = () => {
               </AIFormField>
             </div>
 
-            <div className="bg-white border border-gray-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <Zap className="h-5 w-5 mr-2 text-blue-500" /> Promotion
+            {/* --- NOUVELLES OPTIONS DE PROMOTION (DESIGN REVAMP) --- */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center px-1">
+                <Zap className="h-5 w-5 mr-2 text-yellow-500" />
+                Booster votre annonce
               </h3>
-              <div className="space-y-4">
-                <label className="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* OPTION 1 : MISSION EN VEDETTE (OR/JAUNE) */}
+                <label
+                  className={`relative group cursor-pointer p-6 rounded-2xl border-2 transition-all duration-300 ease-in-out flex items-start gap-4 overflow-hidden
+                                ${
+                                  form.featured
+                                    ? "border-amber-400 bg-amber-50 shadow-lg shadow-amber-100 scale-[1.02]"
+                                    : "border-gray-200 bg-white hover:border-amber-200 hover:bg-amber-50/30"
+                                }
+                              `}
+                >
                   <input
                     name="featured"
                     type="checkbox"
                     checked={form.featured}
                     onChange={handleChange}
-                    className="w-5 h-5 text-blue-600 rounded"
+                    className="hidden" // On cache la checkbox native
                   />
-                  <div className="ml-4">
-                    <span className="font-medium text-gray-900">
-                      Mission en vedette
-                    </span>
+
+                  {/* Badge Absolu */}
+                  {form.featured && (
+                    <div className="absolute top-0 right-0 bg-amber-400 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider shadow-sm animate-in fade-in slide-in-from-top-2">
+                      Premium
+                    </div>
+                  )}
+
+                  {/* Icône animée */}
+                  <div
+                    className={`flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300
+                                  ${
+                                    form.featured
+                                      ? "bg-amber-400 text-white rotate-12 scale-110 shadow-md"
+                                      : "bg-gray-100 text-gray-400 group-hover:bg-amber-100 group-hover:text-amber-500"
+                                  }
+                                `}
+                  >
+                    <Star
+                      className={`w-8 h-8 transition-all ${
+                        form.featured
+                          ? "fill-white animate-[spin_3s_linear_infinite]"
+                          : ""
+                      }`}
+                    />
                   </div>
+
+                  <div className="flex-1">
+                    <h4
+                      className={`text-lg font-bold transition-colors ${
+                        form.featured ? "text-amber-900" : "text-gray-900"
+                      }`}
+                    >
+                      Mission en Vedette
+                    </h4>
+                    <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                      Votre offre apparaît en tête de liste et est mise en
+                      surbrillance pour une visibilité maximale.
+                    </p>
+                  </div>
+
+                  {/* Effet de particules (décoratif) */}
+                  {form.featured && (
+                    <Sparkles className="absolute bottom-2 right-2 w-12 h-12 text-amber-400 opacity-20 pointer-events-none" />
+                  )}
                 </label>
-                <label className="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 cursor-pointer">
+
+                {/* OPTION 2 : MISSION URGENTE (ROUGE/FEU) */}
+                <label
+                  className={`relative group cursor-pointer p-6 rounded-2xl border-2 transition-all duration-300 ease-in-out flex items-start gap-4 overflow-hidden
+                                ${
+                                  form.isUrgent
+                                    ? "border-red-500 bg-red-50 shadow-lg shadow-red-100 scale-[1.02]"
+                                    : "border-gray-200 bg-white hover:border-red-200 hover:bg-red-50/30"
+                                }
+                              `}
+                >
                   <input
                     name="isUrgent"
                     type="checkbox"
                     checked={form.isUrgent}
                     onChange={handleChange}
-                    className="w-5 h-5 text-red-600 rounded"
+                    className="hidden"
                   />
-                  <div className="ml-4">
-                    <span className="font-medium text-gray-900">
-                      Mission urgente
-                    </span>
+
+                  {/* Badge Absolu */}
+                  {form.isUrgent && (
+                    <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl uppercase tracking-wider shadow-sm animate-pulse">
+                      Urgent
+                    </div>
+                  )}
+
+                  {/* Icône animée */}
+                  <div
+                    className={`flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300
+                                  ${
+                                    form.isUrgent
+                                      ? "bg-red-500 text-white shadow-md shadow-red-200"
+                                      : "bg-gray-100 text-gray-400 group-hover:bg-red-100 group-hover:text-red-500"
+                                  }
+                                `}
+                  >
+                    <Flame
+                      className={`w-8 h-8 transition-all ${
+                        form.isUrgent ? "fill-white animate-bounce" : ""
+                      }`}
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <h4
+                      className={`text-lg font-bold transition-colors ${
+                        form.isUrgent ? "text-red-900" : "text-gray-900"
+                      }`}
+                    >
+                      Recrutement Urgent
+                    </h4>
+                    <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                      Indiquez aux candidats que vous souhaitez recruter
+                      immédiatement. Ajoute un badge "Urgent".
+                    </p>
                   </div>
                 </label>
               </div>

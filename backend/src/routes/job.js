@@ -704,6 +704,7 @@ module.exports = function (io) {
           durationValue: originalJob.durationValue,
           durationUnit: originalJob.durationUnit,
           isUrgent: originalJob.isUrgent,
+          clientId: originalJob.clientId,
           // On garde l'ID de l'original pour la traçabilité
           clonedFromId: id,
         };
@@ -1316,95 +1317,6 @@ module.exports = function (io) {
       }
     }
   );
-
-  // router.get(
-  //   "/my-jobs/history",
-  //   authenticateToken,
-  //   requireRole("client", "admin"),  // Ajout de admin pour cohérence
-  //   async (req, res) => {
-  //     try {
-  //       const clientId = req.user.id;
-  //       const { page = 1, limit = 10 } = req.query;
-  //       const pageNumber = parseInt(page, 10);
-  //       const limitNumber = parseInt(limit, 10);
-  //       const offset = (pageNumber - 1) * limitNumber;
-
-  //       // Filtre pour récupérer uniquement les missions terminées
-  //       const whereClause = {
-  //         clientId: clientId,
-  //         status: "filled"  // Missions terminées uniquement
-  //       };
-
-  //       // Exécution en parallèle pour la performance
-  //       const [result, totalJobs] = await Promise.all([
-  //         Job.findAll({
-  //           where: whereClause,
-  //           order: [['updatedAt', 'DESC']], // Tri par date de fin
-  //           offset: offset,
-  //           limit: limitNumber,
-  //           attributes: [
-  //             'id',
-  //             'title',
-  //             'status',
-  //             'createdAt',
-  //             'updatedAt',
-  //             'applicationCount',
-  //             'budgetMin',
-  //             'budgetMax',
-  //             'budgetCurrency',
-  //             // Optionnel : ajouter d'autres champs utiles
-  //             'clientName',
-  //             'clientCompany'
-  //           ],
-  //           raw: true  // Retourne des objets JS simples
-  //         }),
-
-  //         Job.count({
-  //           where: whereClause
-  //         })
-  //       ]);
-
-  //       // Transformation pour correspondre à la structure Mongoose
-  //       const jobs = result.map(job => ({
-  //         id: job.id,  // Ou _id si vous voulez garder la convention Mongo
-  //         title: job.title,
-  //         status: job.status,
-  //         createdAt: job.createdAt,
-  //         updatedAt: job.updatedAt,
-  //         applicationCount: job.applicationCount,
-  //         budget: {
-  //           min: job.budgetMin,
-  //           max: job.budgetMax,
-  //           currency: job.budgetCurrency
-  //         },
-  //         // Données supplémentaires si nécessaire
-  //         client: {
-  //           name: job.clientName,
-  //           company: job.clientCompany
-  //         }
-  //       }));
-
-  //       const totalPages = Math.ceil(totalJobs / limitNumber);
-
-  //       res.json({
-  //         success: true,  // Ajout pour cohérence avec les autres routes
-  //         jobs,
-  //         pagination: {
-  //           currentPage: pageNumber,
-  //           totalPages,
-  //           totalJobs,
-  //         },
-  //       });
-
-  //     } catch (error) {
-  //       logger.error("Erreur récupération historique des missions:", error);
-  //       res.status(500).json({
-  //         success: false,
-  //         error: "Erreur lors de la récupération de votre historique",
-  //       });
-  //     }
-  //   }
-  // );
 
   return router;
 };
