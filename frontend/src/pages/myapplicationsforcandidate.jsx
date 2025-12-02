@@ -7,6 +7,7 @@ import WithdrawConfirmModal from "../components/WithdrawConfirmModal";
 import MissionCompletionModal from "../components/UI/MissionCompletionModal";
 import EmptyState from "../components/EmptyState";
 import LoadingSkeleton from "../components/LoadingSkeleton";
+import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
 
 const MyApplications = () => {
   const [applications, setApplications] = useState([]);
@@ -45,9 +46,41 @@ const MyApplications = () => {
     fetchApplications();
   }, []);
 
+  // --- NOUVEAU : Gérer la réponse à une proposition ---
+  const handleProposalResponse = async (applicationId, response) => {
+    try {
+      // Appel à la route PATCH /:id/respond que nous avons créée côté backend
+      // response = 'accept' ou 'decline'
+      const res = await apiService.patch(
+        `/applications/${applicationId}/respond`,
+        {
+          response,
+        }
+      );
+
+      if (res.success) {
+        alert(
+          response === "accept"
+            ? "Mission acceptée ! 🎉"
+            : "Proposition déclinée."
+        );
+        // Rafraîchir la liste
+        const updatedApps = await apiService.applications.getByUser();
+        setApplications(updatedApps.data || []);
+      }
+    } catch (err) {
+      console.error("Erreur réponse proposition:", err);
+      alert("Une erreur est survenue.");
+    }
+  };
+
   // Filtrer les candidatures selon le filtre actif
   const getFilteredApplications = () => {
     if (activeFilter === "all") return applications;
+
+    if (activeFilter === "proposal") {
+      return applications.filter((app) => app.status === "proposal");
+    }
 
     // --- MODIFICATION START : Logique de filtrage améliorée ---
 
@@ -61,6 +94,7 @@ const MyApplications = () => {
       return applications.filter((app) =>
         [
           "rejected",
+          "declined",
           "withdrawn",
           "completed_by_candidate",
           "completed",
@@ -72,6 +106,14 @@ const MyApplications = () => {
     // Si le filtre est "accepted", on ne veut QUE les missions en cours, pas celles terminées
     if (activeFilter === "accepted") {
       return applications.filter((app) => app.status === "accepted");
+    }
+
+    // 2. Filtre "Refusées" (Si vous avez un onglet spécifique pour ça)
+    if (activeFilter === "rejected") {
+      // On affiche les candidatures rejetées par le client ET les offres déclinées par le candidat
+      return applications.filter(
+        (app) => app.status === "rejected" || app.status === "declined"
+      );
     }
 
     // Pour "pending" (En attente) et les autres cas simples
@@ -198,6 +240,7 @@ const MyApplications = () => {
                             jobTitle: app.job?.title || "",
                           })
                         }
+                        onRespond={handleProposalResponse}
                       />
                     ))}
                   </AnimatePresence>

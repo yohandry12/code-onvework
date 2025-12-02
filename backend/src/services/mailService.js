@@ -286,6 +286,103 @@ const emailTemplates = {
       </html>
     `,
   }),
+
+  // --- NOUVEAUX TEMPLATES POUR LA PROPOSITION DE MISSION ---
+
+  jobProposalReceived: (candidateName, clientName, jobTitle, message) => ({
+    subject: `🚀 ${clientName} vous propose une mission !`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: #6366f1; color: white; padding: 20px; border-radius: 5px 5px 0 0; text-align: center; }
+            .content { background-color: #f9fafb; padding: 20px; border-radius: 0 0 5px 5px; }
+            .detail { margin: 15px 0; padding: 10px; background-color: white; border-left: 4px solid #6366f1; }
+            .message-box { background-color: #eef2ff; padding: 15px; border-radius: 5px; font-style: italic; color: #4338ca; margin: 15px 0; }
+            .button { display: inline-block; background-color: #6366f1; color: white; padding: 12px 30px; border-radius: 5px; text-decoration: none; margin-top: 15px; }
+            .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header"><h1>🚀 Nouvelle opportunité !</h1></div>
+            <div class="content">
+              <p>Bonjour <strong>${candidateName}</strong>,</p>
+              <p>Le recruteur <strong>${clientName}</strong> a été impressionné par votre profil et souhaite vous proposer la mission suivante :</p>
+              
+              <div class="detail">
+                <h3 style="margin: 0; color: #6366f1;">${jobTitle}</h3>
+              </div>
+
+              ${message ? `<div class="message-box">" ${message} "</div>` : ""}
+
+              <p>Connectez-vous pour accepter ou refuser cette offre.</p>
+              
+              <a href="${
+                process.env.FRONTEND_URL
+              }/my-applications" class="button">Voir la proposition</a>
+            </div>
+            <div class="footer"><p>OnveWork - Plateforme de missions freelance</p></div>
+          </div>
+        </body>
+      </html>
+    `,
+  }),
+
+  proposalResponse: (clientName, candidateName, jobTitle, decision) => ({
+    subject: `Réponse de ${candidateName} pour "${jobTitle}"`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background-color: ${
+              decision === "accepted" ? "#10B981" : "#EF4444"
+            }; color: white; padding: 20px; border-radius: 5px 5px 0 0; text-align: center; }
+            .content { background-color: #f9fafb; padding: 20px; border-radius: 0 0 5px 5px; }
+            .button { display: inline-block; background-color: #333; color: white; padding: 12px 30px; border-radius: 5px; text-decoration: none; margin-top: 15px; }
+            .footer { margin-top: 20px; text-align: center; color: #666; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>${
+                decision === "accepted"
+                  ? "🎉 Proposition Acceptée !"
+                  : "Proposition Déclinée"
+              }</h1>
+            </div>
+            <div class="content">
+              <p>Bonjour <strong>${clientName}</strong>,</p>
+              <p>Le candidat <strong>${candidateName}</strong> a 
+                 <strong style="color: ${
+                   decision === "accepted" ? "green" : "red"
+                 }">
+                   ${decision === "accepted" ? "ACCEPTÉ" : "DÉCLINÉ"}
+                 </strong> 
+                 votre proposition pour la mission "<strong>${jobTitle}</strong>".
+              </p>
+              ${
+                decision === "accepted"
+                  ? "<p>La mission est maintenant en cours. Vous pouvez contacter le candidat pour commencer.</p>"
+                  : "<p>Ne vous découragez pas, d'autres talents sont disponibles sur la plateforme.</p>"
+              }
+              <a href="${
+                process.env.FRONTEND_URL
+              }/dashboard" class="button">Accéder au Dashboard</a>
+            </div>
+            <div class="footer"><p>OnveWork - Plateforme de missions freelance</p></div>
+          </div>
+        </body>
+      </html>
+    `,
+  }),
 };
 
 /**
@@ -435,9 +532,81 @@ const sendMissionApprovedClientEmail = async (
   }
 };
 
+const sendJobProposalEmail = async (
+  candidateEmail,
+  candidateName,
+  clientName,
+  jobTitle,
+  message
+) => {
+  try {
+    const template = emailTemplates.jobProposalReceived(
+      candidateName,
+      clientName,
+      jobTitle,
+      message
+    );
+
+    const msg = {
+      to: candidateEmail,
+      from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
+      subject: template.subject,
+      html: template.html,
+    };
+
+    await sgMail.send(msg);
+    logger.info(`Email de proposition de mission envoyé à ${candidateEmail}`);
+  } catch (error) {
+    logger.error(
+      "Erreur lors de l'envoi de l'email proposition de mission:",
+      error
+    );
+    // On ne throw pas l'erreur pour ne pas bloquer le flux métier si le mail échoue
+  }
+};
+
+/**
+ * Envoi de la réponse à la proposition (Candidat -> Client)
+ */
+const sendProposalResponseEmail = async (
+  clientEmail,
+  clientName,
+  candidateName,
+  jobTitle,
+  decision
+) => {
+  try {
+    const template = emailTemplates.proposalResponse(
+      clientName,
+      candidateName,
+      jobTitle,
+      decision
+    );
+
+    const msg = {
+      to: clientEmail,
+      from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
+      subject: template.subject,
+      html: template.html,
+    };
+
+    await sgMail.send(msg);
+    logger.info(
+      `Email de réponse à la proposition (${decision}) envoyé à ${clientEmail}`
+    );
+  } catch (error) {
+    logger.error(
+      "Erreur lors de l'envoi de l'email réponse proposition:",
+      error
+    );
+  }
+};
+
 module.exports = {
   sendCandidateAcceptedEmail,
   sendMissionCompletedByCandidateEmail,
   sendMissionApprovedCandidateEmail,
   sendMissionApprovedClientEmail,
+  sendJobProposalEmail,
+  sendProposalResponseEmail,
 };

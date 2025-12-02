@@ -69,7 +69,9 @@ module.exports = (sequelize) => {
           "withdrawn",
           "completed_by_candidate",
           "completed",
-          "filled"
+          "filled",
+          "proposal", // Client a proposé une mission (attente réponse candidat)
+          "declined"
         ),
         defaultValue: "pending",
         allowNull: false,
@@ -77,6 +79,10 @@ module.exports = (sequelize) => {
       clientNotes: {
         type: DataTypes.TEXT,
         field: "client_notes",
+      },
+      proposalMessage: {
+        type: DataTypes.TEXT,
+        field: "proposal_message",
       },
       history: {
         type: DataTypes.JSON,

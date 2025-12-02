@@ -14,7 +14,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 const ApplicationCard = forwardRef(
-  ({ application, onWithdraw, onComplete, index }, ref) => {
+  ({ application, onWithdraw, onComplete, onRespond, index }, ref) => {
     const { job, status, createdAt } = application;
     const [showMenu, setShowMenu] = useState(false);
 
@@ -122,6 +122,22 @@ const ApplicationCard = forwardRef(
         badgeColor: "bg-gray-200 text-gray-700",
         badgeBorder: "border-gray-300",
         accent: "text-gray-600",
+      },
+      proposal: {
+        text: "Proposition reçue",
+        icon: SparklesIcon, // Ou une icône cadeau/offre
+        bgColor: "bg-gradient-to-br from-purple-50 to-indigo-50", // Une couleur distincte
+        badgeColor: "bg-purple-100 text-purple-700",
+        badgeBorder: "border-purple-300",
+        accent: "text-purple-600",
+      },
+      declined: {
+        text: "Offre déclinée",
+        icon: XCircleIcon,
+        bgColor: "bg-gradient-to-br from-gray-50 to-slate-50", // Gris ou Rouge léger
+        badgeColor: "bg-red-100 text-red-700",
+        badgeBorder: "border-red-300",
+        accent: "text-red-600",
       },
     };
 
@@ -288,6 +304,29 @@ const ApplicationCard = forwardRef(
               >
                 Validation en cours...
               </button>
+            )}
+
+            {/* --- NOUVEAU CAS : PROPOSITION REÇUE --- */}
+            {status === "proposal" && (
+              <div className="flex gap-2 w-full">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onRespond(application.id, "accept")}
+                  className="flex-1 px-3 py-2 rounded-lg text-xs font-bold text-white bg-green-600 hover:bg-green-700 transition-colors flex items-center justify-center gap-1"
+                >
+                  <CheckCircleIcon className="w-4 h-4" /> Accepter
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onRespond(application.id, "decline")}
+                  className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 transition-colors flex items-center justify-center gap-1"
+                >
+                  <XCircleIcon className="w-4 h-4" /> Refuser
+                </motion.button>
+              </div>
             )}
 
             {["completed", "filled"].includes(status) && (

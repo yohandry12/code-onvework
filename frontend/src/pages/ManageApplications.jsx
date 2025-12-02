@@ -339,6 +339,7 @@ export default function ManageApplications() {
                 <option value="rejected">Refusée</option>
                 <option value="withdrawn">Retirée</option>
                 <option value="completed_by_candidate">À valider</option>
+                <option value="declined">Offre déclinée</option>
               </select>
             </div>
           </div>
@@ -461,6 +462,10 @@ export default function ManageApplications() {
                         ) : app.status === "rejected" ? (
                           <span className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
                             REFUSÉE
+                          </span>
+                        ) : app.status === "declined" ? (
+                          <span className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                            OFFRE DÉCLINÉE
                           </span>
                         ) : app.status === "withdrawn" ? (
                           <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">

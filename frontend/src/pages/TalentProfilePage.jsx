@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { apiService } from "../services/api";
 import TalentReviews from "../components/UI/TalentReviews";
@@ -11,15 +11,24 @@ import {
   CheckBadgeIcon,
   BriefcaseIcon,
 } from "@heroicons/react/24/outline";
+import { useAuth } from "../contexts/AuthContext";
+import JobProposalModal from "../components/UI/JobProposalModal";
+import toast from "react-hot-toast";
 
 const TalentProfilePage = () => {
   const { id } = useParams(); // Récupère l'ID depuis l'URL
+  const { user } = useAuth(); // Récupérer l'utilisateur connecté
   const navigate = useNavigate();
   const [talent, setTalent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showRecruitModal, setShowRecruitModal] = useState(false);
+
+  const dataFetchedRef = useRef(false);
 
   useEffect(() => {
+    if (dataFetchedRef.current === id) return;
+
     const fetchTalent = async () => {
       try {
         setLoading(true);
@@ -39,6 +48,7 @@ const TalentProfilePage = () => {
     };
 
     fetchTalent();
+    dataFetchedRef.current = id;
   }, [id]);
 
   if (loading)
@@ -108,7 +118,10 @@ const TalentProfilePage = () => {
             </div>
             <div className="mt-4 flex items-center gap-2 text-green-600 bg-green-50 px-4 py-1.5 rounded-full text-sm font-medium">
               <BriefcaseIcon className="w-4 h-4" />
-              <span>{profile.completedJobs || 0} missions</span>
+              <span>
+                {profile.completedJobs || 0} mission
+                {(profile.completedJobs || 0) !== 1 ? "s" : ""}
+              </span>
             </div>
           </div>
 
@@ -153,12 +166,17 @@ const TalentProfilePage = () => {
             </div>
           </div>
 
-          {/* Bouton Action (Optionnel) */}
-          {/* <div className="flex-shrink-0">
-                <button className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition">
-                    Contacter
-                </button>
-            </div> */}
+          {user && user.role === "client" && (
+            <div className="md:absolute md:top-10 md:right-10 mt-4 md:mt-0 w-full md:w-auto">
+              <button
+                onClick={() => setShowRecruitModal(true)}
+                className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-indigo-200 transition flex items-center justify-center gap-2"
+              >
+                <BriefcaseIcon className="w-5 h-5" />
+                Proposer une mission
+              </button>
+            </div>
+          )}
         </div>
 
         {/* --- GRILLE CONTENU --- */}
@@ -206,6 +224,21 @@ const TalentProfilePage = () => {
           </div>
         </div>
       </div>
+      {/* --- MODALE DE RECRUTEMENT --- */}
+      {talent && (
+        <JobProposalModal
+          isOpen={showRecruitModal}
+          onClose={() => setShowRecruitModal(false)}
+          candidate={talent} // On passe l'objet talent complet (qui contient user.id)
+          onSuccess={() => {
+            // Feedback utilisateur
+            alert(
+              "Proposition envoyée avec succès ! Le candidat a été notifié."
+            );
+            // ou toast.success("Proposition envoyée !");
+          }}
+        />
+      )}
     </div>
   );
 };
