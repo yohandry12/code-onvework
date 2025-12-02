@@ -22,11 +22,12 @@ const TestimonialFormModal = ({ onClose, onSubmitted }) => {
       setSuccess(response.message || "Témoignage envoyé !");
       // On attend un peu pour que l'utilisateur voie le message de succès, puis on ferme.
       setTimeout(() => {
-        onSubmitted(); // Appelle la fonction parente pour fermer et afficher une alerte globale si besoin
+        onSubmitted("success"); // Appelle la fonction parente pour fermer et afficher une alerte globale si besoin
       }, 1500);
     } catch (err) {
       setError(err.response?.data?.error || "Une erreur est survenue.");
       setLoading(false);
+      onSubmitted("error");//Renvoyer une toast d'erreur en cas d'erreur
     }
   };
 

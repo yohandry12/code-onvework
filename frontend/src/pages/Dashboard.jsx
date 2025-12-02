@@ -25,6 +25,7 @@ import Modal from "../components/UI/Modal";
 import CreateJob from "./CreateJob";
 import { apiService } from "../services/api";
 import AIJobSuggestions from "../components/UI/AIJobSuggestions";
+import Toast from "../components/UI/Toast";
 
 import FloatingFeedbackButton from "../components/UI/FloatingFeedbackButton";
 import TestimonialFormModal from "../components/UI/TestimonialFormModal";
@@ -64,6 +65,7 @@ const Dashboard = () => {
   const { socket } = useSocket();
   const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [toast,setToast] = useState(null);
 
   const [isTestimonialModalOpen, setIsTestimonialModalOpen] = useState(false);
 
@@ -522,16 +524,26 @@ const Dashboard = () => {
           {isTestimonialModalOpen && (
             <TestimonialFormModal
               onClose={() => setIsTestimonialModalOpen(false)}
-              onSubmitted={() => {
+              onSubmitted={(status) => {
                 setIsTestimonialModalOpen(false);
-                alert(
-                  "Merci pour votre témoignage ! Il sera examiné par notre équipe."
-                );
+                //verifier si le status es correct pour afficher le message et l'icone de sucess
+                if(status == "sucess"){
+                  setToast({
+                    type : "success",
+                    message : "Merci pour votre temoignage!"
+                  })
+                }else{
+                  setToast({
+                    type : "error",
+                    message : "Vous avez déjà envoyé un témoignage!"
+                  })
+                }
               }}
             />
           )}
         </>
       )}
+      <Toast toast={toast} onClose={()=>{setToast(null)}}/>
     </div>
   );
 };
