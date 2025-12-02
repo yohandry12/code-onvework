@@ -1,188 +1,25 @@
-// import React, { useState, useEffect, useCallback } from "react";
-// import { apiService } from "../../services/api";
-// import {
-//   CheckIcon,
-//   XIcon,
-//   StarIcon as StarSolid,
-// } from "@heroicons/react/solid";
-// import { StarIcon as StarOutline } from "@heroicons/react/outline";
-
-// const ManageTestimonials = () => {
-//   const [testimonials, setTestimonials] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState("");
-
-//   const fetchTestimonials = useCallback(async () => {
-//     setLoading(true);
-//     try {
-//       const data = await apiService.testimonials.getAllForAdmin();
-//       setTestimonials(data);
-//     } catch (err) {
-//       setError("Impossible de charger les témoignages.");
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, []);
-
-//   useEffect(() => {
-//     fetchTestimonials();
-//   }, [fetchTestimonials]);
-
-//   const handleUpdate = async (id, updates) => {
-//     try {
-//       // Optimistic update: met à jour l'UI avant même que l'API réponde
-//       setTestimonials((prev) =>
-//         prev.map((t) => (t._id === id ? { ...t, ...updates } : t))
-//       );
-//       await apiService.testimonials.updateStatus(id, updates);
-//     } catch (err) {
-//       console.error("Erreur de mise à jour:", err);
-//       // Si l'API échoue, on pourrait revenir en arrière (rollback)
-//       alert("La mise à jour a échoué.");
-//       fetchTestimonials(); // On recharge les données pour être sûr
-//     }
-//   };
-
-//   if (loading) return <div className="text-center p-8">Chargement...</div>;
-//   if (error) return <div className="text-center p-8 text-red-500">{error}</div>;
-
-//   return (
-//     <div className="container mx-auto px-4 py-8">
-//       <h1 className="text-3xl font-bold text-gray-900 mb-6">
-//         Gestion des Témoignages
-//       </h1>
-
-//       <div className="bg-white shadow-md rounded-lg overflow-hidden">
-//         <table className="min-w-full divide-y divide-gray-200">
-//           <thead className="bg-gray-50">
-//             <tr>
-//               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-//                 Auteur
-//               </th>
-//               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-//                 Contenu
-//               </th>
-//               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-//                 Statut
-//               </th>
-//               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-//                 Actions
-//               </th>
-//             </tr>
-//           </thead>
-//           <tbody className="bg-white divide-y divide-gray-200">
-//             {testimonials.map((testimonial) => (
-//               <tr key={testimonial._id}>
-//                 <td className="px-6 py-4 whitespace-nowrap">
-//                   <div className="text-sm font-medium text-gray-900">
-//                     {testimonial.author?.profile?.firstName}
-//                   </div>
-//                   <div className="text-sm text-gray-500">
-//                     {testimonial.author?.role}
-//                   </div>
-//                 </td>
-//                 <td className="px-6 py-4">
-//                   <p className="text-sm text-gray-700 max-w-md">
-//                     {testimonial.content}
-//                   </p>
-//                 </td>
-//                 <td className="px-6 py-4 text-center">
-//                   {testimonial.isApproved ? (
-//                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-//                       Approuvé
-//                     </span>
-//                   ) : (
-//                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-//                       En attente
-//                     </span>
-//                   )}
-//                 </td>
-//                 <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
-//                   {/* Bouton Approuver/Désapprouver */}
-//                   <button
-//                     onClick={() =>
-//                       handleUpdate(testimonial._id, {
-//                         isApproved: !testimonial.isApproved,
-//                       })
-//                     }
-//                     title={
-//                       testimonial.isApproved ? "Désapprouver" : "Approuver"
-//                     }
-//                     className={`p-2 rounded-full ${
-//                       testimonial.isApproved
-//                         ? "bg-green-100 text-green-600 hover:bg-red-100 hover:text-red-600"
-//                         : "bg-gray-100 hover:bg-green-100 hover:text-green-600"
-//                     }`}
-//                   >
-//                     {testimonial.isApproved ? (
-//                       <XIcon className="h-5 w-5" />
-//                     ) : (
-//                       <CheckIcon className="h-5 w-5" />
-//                     )}
-//                   </button>
-
-//                   {/* Bouton Mettre en avant */}
-//                   <button
-//                     onClick={() =>
-//                       handleUpdate(testimonial._id, {
-//                         isFeatured: !testimonial.isFeatured,
-//                       })
-//                     }
-//                     title={
-//                       testimonial.isFeatured
-//                         ? "Retirer de la une"
-//                         : "Mettre en avant"
-//                     }
-//                     className={`p-2 rounded-full ${
-//                       testimonial.isFeatured
-//                         ? "text-yellow-500 bg-yellow-100"
-//                         : "text-gray-400 hover:text-yellow-500 hover:bg-yellow-100"
-//                     }`}
-//                   >
-//                     {testimonial.isFeatured ? (
-//                       <StarSolid className="h-5 w-5" />
-//                     ) : (
-//                       <StarOutline className="h-5 w-5" />
-//                     )}
-//                   </button>
-//                 </td>
-//               </tr>
-//             ))}
-//           </tbody>
-//         </table>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default ManageTestimonials;
-
 import React, { useState, useEffect, useCallback } from "react";
 import { apiService } from "../../services/api";
-
-// --- IMPORTS DES ICÔNES ---
-// On importe depuis 'solid' pour les icônes pleines
 import {
   CheckIcon,
   XMarkIcon,
   StarIcon as StarSolid,
-  InformationCircleIcon,
+  TrashIcon,
+  FunnelIcon,
 } from "@heroicons/react/24/solid";
-// On importe depuis 'outline' pour les icônes creuses
 import { StarIcon as StarOutline } from "@heroicons/react/24/outline";
+import toast from "react-hot-toast"; // Assurez-vous d'avoir react-hot-toast installé
 
 const ManageTestimonials = () => {
   const [testimonials, setTestimonials] = useState([]);
+  const [filteredTestimonials, setFilteredTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("all"); // 'all', 'pending', 'approved', 'featured'
 
   const fetchTestimonials = useCallback(async () => {
     setLoading(true);
-    setError("");
     try {
       const response = await apiService.testimonials.getAllForAdmin();
-
-      // --- CORRECTION CLÉ : On extrait le tableau de la réponse ---
       if (
         response &&
         response.success &&
@@ -190,11 +27,10 @@ const ManageTestimonials = () => {
       ) {
         setTestimonials(response.testimonials);
       } else {
-        console.error("Format de réponse inattendu:", response);
-        setTestimonials([]); // Assure que c'est toujours un tableau
+        setTestimonials([]);
       }
     } catch (err) {
-      setError("Impossible de charger les témoignages.");
+      toast.error("Impossible de charger les témoignages.");
     } finally {
       setLoading(false);
     }
@@ -204,150 +40,271 @@ const ManageTestimonials = () => {
     fetchTestimonials();
   }, [fetchTestimonials]);
 
+  // --- LOGIQUE DE FILTRAGE ---
+  useEffect(() => {
+    let result = [...testimonials];
+    if (filter === "pending") {
+      result = result.filter((t) => !t.isApproved);
+    } else if (filter === "approved") {
+      result = result.filter((t) => t.isApproved);
+    } else if (filter === "featured") {
+      result = result.filter((t) => t.isFeatured);
+    }
+    setFilteredTestimonials(result);
+  }, [testimonials, filter]);
+
   const handleUpdate = async (id, updates) => {
     try {
-      // --- CORRECTION : Utiliser 'id' au lieu de '_id' ---
+      // Optimistic update
       setTestimonials((prev) =>
         prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
       );
       await apiService.testimonials.updateStatus(id, updates);
+      toast.success("Statut mis à jour !");
     } catch (err) {
-      console.error("Erreur de mise à jour:", err);
-      alert("La mise à jour a échoué. Rechargement des données.");
+      console.error("Erreur:", err);
+      toast.error("Échec de la mise à jour.");
       fetchTestimonials();
     }
   };
 
-  if (loading) return <div className="text-center p-8">Chargement...</div>;
-  if (error) return <div className="text-center p-8 text-red-500">{error}</div>;
+  const handleDelete = async (id) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce témoignage ?"))
+      return;
+
+    try {
+      // Optimistic delete
+      setTestimonials((prev) => prev.filter((t) => t.id !== id));
+      await apiService.testimonials.delete(id);
+      toast.success("Témoignage supprimé.");
+    } catch (err) {
+      console.error("Erreur:", err);
+      toast.error("Erreur lors de la suppression.");
+      fetchTestimonials();
+    }
+  };
+
+  if (loading)
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      {/* --- EN-TÊTE AVEC LA BULLE D'INFORMATION --- */}
-      <div className="flex justify-between items-center mb-6">
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold text-gray-900">
-          Gestion des Témoignages
+          Modération des Avis
         </h1>
+
+        {/* --- BARRE DE FILTRES --- */}
+        <div className="flex bg-white p-1 rounded-lg shadow-sm border border-gray-200">
+          {["all", "pending", "approved", "featured"].map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                filter === f
+                  ? "bg-indigo-600 text-white shadow-md"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {f === "all" && "Tous"}
+              {f === "pending" && "En attente"}
+              {f === "approved" && "Approuvés"}
+              {f === "featured" && "À la une"}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Auteur
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                Contenu
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                Statut
-              </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {testimonials.length === 0 ? (
+      {/* COMPTEUR */}
+      <div className="mb-4 text-sm text-gray-500">
+        Affichage de{" "}
+        <span className="font-bold text-gray-900">
+          {filteredTestimonials.length}
+        </span>{" "}
+        témoignage(s).
+      </div>
+
+      <div className="bg-white shadow-lg rounded-xl overflow-hidden border border-gray-100">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50/80">
               <tr>
-                <td colSpan="4" className="text-center py-10 text-gray-500">
-                  Aucun témoignage n'a encore été soumis.
-                </td>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Auteur
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-1/2">
+                  Contenu
+                </th>
+                <th className="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Statut
+                </th>
+                <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
-            ) : (
-              testimonials.map((testimonial) => (
-                <tr key={testimonial.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {`${testimonial.author?.profile?.firstName} ${testimonial.author?.profile?.lastName}` ||
-                        "Utilisateur supprimé"}
-                    </div>
-                    <div className="text-sm text-gray-500 capitalize">
-                      {testimonial.author?.role}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm text-gray-700 max-w-md">
-                      {testimonial.content}
-                    </p>
-                  </td>
-
-                  {/* --- AFFICHAGE AMÉLIORÉ DU STATUT --- */}
-                  <td className="px-6 py-4 text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      {testimonial.isApproved ? (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          Approuvé
-                        </span>
-                      ) : (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                          En attente
-                        </span>
-                      )}
-                      {testimonial.isFeatured && (
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
-                          Mis en avant
-                        </span>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium space-x-2">
-                    <button
-                      onClick={() =>
-                        handleUpdate(testimonial.id, {
-                          isApproved: !testimonial.isApproved,
-                        })
-                      }
-                      title={
-                        testimonial.isApproved ? "Désapprouver" : "Approuver"
-                      }
-                      className={`p-2 rounded-full transition-colors ${
-                        testimonial.isApproved
-                          ? "bg-green-100 text-green-600 hover:bg-red-100 hover:text-red-600"
-                          : "bg-gray-100 hover:bg-green-100 hover:text-green-600"
-                      }`}
-                    >
-                      {testimonial.isApproved ? (
-                        <XMarkIcon className="h-5 w-5" />
-                      ) : (
-                        <CheckIcon className="h-5 w-5" />
-                      )}
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        handleUpdate(testimonial.id, {
-                          isFeatured: !testimonial.isFeatured,
-                        })
-                      }
-                      title={
-                        testimonial.isFeatured
-                          ? "Retirer de la une"
-                          : "Mettre en avant"
-                      }
-                      className={`p-2 rounded-full transition-colors ${
-                        testimonial.isFeatured
-                          ? "text-yellow-500 bg-yellow-100"
-                          : "text-gray-400 hover:text-yellow-500 hover:bg-yellow-100"
-                      }`}
-                    >
-                      {testimonial.isFeatured ? (
-                        <StarSolid className="h-5 w-5" />
-                      ) : (
-                        <StarOutline className="h-5 w-5" />
-                      )}
-                    </button>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredTestimonials.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="4"
+                    className="text-center py-12 text-gray-400 italic"
+                  >
+                    Aucun témoignage ne correspond à ce filtre.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredTestimonials.map((testimonial) => (
+                  <tr
+                    key={testimonial.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-bold text-gray-900">
+                        {`${testimonial.author?.profile?.firstName} ${testimonial.author?.profile?.lastName}` ||
+                          "Utilisateur inconnu"}
+                      </div>
+                      <div className="text-xs text-gray-500 capitalize bg-gray-100 px-2 py-0.5 rounded-full w-fit mt-1">
+                        {testimonial.author?.role === "client"
+                          ? "Recruteur"
+                          : "Freelance"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-gray-600 italic leading-relaxed line-clamp-3">
+                        "{testimonial.content}"
+                      </p>
+                      {/* --- NOUVEAU BLOC ÉTOILES --- */}
+                      <div className="flex items-center mt-2">
+                        {[...Array(5)].map((_, i) => (
+                          <StarSolid
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < (testimonial.rating || 5)
+                                ? "text-yellow-400"
+                                : "text-gray-200"
+                            }`}
+                          />
+                        ))}
+                        <span className="ml-2 text-xs text-gray-500 font-medium">
+                          {testimonial.rating || 5}/5
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-400 mt-1 block">
+                        {new Date(testimonial.createdAt).toLocaleDateString()}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        {testimonial.isApproved ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                            <CheckIcon className="w-3 h-3" /> Approuvé
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
+                            <ClockIcon className="w-3 h-3" /> En attente
+                          </span>
+                        )}
+                        {testimonial.isFeatured && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                            <StarSolid className="w-3 h-3" /> À la une
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex justify-end gap-2">
+                        {/* APPROUVER / DÉSAPPROUVER */}
+                        <button
+                          onClick={() =>
+                            handleUpdate(testimonial.id, {
+                              isApproved: !testimonial.isApproved,
+                            })
+                          }
+                          title={
+                            testimonial.isApproved
+                              ? "Masquer (Désapprouver)"
+                              : "Publier (Approuver)"
+                          }
+                          className={`p-2 rounded-lg transition-colors border ${
+                            testimonial.isApproved
+                              ? "bg-white border-gray-300 text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                              : "bg-green-50 border-green-200 text-green-600 hover:bg-green-100"
+                          }`}
+                        >
+                          {testimonial.isApproved ? (
+                            <XMarkIcon className="h-5 w-5" />
+                          ) : (
+                            <CheckIcon className="h-5 w-5" />
+                          )}
+                        </button>
+
+                        {/* METTRE À LA UNE */}
+                        <button
+                          onClick={() =>
+                            handleUpdate(testimonial.id, {
+                              isFeatured: !testimonial.isFeatured,
+                            })
+                          }
+                          title={
+                            testimonial.isFeatured
+                              ? "Retirer de la une"
+                              : "Mettre à la une"
+                          }
+                          className={`p-2 rounded-lg transition-colors border ${
+                            testimonial.isFeatured
+                              ? "bg-purple-50 border-purple-200 text-purple-600"
+                              : "bg-white border-gray-300 text-gray-400 hover:text-yellow-500 hover:border-yellow-300"
+                          }`}
+                        >
+                          {testimonial.isFeatured ? (
+                            <StarSolid className="h-5 w-5" />
+                          ) : (
+                            <StarOutline className="h-5 w-5" />
+                          )}
+                        </button>
+
+                        {/* SUPPRIMER */}
+                        <button
+                          onClick={() => handleDelete(testimonial.id)}
+                          title="Supprimer définitivement"
+                          className="p-2 rounded-lg bg-white border border-gray-300 text-gray-400 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
 };
+
+// Petit helper pour l'icône Clock qui manquait dans les imports
+const ClockIcon = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+  >
+    <path
+      fillRule="evenodd"
+      d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zM12.75 6a.75.75 0 00-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 000-1.5h-3.75V6z"
+      clipRule="evenodd"
+    />
+  </svg>
+);
 
 export default ManageTestimonials;

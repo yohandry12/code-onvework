@@ -241,6 +241,7 @@ export const apiService = {
     getAllForAdmin: () => apiService.get("/testimonials"),
     updateStatus: (id, updates) =>
       apiService.patch(`/testimonials/${id}`, updates),
+    delete: (id) => apiService.delete(`/testimonials/${id}`),
   },
 
   reports: {

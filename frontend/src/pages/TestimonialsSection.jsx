@@ -36,19 +36,31 @@ const SwiperNavButtons = () => {
 
 // --- Sous-composant pour une carte de témoignage ---
 const TestimonialCard = ({ testimonial }) => {
-  const { author, content } = testimonial;
+  const { author, content, rating } = testimonial;
   const fullName = `${author.profile.firstName} ${author.profile.lastName}`;
   const roleAndCompany =
     author.role === "client"
       ? `Client, ${author.profile.company || "Entreprise"}`
       : `${author.profile.profession || "Freelance"}`;
 
+  // Utilitaire pour construire l'URL de l'avatar
+  const getAvatarUrl = (avatarPath) => {
+    if (!avatarPath) return null;
+    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
+    const baseUrl = apiUrl.replace(/\/api$/, "");
+    if (avatarPath.startsWith("http")) return avatarPath;
+    const cleanPath = avatarPath.startsWith("/")
+      ? avatarPath
+      : `/${avatarPath}`;
+    return `${baseUrl}${cleanPath}`;
+  };
+
   return (
     <div className="bg-gray-800/50 rounded-2xl border border-white/10 p-8 h-full flex flex-col">
       <div className="flex items-center mb-4">
         <img
           src={
-            author.profile.avatar ||
+            getAvatarUrl(author.profile.avatar) ||
             `https://ui-avatars.com/api/?name=${encodeURIComponent(
               fullName
             )}&background=2dd4bf&color=000&bold=true`
@@ -64,9 +76,14 @@ const TestimonialCard = ({ testimonial }) => {
       {/* L'API actuelle n'a pas de notes, on les met en dur pour le style */}
       <div className="flex items-center my-4">
         {[...Array(5)].map((_, i) => (
-          <StarIcon key={i} className="h-5 w-5 text-yellow-400" />
+          <StarIcon
+            key={i}
+            className={`h-5 w-5 ${
+              i < (rating || 5) ? "text-yellow-400" : "text-gray-600"
+            }`}
+          />
         ))}
-        <span className="ml-2 text-white font-bold">5.0</span>
+        <span className="ml-2 text-white font-bold">{rating || 5}.0</span>
       </div>
       <p className="text-gray-300 italic flex-grow">"{content}"</p>
     </div>
