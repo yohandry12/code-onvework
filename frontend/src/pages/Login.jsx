@@ -1,11 +1,8 @@
-// --- START OF FILE Login.jsx ---
 
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react"; // 1. Ajout de useRef et useEffect
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { motion } from "framer-motion";
-// 1. IMPORT : On remplace axios par apiService
-// Vérifiez si le chemin est "../api" ou "../services/api" selon votre dossier
+import { motion, AnimatePresence } from "framer-motion"; // 2. Ajout de AnimatePresence
 import { apiService } from "../services/api";
 
 const Login = () => {
@@ -17,49 +14,74 @@ const Login = () => {
   const [apiError, setApiError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // 3. Référence pour le timer
+  const errorTimeoutRef = useRef(null);
+
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  // 4. Nettoyage du timer si on change de page
+  useEffect(() => {
+    return () => {
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+    };
+  }, []);
+
+  // Fonction utilitaire pour afficher l'erreur temporairement
+  const showTemporaryError = (message) => {
+    setApiError(message);
+    
+    // Annule le timer précédent s'il y en a un
+    if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+
+    // Lance un nouveau timer de 5 secondes (5000ms)
+    errorTimeoutRef.current = setTimeout(() => {
+      setApiError("");
+    }, 5000);
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    
+    // UX : Effacer l'erreur dès que l'utilisateur recommence à écrire
+    if (apiError) {
+      setApiError("");
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError("");
+    
+    // Nettoyage préventif du timer
+    if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
 
-    // On nettoie les espaces éventuels (fréquent sur mobile)
     const emailClean = formData.email.trim();
     const passwordClean = formData.password;
 
     if (!emailClean || !passwordClean) {
-      setApiError("L'email et le mot de passe sont requis.");
+      showTemporaryError("L'email et le mot de passe sont requis.");
       return;
     }
 
     setLoading(true);
 
     try {
-      // 2. CORRECTION : On utilise apiService au lieu de axios + localhost
-      // apiService utilise automatiquement l'IP configurée dans api.js / .env
       const response = await apiService.auth.login(emailClean, passwordClean);
 
-      // Note : L'intercepteur dans api.js renvoie déjà response.data
-      // Donc 'response' contient directement l'objet { success: true, user: ..., token: ... }
       if (response.success) {
         login(response.user, response.token);
-        // La navigation est gérée dans login(), mais on peut laisser ça ici par sécurité
-        // navigate("/dashboard");
       }
     } catch (err) {
       console.error("Erreur Login:", err);
-      // Gestion d'erreur améliorée
       const message =
         err.response?.data?.error ||
         err.message ||
         "Une erreur est survenue lors de la connexion.";
 
-      setApiError(message);
+      // 5. Utilisation de la fonction temporaire ici
+      showTemporaryError(message);
     } finally {
       setLoading(false);
     }
@@ -95,6 +117,23 @@ const Login = () => {
 
         <div className="px-8 py-10">
           <form onSubmit={handleSubmit} noValidate className="space-y-6">
+            
+            {/* 6. Envelopper l'erreur dans AnimatePresence */}
+            <AnimatePresence mode="wait">
+              {apiError && (
+                <motion.div
+                  // Animation d'entrée et de sortie (exit)
+                  initial={{ opacity: 0, scale: 0.95, height: 0 }}
+                  animate={{ opacity: 1, scale: 1, height: "auto" }}
+                  exit={{ opacity: 0, scale: 0.95, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="p-3 bg-red-50 border border-red-200 rounded-xl text-center overflow-hidden"
+                >
+                  <p className="text-red-600 text-sm font-medium">{apiError}</p>
+                </motion.div>
+             )}
+            </AnimatePresence>
+
             <div className="space-y-1">
               <input
                 id="email"
@@ -122,16 +161,6 @@ const Login = () => {
                 placeholder="Mot de passe"
               />
             </div>
-
-            {apiError && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="p-3 bg-red-50 border border-red-200 rounded-xl text-center"
-              >
-                <p className="text-red-600 text-sm font-medium">{apiError}</p>
-              </motion.div>
-            )}
 
             <div className="flex items-center justify-between">
               <div className="text-sm">

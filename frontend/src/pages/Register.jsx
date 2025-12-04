@@ -606,8 +606,8 @@
 
 // src/components/Register.jsx
 
-import { motion } from "framer-motion";
-import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { apiService } from "../services/api";
@@ -636,22 +636,26 @@ const Register = () => {
   const [successMsg, setSuccessMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const topRef = useRef(null);
+  const errorTimeoutRef = useRef(null);
+
   const navigate = useNavigate();
   const { login } = useAuth();
 
+  useEffect(() => {
+    return () => {
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+    };
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // 1. Déterminer la clé du state à modifier
-    // Le composant CitySelect envoie "city", mais le state attend "locationCity"
     let stateKey = name;
     if (name === "city") stateKey = "locationCity";
     if (name === "country") stateKey = "locationCountry";
 
-    // 2. Mettre à jour le formData
     setFormData((prev) => ({ ...prev, [stateKey]: value }));
 
-    // 3. Effacer l'erreur si elle existe pour ce champ
     if (errors[stateKey]) {
       setErrors((prev) => ({ ...prev, [stateKey]: "" }));
     }
@@ -684,6 +688,14 @@ const Register = () => {
     }
 
     setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+      errorTimeoutRef.current = setTimeout(() => {
+        setErrors({});
+      }, 5000);
+    }
+
     return Object.keys(newErrors).length === 0;
   };
 
@@ -691,10 +703,14 @@ const Register = () => {
     e.preventDefault();
     setApiError("");
     setSuccessMsg("");
+    
     if (!validateForm()) {
       setApiError("Veuillez corriger les erreurs du formulaire.");
+      setTimeout(() => setApiError(""), 5000);
+      topRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
+
     setLoading(true);
 
     let payload;
@@ -707,7 +723,6 @@ const Register = () => {
         role: "candidate",
       };
     } else {
-      // 'client'
       payload = {
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -735,6 +750,7 @@ const Register = () => {
       if (response.success) {
         setSuccessMsg("Compte créé avec succès ! Redirection...");
         login(response.user, response.token);
+        topRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
 
         if (response.user.role === "candidate") {
           setTimeout(() => navigate("/onboarding/candidate"), 1200);
@@ -743,12 +759,14 @@ const Register = () => {
         }
       } else {
         setApiError(response.error || "Erreur inconnue.");
+        topRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       }
     } catch (err) {
       setApiError(
         err.response?.data?.error ||
           "Une erreur est survenue lors de l'inscription."
       );
+      topRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     } finally {
       setLoading(false);
     }
@@ -760,7 +778,10 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-lg p-8 space-y-8 bg-white/90 backdrop-blur shadow-2xl rounded-2xl border border-white/20">
+      <div 
+        ref={topRef} 
+        className="w-full max-w-lg p-8 space-y-8 bg-white/90 backdrop-blur shadow-2xl rounded-2xl border border-white/20"
+      >
         <div className="mb-6 text-center">
           <h2 className="text-3xl font-bold text-indigo-700 mb-2">
             Créez votre compte
@@ -776,16 +797,27 @@ const Register = () => {
           </p>
         </div>
 
-        {(apiError || successMsg) && (
-          <div
-            className={`mb-4 text-center font-semibold text-sm ${
-              apiError ? "text-red-600" : "text-green-600"
-            }`}
-          >
-            {apiError && <span>{apiError}</span>}
-            {successMsg && <span>{successMsg}</span>}
-          </div>
-        )}
+        {/* Permet de gerer l'affichage du message d'erreur ou de success de la soumission du formulaire */}
+        <AnimatePresence mode="wait">
+          {(apiError || successMsg) && (
+            <motion.div
+              key={apiError ? "error" : "success"}
+              initial={{ opacity: 0, height: 0, y: -10 }}
+              animate={{ opacity: 1, height: "auto", y: 0 }}
+              exit={{ opacity: 0, height: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className={`mb-4 text-center font-semibold text-sm rounded-xl shadow-md overflow-hidden p-3 border ${
+                apiError 
+                  ? "bg-red-50 border-red-200 text-red-600"  // Erreur: Fond clair, texte ROUGE
+                  : "bg-green-50 border-green-200 text-green-600" // Succès: Fond clair, texte VERT
+              }`}
+            >
+              {apiError && <span>{apiError}</span>}
+              {successMsg && <span>{successMsg}</span>}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        {/* --------------------------------------------- */}
 
         <form className="space-y-6" onSubmit={handleSubmit} noValidate>
           <div className="flex justify-center gap-2 mb-6">
@@ -828,12 +860,10 @@ const Register = () => {
                 value={formData.firstName}
                 onChange={handleChange}
                 required
-                className="input input-bordered w-full"
+                className={`input input-bordered w-full ${errors.firstName ? 'border-red-500 focus:ring-red-500' : ''}`}
                 placeholder="Prénom"
               />
-              {errors.firstName && (
-                <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>
-              )}
+              <FieldError message={errors.firstName} />
             </div>
             <div>
               <label
@@ -849,12 +879,10 @@ const Register = () => {
                 value={formData.lastName}
                 onChange={handleChange}
                 required
-                className="input input-bordered w-full"
+                className={`input input-bordered w-full ${errors.lastName ? 'border-red-500 focus:ring-red-500' : ''}`}
                 placeholder="Nom de famille"
               />
-              {errors.lastName && (
-                <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>
-              )}
+              <FieldError message={errors.lastName} />
             </div>
           </div>
 
@@ -891,7 +919,7 @@ const Register = () => {
                   value={formData.employerType}
                   onChange={handleChange}
                   required
-                  className="input input-bordered w-full"
+                  className={`input input-bordered w-full ${errors.employerType ? 'border-red-500' : ''}`}
                 >
                   <option value="">Sélectionnez le type</option>
                   <option value="Entreprise formelle">
@@ -901,11 +929,7 @@ const Register = () => {
                   <option value="Particulier">Particulier</option>
                   <option value="Association">Association</option>
                 </select>
-                {errors.employerType && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.employerType}
-                  </p>
-                )}
+                <FieldError message={errors.employerType} />
               </div>
 
               {employerType === "Entreprise formelle" && (
@@ -923,14 +947,10 @@ const Register = () => {
                     value={formData.company}
                     onChange={handleChange}
                     required
-                    className="input input-bordered w-full"
+                    className={`input input-bordered w-full ${errors.company ? 'border-red-500' : ''}`}
                     placeholder="Raison sociale"
                   />
-                  {errors.company && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.company}
-                    </p>
-                  )}
+                  <FieldError message={errors.company} />
                 </div>
               )}
               {employerType === "Startup" && (
@@ -1048,12 +1068,10 @@ const Register = () => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="input input-bordered w-full"
+                className={`input input-bordered w-full ${errors.email ? 'border-red-500' : ''}`}
                 placeholder="Adresse email"
               />
-              {errors.email && (
-                <p className="text-red-500 text-xs mt-1">{errors.email}</p>
-              )}
+              <FieldError message={errors.email} />
             </div>
             <div>
               <label
@@ -1069,12 +1087,10 @@ const Register = () => {
                 value={formData.password}
                 onChange={handleChange}
                 required
-                className="input input-bordered w-full"
+                className={`input input-bordered w-full ${errors.password ? 'border-red-500' : ''}`}
                 placeholder="Mot de passe"
               />
-              {errors.password && (
-                <p className="text-red-500 text-xs mt-1">{errors.password}</p>
-              )}
+              <FieldError message={errors.password} />
             </div>
             <div>
               <label
@@ -1090,14 +1106,10 @@ const Register = () => {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
-                className="input input-bordered w-full"
+                className={`input input-bordered w-full ${errors.confirmPassword ? 'border-red-500' : ''}`}
                 placeholder="Confirmez votre mot de passe"
               />
-              {errors.confirmPassword && (
-                <p className="text-red-500 text-xs mt-1">
-                  {errors.confirmPassword}
-                </p>
-              )}
+              <FieldError message={errors.confirmPassword} />
             </div>
           </div>
 
@@ -1113,6 +1125,24 @@ const Register = () => {
         </form>
       </div>
     </div>
+  );
+};
+// petit composant pour gerer l'animation d'affichage des messages d'erreur en dessous des inputs du formulaire
+const FieldError = ({ message }) => {
+  return (
+    <AnimatePresence mode="wait">
+      {message && (
+        <motion.p
+          initial={{ opacity: 0, y: -5, height: 0 }}
+          animate={{ opacity: 1, y: 0, height: "auto" }}
+          exit={{ opacity: 0, y: -5, height: 0 }}
+          transition={{ duration: 0.2 }}
+          className="text-red-500 text-xs mt-1 overflow-hidden"
+        >
+          {message}
+        </motion.p>
+      )}
+    </AnimatePresence>
   );
 };
 
