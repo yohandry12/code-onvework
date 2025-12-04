@@ -128,16 +128,55 @@ module.exports = function (io) {
 
       // --- LOGIQUE ADMIN ---
       else if (req.user.role === "admin") {
-        const [totalUsers, totalJobs, totalApplications] = await Promise.all([
+        const now = new Date();
+        const firstDayCurrentMonth = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          1
+        );
+        const firstDayLastMonth = new Date(
+          now.getFullYear(),
+          now.getMonth() - 1,
+          1
+        );
+
+        const [
+          totalUsers,
+          totalJobs,
+          totalApplications,
+          usersThisMonth,
+          usersLastMonth,
+        ] = await Promise.all([
           User.count(),
           Job.count(),
           Application.count(),
+          User.count({
+            where: { createdAt: { [Op.gte]: firstDayCurrentMonth } },
+          }),
+          User.count({
+            where: {
+              createdAt: {
+                [Op.gte]: firstDayLastMonth,
+                [Op.lt]: firstDayCurrentMonth,
+              },
+            },
+          }),
         ]);
+
+        // Calcul du pourcentage de croissance
+        let growth = 0;
+        if (usersLastMonth > 0) {
+          growth = ((usersThisMonth - usersLastMonth) / usersLastMonth) * 100;
+        } else if (usersThisMonth > 0) {
+          growth = 100; // Croissance infinie si on part de 0
+        }
+
         stats = {
           totalUsers,
           totalJobs,
           totalApplications,
           activeUsers: totalUsers, // À affiner si besoin
+          monthlyGrowth: parseFloat(growth.toFixed(1)),
         };
       }
 
