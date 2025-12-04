@@ -1,8 +1,7 @@
-
-import React, { useState, useRef, useEffect } from "react"; // 1. Ajout de useRef et useEffect
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { motion, AnimatePresence } from "framer-motion"; // 2. Ajout de AnimatePresence
+import { motion, AnimatePresence } from "framer-motion";
 import { apiService } from "../services/api";
 
 const Login = () => {
@@ -14,27 +13,20 @@ const Login = () => {
   const [apiError, setApiError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // 3. Référence pour le timer
   const errorTimeoutRef = useRef(null);
 
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  // 4. Nettoyage du timer si on change de page
   useEffect(() => {
     return () => {
       if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
     };
   }, []);
 
-  // Fonction utilitaire pour afficher l'erreur temporairement
   const showTemporaryError = (message) => {
     setApiError(message);
-    
-    // Annule le timer précédent s'il y en a un
     if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
-
-    // Lance un nouveau timer de 5 secondes (5000ms)
     errorTimeoutRef.current = setTimeout(() => {
       setApiError("");
     }, 5000);
@@ -42,8 +34,6 @@ const Login = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    
-    // UX : Effacer l'erreur dès que l'utilisateur recommence à écrire
     if (apiError) {
       setApiError("");
       if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
@@ -53,8 +43,6 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setApiError("");
-    
-    // Nettoyage préventif du timer
     if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
 
     const emailClean = formData.email.trim();
@@ -75,12 +63,23 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Erreur Login:", err);
-      const message =
-        err.response?.data?.error ||
-        err.message ||
-        "Une erreur est survenue lors de la connexion.";
+      
+      // Variable qui recupere le message correspondant au identifiants incorrects
+      let message = "";
 
-      // 5. Utilisation de la fonction temporaire ici
+      // Ici c'est le cas ou l'email et le mot de passe sont incorrects
+      if (err.response?.status === 401) {
+        message = "Email ou mot de passe incorrect.";
+      } 
+      // Sinon, on prend le message envoyé par le serveur ou un message générique
+      else {
+        message =
+          err.response?.data?.error ||
+          err.message ||
+          "Une erreur est survenue lors de la connexion.";
+      }
+      // --- FIN DE LA MODIFICATION ---
+
       showTemporaryError(message);
     } finally {
       setLoading(false);
@@ -118,11 +117,9 @@ const Login = () => {
         <div className="px-8 py-10">
           <form onSubmit={handleSubmit} noValidate className="space-y-6">
             
-            {/* 6. Envelopper l'erreur dans AnimatePresence */}
             <AnimatePresence mode="wait">
               {apiError && (
                 <motion.div
-                  // Animation d'entrée et de sortie (exit)
                   initial={{ opacity: 0, scale: 0.95, height: 0 }}
                   animate={{ opacity: 1, scale: 1, height: "auto" }}
                   exit={{ opacity: 0, scale: 0.95, height: 0 }}

@@ -37,7 +37,7 @@ apiClient.interceptors.response.use(
     // alert(`ERREUR API : ${url}\nMessage : ${errorMessage}`);
     // -------------------------------------------------------
     // Gestion des erreurs communes
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 &&  !url?.includes("/login")) {
       // Token expiré ou invalide
       localStorage.removeItem("overwork_token");
       window.location.href = "/login";

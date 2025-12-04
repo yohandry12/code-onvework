@@ -10,12 +10,11 @@ import {
   BriefcaseIcon,
   ArrowPathIcon,
   MapPinIcon,
-  XCircleIcon, // Icône pour le rejet
-  ClockIcon, // Icône pour l'attente
+  XCircleIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
-import { Flame, Star, Sparkles, CheckCircle } from "lucide-react"; // CheckCircle pour l'acceptation
+import { Flame, Star, Sparkles, CheckCircle } from "lucide-react";
 
-// --- JobCard ---
 const JobCard = ({ job, onApply, userApplication }) => {
   const isCompleted = job.status === "filled";
   const isRepublished = !!job.clonedFromId;
@@ -25,7 +24,6 @@ const JobCard = ({ job, onApply, userApplication }) => {
   const isFeatured = job.featured;
   const isUrgent = job.isUrgent;
 
-  // --- LOGIQUE DU STATUT CANDIDAT ---
   const hasApplied = !!userApplication;
   const appStatus = userApplication?.status;
 
@@ -38,7 +36,6 @@ const JobCard = ({ job, onApply, userApplication }) => {
     )} ${currency || ""}`;
   };
 
-  // Style du conteneur (inchangé)
   let containerStyle =
     "bg-white border-gray-200 hover:border-blue-500 hover:shadow-md";
   if (isCompleted || isFrozen) {
@@ -51,9 +48,7 @@ const JobCard = ({ job, onApply, userApplication }) => {
       "bg-amber-50/40 border-amber-200 hover:border-amber-400 hover:shadow-amber-100 hover:shadow-md";
   }
 
-  // --- LOGIQUE DU BOUTON ---
   const getButtonConfig = () => {
-    // 1. Statuts globaux du Job (Prioritaires)
     if (isCompleted)
       return {
         text: "Mission terminée",
@@ -67,7 +62,6 @@ const JobCard = ({ job, onApply, userApplication }) => {
         disabled: true,
       };
 
-    // 2. Statuts personnels du candidat
     if (hasApplied) {
       if (appStatus === "rejected" || appStatus === "declined") {
         return {
@@ -86,7 +80,6 @@ const JobCard = ({ job, onApply, userApplication }) => {
           disabled: true,
         };
       }
-      // pending, reviewed
       return {
         text: "En attente de validation",
         style:
@@ -96,7 +89,6 @@ const JobCard = ({ job, onApply, userApplication }) => {
       };
     }
 
-    // 3. Statut Job en cours (mais pas postulé ou pas retenu)
     if (isInProgress)
       return {
         text: "En cours",
@@ -104,7 +96,6 @@ const JobCard = ({ job, onApply, userApplication }) => {
         disabled: true,
       };
 
-    // 4. Bouton Postuler (Défaut)
     if (isUrgent) {
       return {
         text: "Postuler",
@@ -238,12 +229,11 @@ const JobCard = ({ job, onApply, userApplication }) => {
   );
 };
 
-// --- FilterSidebar (Reste identique) ---
+// --- FilterSidebar 
 const FilterSidebar = ({ onFilterChange, categories }) => {
-  // ... (Code inchangé pour FilterSidebar)
-  // Je le laisse tel quel pour ne pas alourdir la réponse, il n'y a pas de modif ici.
   const [filters, setFilters] = useState({
     category: "",
+    status: "", // État pour le statut 
     experienceLevel: [],
     minBudget: "",
     maxBudget: "",
@@ -305,9 +295,16 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
         : [...prev[group], value],
     }));
   };
+
   const handleSelectChange = (e) => {
     setFilters((prev) => ({ ...prev, category: e.target.value }));
   };
+
+  // Handler pour le changement de statut ---
+  const handleStatusChange = (e) => {
+    setFilters((prev) => ({ ...prev, status: e.target.value }));
+  };
+
   const debouncedMinBudget = useDebounce(filters.minBudget, 500);
   const debouncedMaxBudget = useDebounce(filters.maxBudget, 500);
   const debouncedCity = useDebounce(filters.city, 500);
@@ -316,6 +313,7 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
   useEffect(() => {
     const apiFilters = {
       category: filters.category,
+      status: filters.status, // -Envoi du statut à l'API ---
       experience: filters.experienceLevel.join(","),
       minBudget: debouncedMinBudget,
       maxBudget: debouncedMaxBudget,
@@ -324,6 +322,7 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
     memoizedOnFilterChange(apiFilters);
   }, [
     filters.category,
+    filters.status, // Dépendance ajoutée ---
     filters.experienceLevel,
     debouncedMinBudget,
     debouncedMaxBudget,
@@ -334,6 +333,7 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
   const resetFilters = () => {
     setFilters({
       category: "",
+      status: "", // renitialise le statut des offres
       experienceLevel: [],
       minBudget: "",
       maxBudget: "",
@@ -354,6 +354,8 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
             Réinitialiser
           </button>
         </div>
+        
+        {/* Filtre Ville */}
         <div className="mb-6 relative" ref={wrapperRef}>
           <h4 className="font-semibold mb-3 text-gray-700">Ville</h4>
           <div className="relative">
@@ -381,6 +383,8 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
             </ul>
           )}
         </div>
+
+        {/* Filtre Catégorie */}
         <div className="mb-6">
           <h4 className="font-semibold mb-3 text-gray-700">Catégorie</h4>
           <select
@@ -396,6 +400,23 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
             ))}
           </select>
         </div>
+
+        {/*Filtre pour le status des offres d'emplois */}
+        <div className="mb-6">
+          <h4 className="font-semibold mb-3 text-gray-700">Statut de l'offre</h4>
+          <select
+            value={filters.status}
+            onChange={handleStatusChange}
+            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">Tous les statuts</option>
+            <option value="open">Ouvertes</option>
+            <option value="in_progress">En cours</option>
+            <option value="filled">Terminées / Pourvues</option>
+          </select>
+        </div>
+        {/* ------------------------------- */}
+
         <div className="mb-6">
           <h4 className="font-semibold mb-3 text-gray-700">
             Niveau d'expérience
@@ -447,7 +468,6 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
   );
 };
 
-// --- COMPOSANT PRINCIPAL ---
 const Jobs = () => {
   const [jobs, setJobs] = useState([]);
   const [pagination, setPagination] = useState({});
@@ -465,10 +485,8 @@ const Jobs = () => {
   const [activeJobToApply, setActiveJobToApply] = useState(null);
   const [toast, setToast] = useState(null);
 
-  // --- NOUVEAU STATE POUR LES CANDIDATURES DE L'UTILISATEUR ---
   const [userApplications, setUserApplications] = useState([]);
 
-  // Chargement des candidatures de l'utilisateur au montage
   useEffect(() => {
     if (user && user.role === "candidate") {
       const fetchUserApps = async () => {
@@ -558,7 +576,6 @@ const Jobs = () => {
   const handleApplicationSuccess = () => {
     setActiveJobToApply(null);
     setToast({ type: "success", message: "Candidature envoyée !" });
-    // Rafraîchir la liste des candidatures pour mettre à jour les boutons
     if (user?.role === "candidate") {
       apiService.applications.getByUser().then((res) => {
         if (res.success) setUserApplications(res.data || []);
@@ -620,7 +637,6 @@ const Jobs = () => {
             ) : (
               <div className="space-y-4">
                 {jobs.map((job) => {
-                  // On cherche si l'utilisateur a candidaté à ce job
                   const userApp = userApplications.find(
                     (app) =>
                       app.jobId === job.id || (app.job && app.job.id === job.id)
@@ -630,7 +646,7 @@ const Jobs = () => {
                     <JobCard
                       key={job.id}
                       job={job}
-                      userApplication={userApp} // On passe l'info au composant enfant
+                      userApplication={userApp}
                       onApply={() => handleApplyClick(job)}
                     />
                   );
