@@ -32,9 +32,9 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     // --- AJOUTEZ CECI POUR VOIR L'ERREUR SUR LE TÉLÉPHONE ---
-    const errorMessage = error.response?.data?.error || error.message;
-    const url = error.config?.url;
-    alert(`ERREUR API : ${url}\nMessage : ${errorMessage}`);
+    // const errorMessage = error.response?.data?.error || error.message;
+    // const url = error.config?.url;
+    // alert(`ERREUR API : ${url}\nMessage : ${errorMessage}`);
     // -------------------------------------------------------
     // Gestion des erreurs communes
     if (error.response?.status === 401) {
