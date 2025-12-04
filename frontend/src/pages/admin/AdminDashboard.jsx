@@ -107,13 +107,32 @@ const AdminDashboard = () => {
               </div>
             </div>
           </div>
+          {/* Carte Croissance */}
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
-              <TrendingUpIcon className="h-8 w-8 text-orange-500 mr-4" />
+              {/* Changement d'icône et de couleur selon si c'est positif ou négatif */}
+              <TrendingUpIcon
+                className={`h-8 w-8 mr-4 ${
+                  (stats?.monthlyGrowth || 0) >= 0
+                    ? "text-green-500"
+                    : "text-red-500"
+                }`}
+              />
               <div>
                 <p className="text-sm font-medium text-gray-500">Croissance</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  +{stats?.monthlyGrowth}%
+                <p
+                  className={`text-2xl font-bold ${
+                    (stats?.monthlyGrowth || 0) >= 0
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  {/* Condition pour afficher le + seulement si positif */}
+                  {stats?.monthlyGrowth > 0 ? "+" : ""}
+                  {stats?.monthlyGrowth || 0}%
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  d'utilisateurs ce mois
                 </p>
               </div>
             </div>
