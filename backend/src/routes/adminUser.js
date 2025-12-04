@@ -269,8 +269,12 @@ router.get("/:id", async (req, res) => {
 
     // Formatter la réponse comme pour la liste, pour simplifier le front
     const formattedUser = user.get({ plain: true });
+
+    // On fusionne le profil spécifique dans une propriété générique 'profile'
     formattedUser.profile =
-      formattedUser.candidateProfile || formattedUser.clientProfile;
+      formattedUser.candidateProfile || formattedUser.clientProfile || {};
+
+    // On nettoie les clés spécifiques pour éviter la confusion
     delete formattedUser.candidateProfile;
     delete formattedUser.clientProfile;
 

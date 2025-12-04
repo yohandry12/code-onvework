@@ -122,6 +122,16 @@ module.exports = (sequelize) => {
       },
       clientCompany: { type: DataTypes.STRING, field: "client_company" },
 
+      clientId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        field: "client_id",
+        references: {
+          model: "users",
+          key: "id",
+        },
+      },
+
       status: {
         type: DataTypes.ENUM(
           "pending",

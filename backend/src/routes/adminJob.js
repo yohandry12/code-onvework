@@ -1,5 +1,5 @@
 const express = require("express");
-const { Job, Activity } = require("../models");
+const { Job, Activity, User } = require("../models");
 const { authenticateToken, requireRole } = require("../middleware/auth");
 const { Op } = require("sequelize");
 const { logger } = require("../utils/logger");
@@ -11,23 +11,40 @@ module.exports = function (io) {
 
   // GET /api/admin/jobs - Lister tous les jobs avec filtres
   router.get("/", async (req, res) => {
-    const { status, isFrozen, page = 1, limit = 15 } = req.query;
-    const whereClause = {};
-    if (status) whereClause.status = status;
-    if (isFrozen) whereClause.isFrozen = isFrozen === "true";
+    try {
+      const { status, isFrozen, clientId, page = 1, limit = 15 } = req.query;
 
-    const { count, rows } = await Job.findAndCountAll({
-      where: whereClause,
-      limit: parseInt(limit),
-      offset: (page - 1) * limit,
-      order: [["createdAt", "DESC"]],
-    });
+      const whereClause = {};
 
-    res.json({
-      success: true,
-      jobs: rows,
-      pagination: { total: count, page, limit },
-    });
+      if (status) whereClause.status = status;
+      if (isFrozen) whereClause.isFrozen = isFrozen === "true";
+      if (clientId) {
+        whereClause.clientId = parseInt(clientId, 10);
+      }
+
+      const { count, rows } = await Job.findAndCountAll({
+        where: whereClause,
+        limit: parseInt(limit),
+        offset: (page - 1) * limit,
+        order: [["createdAt", "DESC"]],
+        include: [
+          {
+            model: User,
+            as: "client",
+            attributes: ["id", "email"],
+          },
+        ],
+      });
+
+      res.json({
+        success: true,
+        jobs: rows,
+        pagination: { total: count, page: Number(page), limit: Number(limit) },
+      });
+    } catch (error) {
+      console.error("Erreur admin/jobs:", error);
+      res.status(500).json({ success: false, message: "Erreur serveur" });
+    }
   });
 
   // PATCH /api/admin/jobs/:id/unfreeze - Dégeler un job

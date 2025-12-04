@@ -240,4 +240,31 @@ router.patch("/:id", authenticateToken, async (req, res) => {
   }
 });
 
+// DELETE /api/reports/:id - Supprimer un signalement (Admin)
+router.delete(
+  "/:id",
+  authenticateToken,
+  requireRole("admin"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const report = await Report.findByPk(id);
+
+      if (!report) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Signalement introuvable." });
+      }
+
+      await report.destroy();
+      logger.info(`Signalement ${id} supprimé par l'admin ${req.user.id}`);
+
+      res.json({ success: true, message: "Signalement supprimé avec succès." });
+    } catch (error) {
+      logger.error("Erreur suppression signalement:", error);
+      res.status(500).json({ success: false, error: "Erreur serveur." });
+    }
+  }
+);
+
 module.exports = router;

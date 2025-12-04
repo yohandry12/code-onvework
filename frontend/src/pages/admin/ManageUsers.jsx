@@ -3,6 +3,7 @@ import { apiService } from "../../services/api";
 import { useDebounce } from "use-debounce";
 import EditUserModal from "../../components/admin/EditUserModal";
 import AddUserSlideOver from "../../components/admin/AddUserSlideOver";
+import { useNavigate } from "react-router-dom";
 
 // --- Icônes pour l'UI ---
 import {
@@ -16,9 +17,11 @@ import {
   AdjustmentsVerticalIcon as ToggleRightIcon,
   TrashIcon,
   PencilIcon as EditIcon,
+  EyeIcon,
 } from "@heroicons/react/24/outline";
 
 const ManageUsers = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState(null);
@@ -115,6 +118,10 @@ const ManageUsers = () => {
   const handleCloseAddUser = () => {
     setIsAddUserOpen(false);
     fetchUsers(); // On recharge les utilisateurs après l'ajout
+  };
+
+  const handleViewDetails = (user) => {
+    navigate(`/admin/users/${user.id}`);
   };
 
   return (
@@ -238,6 +245,13 @@ const ManageUsers = () => {
                         title="Modifier l'utilisateur"
                       >
                         <EditIcon className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleViewDetails(user)} // <-- APPEL DE LA NOUVELLE FONCTION
+                        className="text-gray-400 hover:text-indigo-600"
+                        title="Voir la page détaillée"
+                      >
+                        <EyeIcon className="w-5 h-5" />
                       </button>
                       <button
                         onClick={() => handleDeleteUser(user)}

@@ -187,6 +187,10 @@ export const apiService = {
     withdraw: (id, reason = "") =>
       apiClient.post(`/applications/${id}/withdraw`, { reason }),
     markCompleted: (id) => apiClient.post(`/applications/${id}/mark-completed`),
+    adminGetAll: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return apiClient.get(`/applications/admin?${query}`);
+    },
   },
 
   // API des utilisateurs
@@ -261,6 +265,7 @@ export const apiService = {
       const payload = { status: status };
       return apiService.patch(`/reports/${id}`, payload);
     },
+    delete: (id) => apiService.delete(`/reports/${id}`),
   },
 
   recommendations: {
