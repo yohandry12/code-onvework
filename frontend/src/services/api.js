@@ -32,8 +32,8 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     // --- AJOUTEZ CECI POUR VOIR L'ERREUR SUR LE TÉLÉPHONE ---
-    const errorMessage = error.response?.data?.error || error.message;
-    const url = error.config?.url;
+    // const errorMessage = error.response?.data?.error || error.message;
+    // const url = error.config?.url;
     // alert(`ERREUR API : ${url}\nMessage : ${errorMessage}`);
     // -------------------------------------------------------
     // Gestion des erreurs communes
