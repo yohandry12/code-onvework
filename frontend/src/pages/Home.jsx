@@ -371,8 +371,7 @@ const Home = () => {
             Trouvez la mission idéale dans un cadre de confiance et de
             bienveillance.
           </p>
-
-          <form
+         {/* <form
             onSubmit={onSearch}
             className="flex flex-col sm:flex-row w-full max-w-md sm:max-w-xl mx-auto bg-white rounded-lg overflow-hidden border border-gray-200 shadow-md"
           >
@@ -388,7 +387,16 @@ const Home = () => {
             >
               Rechercher
             </button>
-          </form>
+          </form> */}
+          {/* Boutons pour la creation des differents comptes a savoir : Candidat et Client */}
+          <div className="max-w-xl mx-auto flex items-center justify-around my-4">
+            <Link to="/register" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+              Je suis candidat
+            </Link>
+            <Link to="/register" className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+              Je suis client
+            </Link>
+          </div>
         </div>
       </section>
 
