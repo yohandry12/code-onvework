@@ -28,7 +28,6 @@ const JobCard = ({ job }) => {
   const isRepublished = !!job.clonedFromId;
   const isFrozen = job.isFrozen;
   const isInProgress = job.status === "in_progress";
-
   const isFeatured = job.featured;
   const isUrgent = job.isUrgent;
 
@@ -309,6 +308,8 @@ const Home = () => {
   const [topFreelancers, setTopFreelancers] = useState([]);
   const [query, setQuery] = useState("");
   const [loadingFreelancers, setLoadingFreelancers] = useState(true);
+  // use state pour l'authentification
+  const { user, isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     let mounted = true;
@@ -371,32 +372,38 @@ const Home = () => {
             Trouvez la mission idéale dans un cadre de confiance et de
             bienveillance.
           </p>
-         {/* <form
-            onSubmit={onSearch}
-            className="flex flex-col sm:flex-row w-full max-w-md sm:max-w-xl mx-auto bg-white rounded-lg overflow-hidden border border-gray-200 shadow-md"
-          >
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ex : Comptabilité, Design, React..."
-              className="flex-1 px-4 py-3 bg-transparent text-gray-700 placeholder-gray-400 focus:outline-none text-center sm:text-left"
-            />
-            <button
-              type="submit"
-              className="px-6 py-3 bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors"
-            >
-              Rechercher
-            </button>
-          </form> */}
+
           {/* Boutons pour la creation des differents comptes a savoir : Candidat et Client */}
-          <div className="max-w-xl mx-auto flex items-center justify-around my-4">
-            <Link to="/register" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-              Je suis candidat
-            </Link>
-            <Link to="/register" className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
-              Je suis client
-            </Link>
-          </div>
+
+
+              {isAuthenticated && user ? (
+                <form
+                  onSubmit={onSearch}
+                  className="flex flex-col sm:flex-row w-full max-w-md sm:max-w-xl mx-auto bg-white rounded-lg overflow-hidden border border-gray-200 shadow-md"
+                >
+                      <input
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Ex : Comptabilité, Design, React..."
+                        className="flex-1 px-4 py-3 bg-transparent text-gray-700 placeholder-gray-400 focus:outline-none text-center sm:text-left"
+                      />
+                      <button
+                        type="submit"
+                        className="px-6 py-3 bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors"
+                      >
+                        Rechercher
+                      </button>
+                </form>
+              ) : (
+              <div className="max-w-xl mx-auto flex items-center justify-around my-4">
+                  <Link to="/register" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-lg border-4 border-white">
+                    Je suis candidat
+                  </Link>
+                  <Link to="/register" className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-lg border-4 border-white">
+                    Je suis client
+                  </Link>
+              </div>
+              )}
         </div>
       </section>
 
