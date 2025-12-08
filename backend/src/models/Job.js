@@ -65,15 +65,22 @@ module.exports = (sequelize) => {
       },
 
       // --- "Aplatissement" des objets imbriqués ---
-      budgetMin: {
+      // budgetMin: {
+      //   type: DataTypes.DECIMAL(10, 2),
+      //   field: "budget_min",
+      //   allowNull: false,
+      // },
+      // budgetMax: {
+      //   type: DataTypes.DECIMAL(10, 2),
+      //   field: "budget_max",
+      //   allowNull: false,
+      // },
+      budget: {
         type: DataTypes.DECIMAL(10, 2),
-        field: "budget_min",
         allowNull: false,
-      },
-      budgetMax: {
-        type: DataTypes.DECIMAL(10, 2),
-        field: "budget_max",
-        allowNull: false,
+        validate: {
+          min: 0,
+        },
       },
       budgetCurrency: {
         type: DataTypes.STRING(4),

@@ -44,6 +44,7 @@ router.post("/register", async (req, res) => {
       email,
       password,
       role = "candidate",
+      candidateType,
       firstName,
       lastName,
       company,
@@ -86,6 +87,7 @@ router.post("/register", async (req, res) => {
           userId: user.id,
           firstName,
           lastName,
+          candidateType: candidateType || "freelance",
         },
         { transaction: t }
       );

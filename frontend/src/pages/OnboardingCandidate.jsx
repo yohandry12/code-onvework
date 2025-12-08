@@ -10,6 +10,7 @@ const OnboardingCandidate = () => {
 
   const [profileData, setProfileData] = useState({
     profession: "",
+    candidateType: "freelance", // --- AJOUT : Valeur par défaut ---
     phone: "",
     location: { city: "", country: "Cameroun" },
     bio: "",
@@ -22,13 +23,12 @@ const OnboardingCandidate = () => {
   const [error, setError] = useState("");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  // --- LOGIQUE AUTOCOMPLÉTION VILLE (Ajout) ---
+  // --- LOGIQUE AUTOCOMPLÉTION VILLE ---
   const [allCities, setAllCities] = useState([]);
   const [citySuggestions, setCitySuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const wrapperRef = useRef(null);
 
-  // 1. Charger les villes au montage
   useEffect(() => {
     const fetchCities = async () => {
       try {
@@ -42,17 +42,13 @@ const OnboardingCandidate = () => {
     fetchCities();
   }, []);
 
-  // 2. Gestionnaire spécifique pour l'input ville
   const handleCityInputChange = (e) => {
     const userInput = e.target.value;
-
-    // Mise à jour du state principal (structure imbriquée)
     setProfileData((prev) => ({
       ...prev,
       location: { ...prev.location, city: userInput },
     }));
 
-    // Filtrage des suggestions
     if (userInput.length > 0) {
       const filtered = allCities.filter((city) =>
         city.toLowerCase().includes(userInput.toLowerCase())
@@ -64,7 +60,6 @@ const OnboardingCandidate = () => {
     }
   };
 
-  // 3. Sélection d'une ville dans la liste
   const selectCity = (cityName) => {
     setProfileData((prev) => ({
       ...prev,
@@ -73,7 +68,6 @@ const OnboardingCandidate = () => {
     setShowSuggestions(false);
   };
 
-  // 4. Fermer si clic en dehors
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -169,6 +163,7 @@ const OnboardingCandidate = () => {
       const payload = {
         profile: {
           ...profileData,
+          // Le champ candidateType est déjà dans profileData, il sera inclus automatiquement
           location: {
             city: profileData.location.city,
             country: "Cameroun",
@@ -267,22 +262,46 @@ const OnboardingCandidate = () => {
         {error && <p className="text-red-500 text-center text-sm">{error}</p>}
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="profession"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Votre Profession
-            </label>
-            <input
-              type="text"
-              name="profession"
-              id="profession"
-              value={profileData.profession}
-              onChange={handleChange}
-              className="input input-bordered w-full mt-1"
-              placeholder="Ex: Développeur Full-Stack"
-            />
+          {/* --- NOUVELLE GRILLE : PROFESSION & STATUT --- */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label
+                htmlFor="profession"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Profession
+              </label>
+              <input
+                type="text"
+                name="profession"
+                id="profession"
+                value={profileData.profession}
+                onChange={handleChange}
+                className="input input-bordered w-full mt-1"
+                placeholder="Ex: Dév. Web"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label
+                htmlFor="candidateType"
+                className="block text-sm font-medium text-gray-900"
+              >
+                Statut actuel
+              </label>
+
+              <select
+                name="candidateType"
+                id="candidateType"
+                value={profileData.candidateType}
+                onChange={handleChange}
+                className="mt-1 block w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-gray-900 shadow-sm focus:outline-none focus:border-blue-600 focus:ring-blue-600 transition"
+              >
+                <option value="freelance">Freelance / Indépendant</option>
+                <option value="student">Étudiant(e)</option>
+                <option value="unemployed">Sans emploi / En recherche</option>
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -292,7 +311,6 @@ const OnboardingCandidate = () => {
                 Ville
               </label>
 
-              {/* Ajout de mt-1 ici pour s'aligner avec le champ Pays voisin */}
               <div className="relative mt-1">
                 <input
                   type="text"
@@ -303,16 +321,14 @@ const OnboardingCandidate = () => {
                     profileData.location.city && setShowSuggestions(true)
                   }
                   className="input input-bordered w-full pl-10"
-                  placeholder="Ex: Douala, Yaoundé..."
+                  placeholder="Ex: Douala..."
                   autoComplete="off"
                 />
-                {/* Centrage parfait : absolute + inset-y-0 + flex + items-center */}
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
                   <MapPinIcon className="h-5 w-5 text-gray-400" />
                 </div>
               </div>
 
-              {/* Liste déroulante des suggestions */}
               {showSuggestions && citySuggestions.length > 0 && (
                 <ul className="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto">
                   {citySuggestions.map((cityName, index) => (

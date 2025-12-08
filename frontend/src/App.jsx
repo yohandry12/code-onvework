@@ -44,6 +44,7 @@ import ApiDocumentation from "./pages/ApiDocumentation";
 import AdminCreateJob from "./pages/admin/AdminCreateJob";
 import TalentProfilePage from "./pages/TalentProfilePage";
 import UserDetailPage from "./pages/admin/UserDetailPage";
+import FinanceSettings from "./pages/admin/FinanceSettings";
 // --- LAYOUTS ET COMPOSANTS ---
 import Header from "./components/Layout/Header";
 import Footer from "./components/Layout/Footer";
@@ -175,6 +176,7 @@ function AppRoutes() {
             {/* <Route path="/admin/users/:id" element={<AdminUserDetails />} /> */}
             <Route path="/admin/jobs/create" element={<AdminCreateJob />} />
             <Route path="/admin/users/:id" element={<UserDetailPage />} />
+            <Route path="finance" element={<FinanceSettings />} />
           </Route>
         </Route>
 

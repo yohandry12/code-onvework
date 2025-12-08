@@ -288,6 +288,9 @@ export const apiService = {
   settings: {
     get: () => apiService.get("/settings"),
     update: (settingsData) => apiService.put("/settings", settingsData),
+
+    getFinanceRates: () => apiService.get("/settings/finance"),
+    updateFinanceRates: (rates) => apiService.put("/settings/finance", rates),
   },
 
   cities: {

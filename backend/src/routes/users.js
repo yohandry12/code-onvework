@@ -20,7 +20,13 @@ module.exports = function (io) {
   // --- GET /api/users/search - Recherche d'utilisateurs (traduit pour Sequelize) ---
   router.get("/search", async (req, res) => {
     try {
-      const { query = "", role, page = 1, limit = 12 } = req.query;
+      const {
+        query = "",
+        role,
+        candidateType,
+        page = 1,
+        limit = 12,
+      } = req.query;
 
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);
@@ -44,6 +50,10 @@ module.exports = function (io) {
         const qLower = `%${String(query).toLowerCase()}%`;
 
         if (!role || role === "candidate") {
+          const candidateWhere = {};
+          if (candidateType) {
+            candidateWhere.candidateType = candidateType;
+          }
           includeOptions.push({
             model: CandidateProfile,
             as: "candidateProfile",

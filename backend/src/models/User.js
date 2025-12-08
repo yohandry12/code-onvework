@@ -124,6 +124,12 @@ module.exports = (sequelize) => {
         allowNull: false,
         field: "last_name",
       },
+      candidateType: {
+        type: DataTypes.ENUM("freelance", "student", "unemployed"),
+        defaultValue: "freelance", // Valeur par défaut pour ne pas casser les anciens comptes
+        allowNull: false,
+        field: "candidate_type",
+      },
       profession: { type: DataTypes.STRING },
       avatar: { type: DataTypes.STRING },
       phone: DataTypes.STRING,

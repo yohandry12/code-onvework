@@ -68,8 +68,7 @@ const CreateJob = () => {
     description: "",
     category: "development",
     type: "freelance",
-    budgetMin: "",
-    budgetMax: "",
+    budget: "",
     budgetCurrency: "EUR",
     locationType: "distanciel/télétravail",
     locationCity: "",
@@ -177,8 +176,7 @@ const CreateJob = () => {
               description: clonedJob.description || "",
               category: clonedJob.category || "development",
               type: clonedJob.type || "freelance",
-              budgetMin: clonedJob.budget?.min || "",
-              budgetMax: clonedJob.budget?.max || "",
+              budget: clonedJob.budget?.amount || "",
               budgetCurrency: clonedJob.budget?.currency || "EUR",
               locationType:
                 clonedJob.location?.type || "distanciel/télétravail",
@@ -267,8 +265,7 @@ const CreateJob = () => {
       type: form.type,
 
       budget: {
-        min: Number(form.budgetMin) || 0,
-        max: Number(form.budgetMax) || 0,
+        amount: Number(form.budget) || 0,
         currency: form.budgetCurrency,
       },
       location: {
@@ -518,53 +515,34 @@ const CreateJob = () => {
 
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <DollarSign className="hidden md:inline h-5 w-5 mr-2 text-blue-500" />
-                Fourchette budgétaire
+                <DollarSign className="h-5 w-5 mr-2 text-blue-500" /> Budget
               </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Budget minimum *
+                    Montant total *
                   </label>
                   <input
-                    name="budgetMin"
+                    name="budget" // Nom unique
                     type="number"
                     min="1"
-                    value={form.budgetMin}
+                    placeholder="Ex: 1500"
+                    value={form.budget}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="500"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Budget maximum *
-                  </label>
-                  <input
-                    name="budgetMax"
-                    type="number"
-                    min="1"
-                    value={form.budgetMax}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    placeholder="2000"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Devise *
+                    Devise
                   </label>
                   <select
                     name="budgetCurrency"
                     value={form.budgetCurrency}
                     onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 appearance-none bg-white"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-white"
                   >
                     {currencies.map((c) => (
                       <option key={c} value={c}>
@@ -1464,7 +1442,7 @@ const CreateJob = () => {
                   <div className="flex items-center">
                     <DollarSign className="w-4 h-4 mr-2 text-gray-400" />
                     <span className="font-semibold text-green-700">
-                      {form.budgetMin} - {form.budgetMax} {form.budgetCurrency}
+                      {form.budget} {form.budgetCurrency}
                     </span>
                   </div>
                 </div>

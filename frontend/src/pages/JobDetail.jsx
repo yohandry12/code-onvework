@@ -215,6 +215,8 @@ const JobDetail = () => {
     tags,
     durationValue,
     durationUnit,
+    budget,
+    budgetCurrency,
   } = job;
 
   return (
@@ -386,9 +388,9 @@ const JobDetail = () => {
                     Budget Client
                   </p>
                   <p className="text-2xl font-bold text-indigo-600">
-                    {job.budgetMin} - {job.budgetMax}{" "}
+                    {parseFloat(budget).toLocaleString("fr-FR")}{" "}
                     <span className="text-sm text-gray-500 font-normal">
-                      {job.budgetCurrency}
+                      {budgetCurrency}
                     </span>
                   </p>
                 </div>
@@ -424,8 +426,7 @@ const JobDetail = () => {
         <ApplicationForm
           jobId={id}
           budget={{
-            min: job.budgetMin,
-            max: job.budgetMax,
+            amount: job.budget,
             currency: job.budgetCurrency,
           }}
           onClose={handleApplyClose}

@@ -1,8 +1,8 @@
 const express = require("express");
 const { User, UserSettings } = require("../models");
-const { authenticateToken } = require("../middleware/auth");
+const { authenticateToken, requireRole } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
-const { PlatformSetting } = require("../models");
+const { PlatformSetting, sequelize } = require("../models");
 const { getDistributionRates } = require("../utils/finance");
 
 const router = express.Router();
@@ -68,14 +68,63 @@ router.put("/", async (req, res) => {
   }
 });
 
-// GET /api/settings/finance - Récupérer les taux publics
+// GET /api/settings/finance - Récupérer les taux (Public ou Auth selon besoin)
 router.get("/finance", async (req, res) => {
   try {
-    // getDistributionRates renvoie déjà les décimales (0.7, 0.2...)
+    // On utilise l'utilitaire qui renvoie des décimales (ex: 0.7)
     const rates = await getDistributionRates();
     res.json({ success: true, rates });
   } catch (error) {
     res.status(500).json({ success: false, error: "Erreur serveur" });
   }
 });
+
+// --- AJOUT : PUT /api/settings/finance (Admin seulement) ---
+router.put(
+  "/finance",
+  authenticateToken,
+  requireRole("admin"),
+  async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+      const { candidate, training, platform } = req.body;
+
+      // 1. Validation : Le total doit faire 100
+      const total = Number(candidate) + Number(training) + Number(platform);
+      if (total !== 100) {
+        await t.rollback();
+        return res.status(400).json({
+          success: false,
+          error: `Le total des pourcentages doit être égal à 100%. Actuellement : ${total}%`,
+        });
+      }
+
+      // 2. Mise à jour en base de données
+      // On met à jour chaque clé individuellement
+      await PlatformSetting.update(
+        { value: candidate },
+        { where: { key: "rate_candidate" }, transaction: t }
+      );
+      await PlatformSetting.update(
+        { value: training },
+        { where: { key: "rate_training" }, transaction: t }
+      );
+      await PlatformSetting.update(
+        { value: platform },
+        { where: { key: "rate_platform" }, transaction: t }
+      );
+
+      await t.commit();
+
+      res.json({ success: true, message: "Taux mis à jour avec succès." });
+    } catch (error) {
+      await t.rollback();
+      console.error("Erreur update finance:", error);
+      res.status(500).json({
+        success: false,
+        error: "Erreur serveur lors de la mise à jour.",
+      });
+    }
+  }
+);
 module.exports = router;

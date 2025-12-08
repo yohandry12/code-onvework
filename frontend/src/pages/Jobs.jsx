@@ -27,13 +27,11 @@ const JobCard = ({ job, onApply, userApplication }) => {
   const hasApplied = !!userApplication;
   const appStatus = userApplication?.status;
 
-  const formatBudget = (min, max, currency) => {
-    if (!min && !max) return "N/A";
-    const minNum = parseFloat(min);
-    const maxNum = parseFloat(max);
-    return `${minNum.toLocaleString("fr-FR")} - ${maxNum.toLocaleString(
-      "fr-FR"
-    )} ${currency || ""}`;
+  const formatBudget = (amount, currency) => {
+    if (!amount) return "N/A";
+    // amount est maintenant une valeur unique
+    const numAmount = parseFloat(amount);
+    return `${numAmount.toLocaleString("fr-FR")} ${currency || "EUR"}`;
   };
 
   let containerStyle =
@@ -209,7 +207,7 @@ const JobCard = ({ job, onApply, userApplication }) => {
                 : "text-blue-600"
             }`}
           >
-            {formatBudget(job.budgetMin, job.budgetMax, job.budgetCurrency)}
+            {formatBudget(job.budget, job.budgetCurrency)}
           </p>
           <p className="text-sm text-gray-500">
             {job.applicationCount || 0} Candidature(s)
@@ -675,8 +673,7 @@ const Jobs = () => {
         <ApplicationForm
           jobId={activeJobToApply.id}
           budget={{
-            min: activeJobToApply.budgetMin,
-            max: activeJobToApply.budgetMax,
+            amount: activeJobToApply.budget, // Champ unique
             currency: activeJobToApply.budgetCurrency,
           }}
           client={activeJobToApply.client}

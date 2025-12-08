@@ -718,6 +718,31 @@ const ProfilePage = () => {
                       {user.profile.profession || "Profession non renseignée"}
                     </p>
                   )}
+                  <div className="mb-4">
+                    {isEditing ? (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Statut
+                        </label>
+                        <select
+                          name="candidateType"
+                          value={formData.profile.candidateType}
+                          onChange={handleProfileChange}
+                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                        >
+                          <option value="freelance">Freelance</option>
+                          <option value="student">Étudiant</option>
+                          <option value="unemployed">Sans emploi</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                        {formData.profile.candidateType === "unemployed"
+                          ? "Sans emploi"
+                          : formData.profile.candidateType}
+                      </span>
+                    )}
+                  </div>
                   {isEditing ? (
                     <div className="mt-2">
                       <InputRow

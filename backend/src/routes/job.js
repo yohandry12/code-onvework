@@ -28,6 +28,7 @@ module.exports = function (io) {
         experience,
         page = 1,
         limit = 10,
+        budget,
         minBudget,
         maxBudget,
         city,
@@ -75,10 +76,12 @@ module.exports = function (io) {
 
       /* 3. Budget */
       if (minBudget || maxBudget) {
-        whereClause.budgetMin = { [Op.gte]: parseInt(minBudget || 0, 10) };
-        whereClause.budgetMax = {
-          [Op.lte]: parseInt(maxBudget || 9999999, 10),
-        };
+        // On cherche si le budget fixe est dans la fourchette demandée par le candidat
+        const budgetFilter = {};
+        if (minBudget) budgetFilter[Op.gte] = parseInt(minBudget);
+        if (maxBudget) budgetFilter[Op.lte] = parseInt(maxBudget);
+
+        whereClause.budget = budgetFilter;
       }
 
       /* 4. Recherche texte (on ajoute UNIQUEMENT un Op.and si besoin) */
@@ -179,7 +182,7 @@ module.exports = function (io) {
         const currentUser = req.user; // L'utilisateur connecté (Client ou Admin)
 
         // 1. Validation des champs obligatoires
-        if (!title || !description || !budget?.min || !budget?.max) {
+        if (!title || !description || !budget?.amount || !budget?.currency) {
           return res
             .status(400)
             .json({ success: false, error: "Champs obligatoires manquants." });
@@ -243,8 +246,7 @@ module.exports = function (io) {
         const newJob = await Job.create({
           title,
           description,
-          budgetMin: budget.min,
-          budgetMax: budget.max,
+          budget: budget.amount,
           budgetCurrency: budget.currency,
 
           // Localisation
@@ -659,8 +661,7 @@ module.exports = function (io) {
             "description",
             "category",
             "type",
-            "budgetMin",
-            "budgetMax",
+            "budget",
             "budgetCurrency",
             "locationType",
             "locationCity",
@@ -699,11 +700,7 @@ module.exports = function (io) {
           category: originalJob.category,
           type: originalJob.type,
           // Sequelize retourne des strings pour les décimaux, on les convertit si besoin
-          budget: {
-            min: parseFloat(originalJob.budgetMin) || "",
-            max: parseFloat(originalJob.budgetMax) || "",
-            currency: originalJob.budgetCurrency,
-          },
+          budget: parseFloat(originalJob.budget),
           location: {
             type: originalJob.locationType,
             city: originalJob.locationCity,
@@ -821,12 +818,10 @@ module.exports = function (io) {
         // --- AJOUTER CETTE VÉRIFICATION DE SÉCURITÉ ---
         if (attachments.length === 0) {
           await t.rollback();
-          return res
-            .status(400)
-            .json({
-              success: false,
-              error: "Vous devez joindre un CV ou un fichier.",
-            });
+          return res.status(400).json({
+            success: false,
+            error: "Vous devez joindre un CV ou un fichier.",
+          });
         }
 
         await Application.create(
@@ -923,8 +918,7 @@ module.exports = function (io) {
             "createdAt",
             "updatedAt",
             "applicationCount",
-            "budgetMin",
-            "budgetMax",
+            "budget",
             "budgetCurrency",
             "durationValue",
             "durationUnit",

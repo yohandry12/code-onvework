@@ -13,6 +13,7 @@ import {
   ChartBarIcon,
   BellIcon,
   SparklesIcon,
+  BanknotesIcon,
 } from "@heroicons/react/24/outline";
 
 const AdminDashboard = () => {
@@ -144,7 +145,7 @@ const AdminDashboard = () => {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Administration
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <Link
               to="/admin/users"
               className="flex items-center p-4 border-2 border-dashed rounded-lg hover:border-blue-400 hover:bg-blue-50"
@@ -180,6 +181,14 @@ const AdminDashboard = () => {
             >
               <BriefcaseIcon className="h-6 w-6 text-red-500 mr-3" />
               <span>Gérer les offres d'emploi</span>
+            </Link>
+
+            <Link
+              to="/admin/finance"
+              className="flex items-center p-4 border-2 border-dashed rounded-lg hover:border-green-400 hover:bg-green-50"
+            >
+              <BanknotesIcon className="h-6 w-6 text-green-600 mr-3" />
+              <span>Taux Financiers</span>
             </Link>
           </div>
         </div>

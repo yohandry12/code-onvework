@@ -72,9 +72,7 @@ module.exports = function (io) {
         // Ici, on prend la moyenne du budget Min/Max du Job
         // (Ou vous pouvez prendre budgetMax si c'est la règle)
         const rates = await getDistributionRates();
-        const budgetMin = parseFloat(job.budgetMin) || 0;
-        const budgetMax = parseFloat(job.budgetMax) || 0;
-        const baseAmount = (budgetMin + budgetMax) / 2;
+        const baseAmount = parseFloat(job.budget) || 0;
 
         // 2. Utiliser les taux dynamiques
         const shareCandidate = baseAmount * rates.candidate;
@@ -544,9 +542,7 @@ module.exports = function (io) {
             // 1. Récupérer les taux depuis la BDD
             const rates = await getDistributionRates();
 
-            const budgetMin = parseFloat(job.budgetMin) || 0;
-            const budgetMax = parseFloat(job.budgetMax) || 0;
-            const baseAmount = (budgetMin + budgetMax) / 2;
+            const baseAmount = parseFloat(job.budget) || 0;
 
             // 2. Appliquer les taux
             application.amountTotal = baseAmount;

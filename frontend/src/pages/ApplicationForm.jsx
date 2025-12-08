@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { apiService } from "../services/api";
 import {
   XMarkIcon,
@@ -18,22 +18,49 @@ const ApplicationForm = ({ jobId, budget, onClose, onSubmitted }) => {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // --- CALCUL DE LA RÉPARTITION (70/20/10) ---
+  // --- ÉTAT POUR LES TAUX ---
+  const [rates, setRates] = useState({
+    candidate: 0.7,
+    training: 0.2,
+    platform: 0.1,
+  }); // Valeurs par défaut
+
+  // --- CHARGER LES TAUX AU MONTAGE ---
+  useEffect(() => {
+    const fetchRates = async () => {
+      try {
+        const response = await apiService.settings.getFinanceRates();
+        if (response.success && response.rates) {
+          setRates(response.rates);
+        }
+      } catch (err) {
+        console.warn(
+          "Impossible de charger les taux, utilisation des défauts."
+        );
+      }
+    };
+    fetchRates();
+  }, []);
+
+  // --- CALCUL DE LA RÉPARTITION DYNAMIQUE ---
   const calculations = useMemo(() => {
-    if (!budget || !budget.min || !budget.max) return null;
+    if (!budget || !budget.amount) return null;
 
     // On se base sur la moyenne du budget pour l'estimation
-    // Note: Vous pouvez changer ça pour prendre le budget.min si vous préférez être prudent
-    const amount = (parseFloat(budget.min) + parseFloat(budget.max)) / 2;
+    const amount = parseFloat(budget.amount) / 2;
 
     return {
       total: amount,
-      candidate: amount * 0.7, // 70%
-      training: amount * 0.2, // 20%
-      platform: amount * 0.1, // 10%
+      candidate: Math.round(amount * rates.candidate),
+      training: Math.round(amount * rates.training),
+      platform: Math.round(amount * rates.platform),
       currency: budget.currency || "EUR",
+      // Pour l'affichage des badges en %
+      percentCandidate: Math.round(rates.candidate * 100),
+      percentTraining: Math.round(rates.training * 100),
+      percentPlatform: Math.round(rates.platform * 100),
     };
-  }, [budget]);
+  }, [budget, rates]);
 
   // --- GESTION DES FICHIERS ---
   const handleFileChange = (e) => {
@@ -116,7 +143,7 @@ const ApplicationForm = ({ jobId, budget, onClose, onSubmitted }) => {
         </div>
 
         <div className="overflow-y-auto p-6 space-y-6">
-          {/* --- NOUVEAU BLOC : SIMULATION FINANCIÈRE --- */}
+          {/* --- NOUVEAU BLOC : SIMULATION FINANCIÈRE DYNAMIQUE --- */}
           {calculations && (
             <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-5 border border-indigo-100">
               <h3 className="text-md font-bold text-indigo-900 flex items-center gap-2 mb-4">
@@ -125,10 +152,10 @@ const ApplicationForm = ({ jobId, budget, onClose, onSubmitted }) => {
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {/* 70% CANDIDAT */}
+                {/* PART CANDIDAT */}
                 <div className="bg-white p-4 rounded-lg shadow-sm border border-green-100 text-center relative overflow-hidden">
                   <div className="absolute top-0 right-0 bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
-                    70%
+                    {calculations.percentCandidate}%
                   </div>
                   <BanknotesIcon className="w-8 h-8 text-green-500 mx-auto mb-2" />
                   <p className="text-xs text-gray-500 font-medium uppercase">
@@ -140,10 +167,10 @@ const ApplicationForm = ({ jobId, budget, onClose, onSubmitted }) => {
                   </p>
                 </div>
 
-                {/* 20% FORMATION */}
+                {/* PART FORMATION */}
                 <div className="bg-white p-4 rounded-lg shadow-sm border border-blue-100 text-center relative overflow-hidden">
                   <div className="absolute top-0 right-0 bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
-                    20%
+                    {calculations.percentTraining}%
                   </div>
                   <AcademicCapIcon className="w-8 h-8 text-blue-500 mx-auto mb-2" />
                   <p className="text-xs text-gray-500 font-medium uppercase">
@@ -155,10 +182,10 @@ const ApplicationForm = ({ jobId, budget, onClose, onSubmitted }) => {
                   </p>
                 </div>
 
-                {/* 10% EMPLOYEUR */}
+                {/* PART PLATEFORME */}
                 <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 text-center relative overflow-hidden opacity-75">
                   <div className="absolute top-0 right-0 bg-gray-200 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
-                    10%
+                    {calculations.percentPlatform}%
                   </div>
                   <BuildingLibraryIcon className="w-8 h-8 text-gray-500 mx-auto mb-2" />
                   <p className="text-xs text-gray-500 font-medium uppercase">
@@ -171,8 +198,8 @@ const ApplicationForm = ({ jobId, budget, onClose, onSubmitted }) => {
                 </div>
               </div>
               <p className="text-xs text-indigo-400 mt-3 text-center italic">
-                * Calcul basé sur la moyenne du budget annoncé ({budget.min} -{" "}
-                {budget.max} {budget.currency}).
+                * Calcul basé sur la moyenne du budget annoncé ({budget.amount}{" "}
+                {budget.currency}) avec les taux en vigueur.
               </p>
             </div>
           )}
@@ -232,7 +259,13 @@ const ApplicationForm = ({ jobId, budget, onClose, onSubmitted }) => {
                 name="attachments"
                 multiple
                 onChange={handleFileChange}
-                className="block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white file:text-blue-700 file:ring-1 file:ring-blue-200 hover:file:bg-blue-50 cursor-pointer"
+                className="block w-full text-sm text-slate-500
+                  file:mr-4 file:py-2.5 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-white file:text-blue-700
+                  file:ring-1 file:ring-blue-200
+                  hover:file:bg-blue-50 cursor-pointer"
               />
               {attachments.length > 0 && (
                 <div className="mt-4 bg-white p-3 rounded-lg border border-blue-100 shadow-sm">
@@ -244,6 +277,9 @@ const ApplicationForm = ({ jobId, budget, onClose, onSubmitted }) => {
                       >
                         <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
                         <span className="truncate max-w-xs">{file.name}</span>
+                        <span className="text-gray-400 text-xs">
+                          ({(file.size / 1024).toFixed(1)} Ko)
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -261,6 +297,9 @@ const ApplicationForm = ({ jobId, budget, onClose, onSubmitted }) => {
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               ></div>
+              <p className="text-xs text-center text-gray-500 mt-1">
+                Envoi en cours... {uploadProgress}%
+              </p>
             </div>
           )}
           <div className="flex justify-end gap-3">
