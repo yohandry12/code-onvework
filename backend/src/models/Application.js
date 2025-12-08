@@ -58,7 +58,17 @@ module.exports = (sequelize) => {
       },
       attachments: {
         type: DataTypes.JSON,
+        allowNull: true,
         defaultValue: [],
+        // validate: {
+        //   notEmptyArray(value) {
+        //     if (!Array.isArray(value) || value.length === 0) {
+        //       throw new Error(
+        //         "Le champ attachments est obligatoire et doit contenir au moins un élément."
+        //       );
+        //     }
+        //   },
+        // },
       },
       status: {
         type: DataTypes.ENUM(
@@ -76,6 +86,36 @@ module.exports = (sequelize) => {
         defaultValue: "pending",
         allowNull: false,
       },
+      // --- NOUVEAUX CHAMPS FINANCIERS ---
+      amountTotal: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        field: "amount_total",
+        comment: "Montant total de la mission (Budget)",
+      },
+      amountCandidate: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        field: "amount_candidate",
+        comment: "70% : Gain net du candidat",
+      },
+      amountTraining: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        field: "amount_training",
+        comment: "20% : Fonds de formation",
+      },
+      amountPlatform: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true,
+        field: "amount_platform",
+        comment: "10% : Commission plateforme/employeur",
+      },
+      currency: {
+        type: DataTypes.STRING(3),
+        defaultValue: "EUR",
+      },
+
       clientNotes: {
         type: DataTypes.TEXT,
         field: "client_notes",

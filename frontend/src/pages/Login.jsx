@@ -3,6 +3,8 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiService } from "../services/api";
+// On peut importer une icône si vous utilisez Heroicons, sinon j'utilise un SVG direct
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -63,22 +65,17 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Erreur Login:", err);
-      
-      // Variable qui recupere le message correspondant au identifiants incorrects
+
       let message = "";
 
-      // Ici c'est le cas ou l'email et le mot de passe sont incorrects
       if (err.response?.status === 401) {
         message = "Email ou mot de passe incorrect.";
-      } 
-      // Sinon, on prend le message envoyé par le serveur ou un message générique
-      else {
+      } else {
         message =
           err.response?.data?.error ||
           err.message ||
           "Une erreur est survenue lors de la connexion.";
       }
-      // --- FIN DE LA MODIFICATION ---
 
       showTemporaryError(message);
     } finally {
@@ -94,12 +91,37 @@ const Login = () => {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md bg-white/80 backdrop-blur-sm shadow-2xl rounded-3xl border border-white/20 overflow-hidden"
       >
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-8 text-center">
+        {/* --- MODIFICATION ICI : Ajout de 'relative' pour positionner le bouton retour --- */}
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-8 text-center relative">
+          {/* --- BOUTON RETOUR --- */}
+          <Link
+            to="/"
+            className="absolute top-4 left-4 text-white/70 hover:text-white flex items-center gap-1 text-sm font-medium transition-colors duration-200"
+          >
+            {/* Icône flèche gauche (SVG inline pour éviter les dépendances manquantes) */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-4 h-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+              />
+            </svg>
+            Accueil
+          </Link>
+          {/* --------------------- */}
+
           <motion.h2
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-2xl font-bold text-white"
+            className="text-2xl font-bold text-white mt-2" // Ajout de mt-2 pour compenser l'espace du bouton si besoin
           >
             Bienvenue !
           </motion.h2>
@@ -116,7 +138,6 @@ const Login = () => {
 
         <div className="px-8 py-10">
           <form onSubmit={handleSubmit} noValidate className="space-y-6">
-            
             <AnimatePresence mode="wait">
               {apiError && (
                 <motion.div
@@ -128,7 +149,7 @@ const Login = () => {
                 >
                   <p className="text-red-600 text-sm font-medium">{apiError}</p>
                 </motion.div>
-             )}
+              )}
             </AnimatePresence>
 
             <div className="space-y-1">

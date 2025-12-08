@@ -31,6 +31,7 @@ module.exports = function (io) {
         minBudget,
         maxBudget,
         city,
+        status,
       } = req.query;
       const pageNum = parseInt(page, 10);
       const limitNum = parseInt(limit, 10);
@@ -39,14 +40,26 @@ module.exports = function (io) {
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-      // ✅ DÉCLARER whereClause EN PREMIER
-      const whereClause = {
-        status: { [Op.notIn]: ["archived"] },
-        [Op.or]: [
-          { status: "published" },
-          { status: "filled", updatedAt: { [Op.gte]: oneMonthAgo } },
-        ],
-      };
+      // --- CORRECTION DU FILTRAGE PAR STATUT ---
+      const whereClause = {};
+
+      // 1. Statut (Logique améliorée)
+      if (status) {
+        // Si un statut spécifique est demandé, on l'utilise
+        whereClause.status = status;
+      } else {
+        // Sinon, comportement par défaut : Publié OU (Terminé ET récent)
+        whereClause[Op.and] = [
+          { status: { [Op.notIn]: ["archived", "in_progress"] } }, // Toujours exclure archivés
+          {
+            [Op.or]: [
+              { status: "published" },
+              // { status: "in_progress" }, // On peut vouloir voir les missions en cours par défaut aussi
+              { status: "filled", updatedAt: { [Op.gte]: oneMonthAgo } },
+            ],
+          },
+        ];
+      }
 
       // ✅ ENSUITE on peut l'utiliser
       /* 1. Filtre par ville */
@@ -805,6 +818,17 @@ module.exports = function (io) {
           size: file.size,
         }));
 
+        // --- AJOUTER CETTE VÉRIFICATION DE SÉCURITÉ ---
+        if (attachments.length === 0) {
+          await t.rollback();
+          return res
+            .status(400)
+            .json({
+              success: false,
+              error: "Vous devez joindre un CV ou un fichier.",
+            });
+        }
+
         await Application.create(
           {
             jobId,
@@ -1179,13 +1203,15 @@ module.exports = function (io) {
           { where: { userId: employeeId }, transaction: t }
         );
 
+        const employerDisplayName = job.clientCompany || "Un client";
+
         // La notification reste la même
         io.to(`user-${employeeId}`).emit("recommendation-received", {
           newBadge,
-          employerName: job.clientName, // Pour compatibilité
+          employerName: job.employerDisplayName, // Pour compatibilité
           // Ajout des champs séparés pour éviter "undefined undefined"
-          employerFirstName: req.user.firstName,
-          employerLastName: req.user.lastName,
+          employerFirstName: req.user.employerDisplayName,
+          employerLastName: req.user.employerDisplayName,
         });
 
         await t.commit();
@@ -1195,8 +1221,8 @@ module.exports = function (io) {
           const act = await Activity.create({
             userId: employeeId,
             type: "recommendation",
-            message: `Vous avez reçu une recommandation de ${req.user.firstName} ${req.user.lastName} et obtenu le badge ${newBadge}!`,
-            employerName: `${req.user.firstName} ${req.user.lastName}`,
+            message: `Vous avez reçu une recommandation de  ${employerDisplayName} et obtenu le badge ${newBadge}!`,
+            employerName: employerDisplayName,
             referenceId: jobId,
             referenceType: "job",
             status: "new",

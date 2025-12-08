@@ -1,4 +1,5 @@
 const express = require("express");
+const { Op } = require("sequelize");
 // --- CHANGEMENT D'IMPORTS ---
 const {
   Application,
@@ -18,6 +19,7 @@ const {
   sendMissionApprovedClientEmail,
   sendProposalResponseEmail,
 } = require("../services/mailService");
+const { getDistributionRates } = require("../utils/finance");
 
 module.exports = function (io) {
   const router = express.Router();
@@ -64,6 +66,33 @@ module.exports = function (io) {
 
       await application.save({ transaction: t });
 
+      // --- CALCUL FINANCIER AUTOMATIQUE (NOUVEAU) ---
+      if (status === "accepted") {
+        // 1. Déterminer le montant de base
+        // Ici, on prend la moyenne du budget Min/Max du Job
+        // (Ou vous pouvez prendre budgetMax si c'est la règle)
+        const rates = await getDistributionRates();
+        const budgetMin = parseFloat(job.budgetMin) || 0;
+        const budgetMax = parseFloat(job.budgetMax) || 0;
+        const baseAmount = (budgetMin + budgetMax) / 2;
+
+        // 2. Utiliser les taux dynamiques
+        const shareCandidate = baseAmount * rates.candidate;
+        const shareTraining = baseAmount * rates.training;
+        const sharePlatform = baseAmount * rates.platform;
+
+        application.amountTotal = baseAmount;
+        application.amountCandidate = shareCandidate;
+        application.amountTraining = shareTraining;
+        application.amountPlatform = sharePlatform;
+        application.currency = job.budgetCurrency || "EUR";
+
+        // Log pour vérification
+        logger.info(
+          `Répartition financière calculée pour l'app ${application.id}: Total=${baseAmount}, Candidat=${shareCandidate}`
+        );
+      }
+
       // Si la candidature est acceptée, le job passe "en cours".
       if (status === "accepted") {
         job.status = "in_progress"; // Au lieu de "closed"
@@ -74,6 +103,37 @@ module.exports = function (io) {
             transaction: t, // On s'assure que c'est dans la même transaction
           }
         );
+        // 2. REJETER AUTOMATIQUEMENT LES AUTRES CANDIDATURES
+        // On cherche les autres candidatures pour ce job qui ne sont pas celle qu'on vient d'accepter
+        // et qui ne sont pas déjà terminées/rejetées/retirées
+        const otherApplications = await Application.findAll({
+          where: {
+            jobId: job.id,
+            id: { [Op.ne]: application.id }, // Pas celle-ci
+            status: { [Op.in]: ["pending", "reviewed", "proposal"] }, // Seulement celles en cours
+          },
+          transaction: t,
+        });
+
+        if (otherApplications.length > 0) {
+          // Mettre à jour en masse
+          await Application.update(
+            { status: "rejected" },
+            {
+              where: {
+                id: { [Op.in]: otherApplications.map((app) => app.id) },
+              },
+              transaction: t,
+            }
+          );
+
+          // TODO: Envoyer des notifications/emails aux candidats rejetés ici si vous le souhaitez
+          // ex: Promise.all(otherApplications.map(app => sendRejectionEmail(...)))
+
+          logger.info(
+            `${otherApplications.length} autres candidatures rejetées automatiquement pour le job ${job.id}`
+          );
+        }
 
         logger.info(
           `Le Job ${job.id} est maintenant "en cours" car la candidature ${application.id} a été acceptée.`
@@ -477,6 +537,24 @@ module.exports = function (io) {
         let newStatus = "";
         if (response === "accept") {
           newStatus = "accepted";
+
+          // --- CALCUL FINANCIER DYNAMIQUE ---
+          const job = application.job;
+          if (job) {
+            // 1. Récupérer les taux depuis la BDD
+            const rates = await getDistributionRates();
+
+            const budgetMin = parseFloat(job.budgetMin) || 0;
+            const budgetMax = parseFloat(job.budgetMax) || 0;
+            const baseAmount = (budgetMin + budgetMax) / 2;
+
+            // 2. Appliquer les taux
+            application.amountTotal = baseAmount;
+            application.amountCandidate = baseAmount * rates.candidate;
+            application.amountTraining = baseAmount * rates.training;
+            application.amountPlatform = baseAmount * rates.platform;
+            application.currency = job.budgetCurrency || "EUR";
+          }
           // Passer le Job en 'in_progress'
           await Job.update(
             { status: "in_progress" },

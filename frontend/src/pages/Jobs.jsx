@@ -229,11 +229,11 @@ const JobCard = ({ job, onApply, userApplication }) => {
   );
 };
 
-// --- FilterSidebar 
+// --- FilterSidebar
 const FilterSidebar = ({ onFilterChange, categories }) => {
   const [filters, setFilters] = useState({
     category: "",
-    status: "", // État pour le statut 
+    status: "", // État pour le statut
     experienceLevel: [],
     minBudget: "",
     maxBudget: "",
@@ -354,7 +354,7 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
             Réinitialiser
           </button>
         </div>
-        
+
         {/* Filtre Ville */}
         <div className="mb-6 relative" ref={wrapperRef}>
           <h4 className="font-semibold mb-3 text-gray-700">Ville</h4>
@@ -403,14 +403,16 @@ const FilterSidebar = ({ onFilterChange, categories }) => {
 
         {/*Filtre pour le status des offres d'emplois */}
         <div className="mb-6">
-          <h4 className="font-semibold mb-3 text-gray-700">Statut de l'offre</h4>
+          <h4 className="font-semibold mb-3 text-gray-700">
+            Statut de l'offre
+          </h4>
           <select
             value={filters.status}
             onChange={handleStatusChange}
             className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">Tous les statuts</option>
-            <option value="open">Ouvertes</option>
+            <option value="published">Ouvertes</option>
             <option value="in_progress">En cours</option>
             <option value="filled">Terminées / Pourvues</option>
           </select>
@@ -672,6 +674,11 @@ const Jobs = () => {
       {activeJobToApply && (
         <ApplicationForm
           jobId={activeJobToApply.id}
+          budget={{
+            min: activeJobToApply.budgetMin,
+            max: activeJobToApply.budgetMax,
+            currency: activeJobToApply.budgetCurrency,
+          }}
           client={activeJobToApply.client}
           onClose={() => setActiveJobToApply(null)}
           onSubmitted={handleApplicationSuccess}

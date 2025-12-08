@@ -423,6 +423,11 @@ const JobDetail = () => {
       {activeApply && (
         <ApplicationForm
           jobId={id}
+          budget={{
+            min: job.budgetMin,
+            max: job.budgetMax,
+            currency: job.budgetCurrency,
+          }}
           onClose={handleApplyClose}
           onSubmitted={handleSubmitted}
         />

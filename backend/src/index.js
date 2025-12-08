@@ -39,7 +39,7 @@ const avatarPath = path.resolve(process.cwd(), "avatar");
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
-  /^http:\/\/192\.168\.1\.118\d+:5174$/,
+  /^http:\/\/192\.168\.1\.119\d+:5174$/,
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
@@ -158,6 +158,8 @@ const startServer = async () => {
     logger.info("✅ Connexion à la base MySQL réussie.");
     await db.sequelize.sync({ alter: true });
     logger.info("🔄 Modèles synchronisés avec la base.");
+
+    await db.initSettings();
 
     server.listen(PORT, "0.0.0.0", () => {
       logger.info(`🚀 Serveur lancé sur http://localhost:${PORT}`);

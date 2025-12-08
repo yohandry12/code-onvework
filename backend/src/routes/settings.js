@@ -2,6 +2,8 @@ const express = require("express");
 const { User, UserSettings } = require("../models");
 const { authenticateToken } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
+const { PlatformSetting } = require("../models");
+const { getDistributionRates } = require("../utils/finance");
 
 const router = express.Router();
 
@@ -66,4 +68,14 @@ router.put("/", async (req, res) => {
   }
 });
 
+// GET /api/settings/finance - Récupérer les taux publics
+router.get("/finance", async (req, res) => {
+  try {
+    // getDistributionRates renvoie déjà les décimales (0.7, 0.2...)
+    const rates = await getDistributionRates();
+    res.json({ success: true, rates });
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Erreur serveur" });
+  }
+});
 module.exports = router;

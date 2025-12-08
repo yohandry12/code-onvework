@@ -2,7 +2,7 @@ import axios from "axios";
 
 // URL de base de l'API
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://192.168.1.118:4000/api";
+  import.meta.env.VITE_API_URL || "http://192.168.1.119:4000/api";
 
 // Création de l'instance Axios
 const apiClient = axios.create({
@@ -37,7 +37,7 @@ apiClient.interceptors.response.use(
     // alert(`ERREUR API : ${url}\nMessage : ${errorMessage}`);
     // -------------------------------------------------------
     // Gestion des erreurs communes
-    if (error.response?.status === 401 &&  !url?.includes("/login")) {
+    if (error.response?.status === 401 && !url?.includes("/login")) {
       // Token expiré ou invalide
       localStorage.removeItem("overwork_token");
       window.location.href = "/login";

@@ -31,6 +31,7 @@ db.UserSettings = require("./UserSettings")(sequelize);
 db.Activity = require("./Activity")(sequelize);
 // Cities
 db.City = require("./City")(sequelize);
+db.PlatformSetting = require("./PlatformSetting")(sequelize);
 
 db.User.hasOne(db.UserSettings, {
   foreignKey: "userId",
@@ -163,6 +164,36 @@ Object.keys(db).forEach((modelName) => {
     db[modelName].associate(db);
   }
 });
+
+// --- 2. FONCTION D'INITIALISATION DES TAUX ---
+// Cette fonction sera appelée au démarrage du serveur
+db.initSettings = async () => {
+  try {
+    const defaults = [
+      { key: "rate_candidate", value: 70, description: "Part du candidat (%)" },
+      {
+        key: "rate_training",
+        value: 20,
+        description: "Fonds de formation (%)",
+      },
+      {
+        key: "rate_platform",
+        value: 10,
+        description: "Commission plateforme (%)",
+      },
+    ];
+
+    for (const setting of defaults) {
+      await db.PlatformSetting.findOrCreate({
+        where: { key: setting.key },
+        defaults: setting,
+      });
+    }
+    console.log("✅ Paramètres financiers initialisés.");
+  } catch (error) {
+    console.error("❌ Erreur init settings:", error);
+  }
+};
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
