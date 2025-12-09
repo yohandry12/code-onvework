@@ -133,5 +133,46 @@ module.exports = function (io) {
     res.json({ success: true, message: "Job supprimé avec succès." });
   });
 
+  // --- NOUVELLE ROUTE : PUT /api/admin/jobs/:id (Mise à jour) ---
+  router.put("/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+
+      // Nettoyage des champs qu'on ne veut pas modifier accidentellement
+      delete updates.id;
+      delete updates.createdAt;
+      delete updates.updatedAt;
+
+      // On s'assure que le clientId est bien un entier s'il est présent
+      if (updates.clientId) {
+        updates.clientId = parseInt(updates.clientId, 10);
+      }
+
+      const job = await Job.findByPk(id);
+      if (!job) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Mission introuvable." });
+      }
+
+      // Mise à jour
+      await job.update(updates);
+
+      logger.info(`Mission ${id} mise à jour par l'admin ${req.user.id}`);
+
+      res.json({ success: true, job });
+    } catch (error) {
+      logger.error("Erreur mise à jour job:", error);
+      if (error.name === "SequelizeValidationError") {
+        return res.status(400).json({
+          success: false,
+          error: error.errors.map((e) => e.message).join(", "),
+        });
+      }
+      res.status(500).json({ success: false, error: "Erreur serveur" });
+    }
+  });
+
   return router;
 };

@@ -49,12 +49,23 @@ const ApplicationForm = ({ jobId, budget, onClose, onSubmitted }) => {
     // On se base sur la moyenne du budget pour l'estimation
     const amount = parseFloat(budget.amount) / 2;
 
+    // 1. D'abord on calcule les montants dans des variables
+    const candidateAmount = Math.round(amount * rates.candidate);
+    const trainingAmount = Math.round(amount * rates.training);
+    const platformAmount = Math.round(amount * rates.platform);
+
+    // 2. Ensuite on retourne l'objet
     return {
       total: amount,
-      candidate: Math.round(amount * rates.candidate),
-      training: Math.round(amount * rates.training),
-      platform: Math.round(amount * rates.platform),
+      candidate: candidateAmount,
+      training: trainingAmount,
+      platform: platformAmount,
       currency: budget.currency || "EUR",
+
+      // --- CORRECTION ICI ---
+      // On utilise la variable calculée au dessus
+      trainingPoints: trainingAmount,
+
       // Pour l'affichage des badges en %
       percentCandidate: Math.round(rates.candidate * 100),
       percentTraining: Math.round(rates.training * 100),
@@ -177,8 +188,14 @@ const ApplicationForm = ({ jobId, budget, onClose, onSubmitted }) => {
                     Fonds Formation
                   </p>
                   <p className="text-xl font-bold text-blue-700">
-                    {calculations.training.toLocaleString("fr-FR")}{" "}
-                    {calculations.currency}
+                    {/* On affiche les points + le texte "Points" */}
+                    {calculations.trainingPoints.toLocaleString("fr-FR")}{" "}
+                    <span className="text-sm font-semibold">Points</span>
+                  </p>
+                  <p className="text-[10px] text-blue-400 mt-1">
+                    (Valeur:{" "}
+                    {calculations.trainingPoints.toLocaleString("fr-FR")}{" "}
+                    {calculations.currency})
                   </p>
                 </div>
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   Briefcase,
   MapPin,
@@ -17,15 +17,16 @@ import {
   Sparkles,
   Eye,
   User,
-  Search, // Utilisation de Search de Lucide
-  UserPlus,
+  Save,
+  Search,
   Flame,
 } from "lucide-react";
 import { apiService } from "../../services/api";
 import AIChatAssistant from "../../components/UI/AIChatAssistant";
 import AIFormField from "../../components/UI/AIFormField";
+import toast from "react-hot-toast";
 
-// --- CONSTANTES ---
+// --- CONSTANTES (Identiques à CreateJob) ---
 const categories = [
   { value: "development", label: "Développement", icon: "💻" },
   { value: "design", label: "Design", icon: "🎨" },
@@ -38,7 +39,6 @@ const categories = [
   { value: "translation", label: "Traduction", icon: "🌐" },
   { value: "other", label: "Autre", icon: "⚡" },
 ];
-
 const types = ["freelance", "contrat", "à temps partiel", "temps plein"];
 const currencies = ["EUR", "USD", "FCFA"];
 const locationTypes = ["distanciel/télétravail", "présentiel", "hybride"];
@@ -63,14 +63,16 @@ const durationUnits = [
   { value: "projet", label: "Par Projet" },
 ];
 
-const AdminCreateJob = () => {
+const AdminEditJob = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Étape courante (0 = Sélection Client)
+  // On commence à l'étape 0 pour voir le client tout de suite
   const [currentStep, setCurrentStep] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // --- ÉTATS POUR LA SÉLECTION CLIENT ---
+  // --- GESTION CLIENT ---
   const [clientSearchTerm, setClientSearchTerm] = useState("");
   const [clients, setClients] = useState([]);
   const [filteredClients, setFilteredClients] = useState([]);
@@ -78,146 +80,124 @@ const AdminCreateJob = () => {
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const clientWrapperRef = useRef(null);
 
-  // --- ÉTATS FORMULAIRE ---
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    category: "development",
-    type: "freelance",
-    budget: "",
-    budgetCurrency: "EUR",
-    locationType: "distanciel/télétravail",
-    locationCity: "",
-    locationCountry: "Cameroun",
-    isLocationRestricted: false,
-    skills: "",
-    experience: "intermediate",
-    education: "none",
-    languages: "",
-    deadline: "",
-    startDate: "",
-    durationValue: "",
-    durationUnit: "jours",
-    featured: false,
-    tags: "",
-    isUrgent: false,
-  });
-
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [clonedFromId, setClonedFromId] = useState(null);
-
-  // --- ÉTATS IA & AUTOCOMPLETE VILLE ---
-  const [activeField, setActiveField] = useState(null);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [initialPrompt, setInitialPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-
+  // --- GESTION VILLE & IA ---
   const [allCities, setAllCities] = useState([]);
   const [citySuggestions, setCitySuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const cityWrapperRef = useRef(null);
 
-  // --- CHARGEMENT INITIAL & CLONAGE ---
+  const [activeField, setActiveField] = useState(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [initialPrompt, setInitialPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+  // États formulaire
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    category: "",
+    type: "",
+    budget: "",
+    budgetCurrency: "EUR",
+    locationType: "",
+    locationCity: "",
+    locationCountry: "",
+    isLocationRestricted: false,
+    skills: "",
+    experience: "",
+    education: "",
+    languages: "",
+    durationValue: "",
+    durationUnit: "",
+    featured: false,
+    tags: "",
+    isUrgent: false,
+  });
+
+  // --- CHARGEMENT DES DONNÉES ---
   useEffect(() => {
     const initPage = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
-
-        // 1. Charger Villes et Clients en parallèle
-        const [citiesRes, clientsRes] = await Promise.all([
+        // 1. Charger Job, Villes et Clients en parallèle
+        const [jobRes, citiesRes, clientsRes] = await Promise.all([
+          apiService.jobs.getById(id),
           apiService.cities.getAll(),
           apiService.users.adminGetAll({ role: "client", limit: 1000 }),
         ]);
 
+        // 2. Initialiser Villes
         if (citiesRes.success)
           setAllCities((citiesRes.data || []).map((c) => c.name));
 
+        // 3. Initialiser Clients
         let loadedClients = [];
         if (clientsRes.success) {
           loadedClients = clientsRes.users;
           setClients(loadedClients);
         }
 
-        // 2. Vérifier si on est en mode Clonage
-        const searchParams = new URLSearchParams(location.search);
-        const jobToCloneId = searchParams.get("cloneFrom");
+        // 4. Initialiser le Formulaire avec le Job
+        if (jobRes.success && jobRes.job) {
+          const j = jobRes.job;
+          setForm({
+            title: j.title,
+            description: j.description,
+            category: j.category,
+            type: j.type,
+            budget: j.budget,
+            budgetCurrency: j.budgetCurrency,
+            locationType: j.locationType,
+            locationCity: j.locationCity,
+            locationCountry: j.locationCountry,
+            isLocationRestricted: j.isLocationRestricted,
+            skills: Array.isArray(j.skills) ? j.skills.join(", ") : j.skills,
+            experience: j.experience,
+            education: j.education,
+            languages: Array.isArray(j.languages)
+              ? j.languages.join(", ")
+              : j.languages,
+            tags: Array.isArray(j.tags) ? j.tags.join(", ") : j.tags,
+            durationValue: j.durationValue,
+            durationUnit: j.durationUnit,
+            featured: j.featured,
+            isUrgent: j.isUrgent,
+          });
 
-        if (jobToCloneId) {
-          // Récupérer la mission à cloner
-          const cloneRes = await apiService.jobs.getJobForCloning(jobToCloneId);
+          // --- 5. RÉCUPÉRATION ET PRÉ-SÉLECTION DU CLIENT ---
+          // On utilise j.client.id s'il est peuplé, sinon j.clientId
+          const currentClientId = j.client?.id || j.clientId;
 
-          if (cloneRes.success && cloneRes.job) {
-            const jobData = cloneRes.job;
-
-            // Remplir le formulaire
-            setForm({
-              title: jobData.title || "",
-              description: jobData.description || "",
-              category: jobData.category || "development",
-              type: jobData.type || "freelance",
-              budget: jobData.budget?.amount || "",
-              budgetCurrency: jobData.budget?.currency || "EUR",
-              locationType: jobData.location?.type || "distanciel/télétravail",
-              locationCity: jobData.location?.city || "",
-              locationCountry: jobData.location?.country || "Cameroun",
-              isLocationRestricted: jobData.isLocationRestricted || false,
-
-              // Conversion array -> string pour les inputs si nécessaire, ou garder array selon votre logique API
-              // Ici je suppose que le backend renvoie des Arrays pour le clonage
-              skills: Array.isArray(jobData.skills)
-                ? jobData.skills.join(", ")
-                : jobData.skills || "",
-              tags: Array.isArray(jobData.tags)
-                ? jobData.tags.join(", ")
-                : jobData.tags || "",
-              languages: Array.isArray(jobData.languages)
-                ? jobData.languages.join(", ")
-                : jobData.languages || "",
-
-              experience: jobData.experience || "intermediate",
-              education: jobData.education || "none",
-              deadline: "", // On ne clone pas la deadline
-              startDate: "",
-              durationValue: jobData.durationValue || "",
-              durationUnit: jobData.durationUnit || "jours",
-              featured: jobData.featured || false,
-              isUrgent: jobData.isUrgent || false,
-            });
-
-            setClonedFromId(jobToCloneId);
-
-            // 3. Tenter de retrouver le client d'origine pour le pré-sélectionner
-            if (jobData.clientId && loadedClients.length > 0) {
-              const originalClient = loadedClients.find(
-                (c) => c.id === jobData.clientId
+          if (currentClientId && loadedClients.length > 0) {
+            const owner = loadedClients.find(
+              (c) => String(c.id) === String(currentClientId)
+            );
+            if (owner) {
+              setSelectedClient(owner);
+              setClientSearchTerm(
+                `${owner.profile?.firstName || ""} ${
+                  owner.profile?.lastName || ""
+                } (${owner.profile?.company || "Particulier"})`
               );
-              if (originalClient) {
-                setSelectedClient(originalClient);
-                setClientSearchTerm(
-                  `${originalClient.profile?.firstName} ${
-                    originalClient.profile?.lastName
-                  } (${originalClient.profile?.company || "Particulier"})`
-                );
-              }
             }
           }
+        } else {
+          toast.error("Mission introuvable");
+          navigate("/admin/jobs");
         }
       } catch (err) {
-        console.error("Erreur init:", err);
-        setError("Impossible de charger les données.");
+        console.error(err);
+        toast.error("Erreur de chargement");
+        navigate("/admin/jobs");
       } finally {
         setLoading(false);
       }
     };
-
     initPage();
-  }, [location.search]);
+  }, [id, navigate]);
 
-  // --- LOGIQUE SÉLECTION CLIENT ---
+  // --- HANDLERS CLIENT ---
   const handleClientSearch = (e) => {
     const term = e.target.value;
     setClientSearchTerm(term);
@@ -247,24 +227,21 @@ const AdminCreateJob = () => {
       })`
     );
     setShowClientDropdown(false);
-    setError("");
   };
 
-  // Fermer dropdown client au clic dehors
   useEffect(() => {
     function handleClickOutside(event) {
       if (
         clientWrapperRef.current &&
         !clientWrapperRef.current.contains(event.target)
-      ) {
+      )
         setShowClientDropdown(false);
-      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [clientWrapperRef]);
 
-  // --- LOGIQUE AUTOCOMPLÉTION VILLE ---
+  // --- HANDLERS VILLE & FORMULAIRE ---
   const handleCityChange = (e) => {
     const userInput = e.target.value;
     setForm((prev) => ({ ...prev, locationCity: userInput }));
@@ -278,135 +255,95 @@ const AdminCreateJob = () => {
       setShowSuggestions(false);
     }
   };
-
   const selectCity = (cityName) => {
     setForm((prev) => ({ ...prev, locationCity: cityName }));
     setShowSuggestions(false);
   };
 
-  // Fermer dropdown ville au clic dehors
   useEffect(() => {
     function handleClickOutside(event) {
       if (
         cityWrapperRef.current &&
         !cityWrapperRef.current.contains(event.target)
-      ) {
+      )
         setShowSuggestions(false);
-      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [cityWrapperRef]);
 
-  // --- GESTION FORMULAIRE ---
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (name === "locationCountry") return;
     setForm({ ...form, [name]: type === "checkbox" ? checked : value });
   };
 
-  const steps = [
-    { number: 0, title: "Sélection du Client", icon: User },
-    { number: 1, title: "Informations générales", icon: FileText },
-    { number: 2, title: "Budget & Localisation", icon: DollarSign },
-    { number: 3, title: "Prérequis candidats", icon: Users },
-    { number: 4, title: "Planification", icon: Calendar },
-    { number: 5, title: "Options avancées", icon: Star },
-  ];
-
-  const nextStep = () => {
-    if (currentStep === 0 && !selectedClient) {
-      setError("Veuillez sélectionner un client obligatoire.");
+  // --- MISE À JOUR ---
+  const handleUpdate = async (e) => {
+    if (e) e.preventDefault();
+    if (!selectedClient) {
+      toast.error("Un client doit être assigné à la mission.");
       return;
     }
-    if (currentStep < 5) {
-      setCurrentStep(currentStep + 1);
-      setError("");
+
+    setSaving(true);
+
+    const payload = {
+      ...form,
+      budget: Number(form.budget),
+      durationValue:
+        form.durationUnit === "projet" ? null : Number(form.durationValue),
+      skills: form.skills
+        ? Array.isArray(form.skills)
+          ? form.skills
+          : form.skills.split(",").map((s) => s.trim())
+        : [],
+      tags: form.tags
+        ? Array.isArray(form.tags)
+          ? form.tags
+          : form.tags.split(",").map((s) => s.trim())
+        : [],
+      languages: form.languages
+        ? Array.isArray(form.languages)
+          ? form.languages
+          : form.languages.split(",").map((s) => s.trim())
+        : [],
+
+      // IMPORTANT : On met à jour le clientId au cas où l'admin l'a changé
+      clientId: selectedClient.id,
+    };
+
+    try {
+      const res = await apiService.jobs.adminUpdate(id, payload);
+      if (res.success) {
+        toast.success("Mission mise à jour avec succès !");
+        navigate("/admin/jobs");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Erreur de mise à jour");
+    } finally {
+      setSaving(false);
     }
   };
 
+  // --- NAVIGATION ---
+  const steps = [
+    { number: 0, title: "Client", icon: User },
+    { number: 1, title: "Général", icon: FileText },
+    { number: 2, title: "Lieu & Budget", icon: DollarSign },
+    { number: 3, title: "Candidat", icon: Users },
+    { number: 4, title: "Planning", icon: Calendar },
+    { number: 5, title: "Options", icon: Star },
+  ];
+  const nextStep = () => {
+    if (currentStep < 5) setCurrentStep(currentStep + 1);
+  };
   const prevStep = () => {
     if (currentStep > 0) setCurrentStep(currentStep - 1);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    handleFinalSubmit();
-  };
-
-  const handleFinalSubmit = async () => {
-    if (!selectedClient) {
-      setError("Erreur critique : Aucun client sélectionné.");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    const jobData = {
-      // Données standards
-      title: form.title,
-      description: form.description,
-      category: form.category,
-      type: form.type,
-      budget: {
-        amount: Number(form.budget) || 0,
-        currency: form.budgetCurrency,
-      },
-      location: {
-        type: form.locationType,
-        city: form.locationCity,
-        country: form.locationCountry || "Cameroun",
-      },
-      isLocationRestricted: form.isLocationRestricted,
-
-      // Tableaux
-      skills: Array.isArray(form.skills)
-        ? form.skills
-        : form.skills
-        ? form.skills.split(",").map((s) => s.trim())
-        : [],
-      experience: form.experience,
-      education: form.education,
-      languages: Array.isArray(form.languages)
-        ? form.languages
-        : form.languages
-        ? form.languages.split(",").map((l) => l.trim())
-        : [],
-      tags: Array.isArray(form.tags)
-        ? form.tags
-        : form.tags
-        ? form.tags.split(",").map((t) => t.trim())
-        : [],
-
-      deadline: form.deadline || null,
-      startDate: form.startDate || null,
-      durationValue:
-        form.durationUnit === "projet" ? null : Number(form.durationValue),
-      durationUnit: form.durationUnit,
-      featured: form.featured,
-      isUrgent: form.isUrgent,
-
-      // CHAMP ADMIN SPÉCIFIQUE
-      clonedFromId: clonedFromId,
-      targetClientId: selectedClient.id,
-    };
-
-    try {
-      await apiService.jobs.create(jobData);
-      setShowSuccessModal(true);
-    } catch (err) {
-      const errorMsg =
-        err.response?.data?.error || "Erreur lors de la publication.";
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // --- IA HELPERS ---
+  // --- IA ---
   const handleAIAssist = (fieldName, fieldLabel) => {
-    setInitialPrompt(`Peux-tu m'aider à remplir le champ "${fieldLabel}" ?`);
+    setInitialPrompt(`Aide moi pour ${fieldLabel}`);
     setIsChatOpen(true);
   };
   const toggleChat = () => {
@@ -416,22 +353,21 @@ const AdminCreateJob = () => {
   const handleAIGenerateForField = async (fieldName, userPrompt) => {
     setIsGenerating(true);
     setActiveField(fieldName);
-    setError("");
     try {
-      const messages = [
-        {
-          role: "user",
-          content: `Génère un contenu pour le champ "${fieldName}" d'une offre d'emploi. La demande de l'utilisateur est : "${userPrompt}". Réponds UNIQUEMENT avec le texte généré.`,
-        },
-      ];
-      const response = await apiService.ai.getChatReply(messages, form);
-      if (response.success) {
-        setForm((prevForm) => ({ ...prevForm, [fieldName]: response.reply }));
-      } else {
-        throw new Error(response.error);
-      }
+      const response = await apiService.ai.getChatReply(
+        [
+          {
+            role: "user",
+            content: `Génère le contenu pour "${fieldName}". Demande: "${userPrompt}". Réponds juste le texte.`,
+          },
+        ],
+        form
+      );
+      if (response.success)
+        setForm((prev) => ({ ...prev, [fieldName]: response.reply }));
+      else throw new Error(response.error);
     } catch (err) {
-      setError(err.message || "Erreur IA.");
+      toast.error("Erreur IA");
     } finally {
       setIsGenerating(false);
     }
@@ -440,24 +376,18 @@ const AdminCreateJob = () => {
   // --- RENDU DES ÉTAPES ---
   const getStepContent = () => {
     switch (currentStep) {
-      case 0: // SÉLECTION CLIENT
+      case 0: // CLIENT (AVEC PRÉ-SELECTION)
         return (
           <div className="space-y-6">
-            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6">
-              <div className="flex items-center">
-                <User className="hidden md:inline h-5 w-5 text-indigo-500 mr-2" />
-                <span className="text-indigo-700 font-medium">
-                  Étape Préliminaire - Propriétaire
-                </span>
-              </div>
-              <p className="text-indigo-600 text-sm mt-1 ml-7">
-                Spécifiez pour quel client vous créez cette mission.
-              </p>
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-6 flex items-center">
+              <User className="h-5 w-5 text-indigo-500 mr-2" />
+              <span className="text-indigo-700 font-medium">
+                Propriétaire de la mission
+              </span>
             </div>
-
             <div className="relative" ref={clientWrapperRef}>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Rechercher un client *
+                Client assigné *
               </label>
               <div className="relative">
                 <input
@@ -465,90 +395,53 @@ const AdminCreateJob = () => {
                   value={clientSearchTerm}
                   onChange={handleClientSearch}
                   onFocus={() => setShowClientDropdown(true)}
-                  className={`w-full px-4 py-3 pl-10 border ${
-                    error && !selectedClient
-                      ? "border-red-300 ring-1 ring-red-300"
-                      : "border-gray-300"
-                  } rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500`}
-                  placeholder="Nom, Email ou Entreprise..."
+                  className="w-full px-4 py-3 pl-10 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500"
+                  placeholder="Rechercher..."
                   autoComplete="off"
                 />
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
               </div>
-
               {showClientDropdown && filteredClients.length > 0 && (
                 <ul className="absolute z-20 w-full bg-white border border-gray-200 rounded-xl shadow-xl mt-1 max-h-60 overflow-y-auto">
                   {filteredClients.map((client) => (
                     <li
                       key={client.id}
                       onClick={() => handleSelectClient(client)}
-                      className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 border-gray-100 transition-colors"
+                      className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100"
                     >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-semibold text-gray-800">
-                            {client.profile?.firstName}{" "}
-                            {client.profile?.lastName}
-                          </span>
-                          <span className="block text-xs text-gray-500">
-                            {client.email}
-                          </span>
-                        </div>
-                        <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded text-gray-600">
-                          {client.profile?.company || "Particulier"}
-                        </span>
-                      </div>
+                      <span className="font-semibold text-gray-800">
+                        {client.profile?.firstName} {client.profile?.lastName}
+                      </span>
+                      <span className="text-xs text-gray-500 ml-2">
+                        ({client.email})
+                      </span>
                     </li>
                   ))}
                 </ul>
               )}
-
-              {clientSearchTerm &&
-                filteredClients.length === 0 &&
-                !selectedClient && (
-                  <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
-                    <AlertCircle className="h-6 w-6 text-red-500 flex-shrink-0" />
-                    <div>
-                      <h4 className="font-bold text-red-800 text-sm">
-                        Client introuvable
-                      </h4>
-                      <p className="text-red-700 text-sm mt-1">
-                        Vous devez créer le compte client avant de publier une
-                        mission.
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => navigate("/admin/users")}
-                        className="mt-3 flex items-center px-3 py-2 bg-white border border-red-200 rounded-lg text-red-700 text-sm font-medium hover:bg-red-50"
-                      >
-                        <UserPlus className="w-4 h-4 mr-2" /> Aller créer un
-                        client
-                      </button>
-                    </div>
-                  </div>
-                )}
-
               {selectedClient && (
                 <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3">
-                  <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold">
-                    {selectedClient.profile?.firstName?.charAt(0)}
-                  </div>
+                  <CheckCircle className="h-6 w-6 text-green-500" />
                   <div>
                     <p className="text-sm font-medium text-green-900">
-                      Client sélectionné :
+                      Client actuel :
                     </p>
                     <p className="text-green-800 font-bold">
                       {selectedClient.profile?.firstName}{" "}
                       {selectedClient.profile?.lastName}
                     </p>
                   </div>
-                  <CheckCircle className="h-6 w-6 text-green-500 ml-auto" />
                 </div>
               )}
             </div>
           </div>
         );
 
+      // ... Pour gagner de la place, je réutilise exactement les mêmes composants que AdminCreateJob pour les étapes 1 à 5.
+      // Assurez-vous de coller ici les `case 1`, `case 2`, `case 3`, `case 4`, `case 5` du fichier AdminCreateJob.jsx précédent.
+      // Ils utilisent `form`, `handleChange`, `handleCityChange`, `selectCity`, `wrapperRef`, `handleAIGenerateForField` qui sont tous définis.
+
+      // (Exemple abrégé pour l'étape 1)
       case 1: // INFOS GÉNÉRALES
         return (
           <div className="space-y-6">
@@ -1012,12 +905,12 @@ const AdminCreateJob = () => {
                 {/* OPTION 1 : MISSION EN VEDETTE (OR/JAUNE) */}
                 <label
                   className={`relative group cursor-pointer p-6 rounded-2xl border-2 transition-all duration-300 ease-in-out flex items-start gap-4 overflow-hidden
-                                ${
-                                  form.featured
-                                    ? "border-amber-400 bg-amber-50 shadow-lg shadow-amber-100 scale-[1.02]"
-                                    : "border-gray-200 bg-white hover:border-amber-200 hover:bg-amber-50/30"
-                                }
-                              `}
+                                      ${
+                                        form.featured
+                                          ? "border-amber-400 bg-amber-50 shadow-lg shadow-amber-100 scale-[1.02]"
+                                          : "border-gray-200 bg-white hover:border-amber-200 hover:bg-amber-50/30"
+                                      }
+                                    `}
                 >
                   <input
                     name="featured"
@@ -1037,12 +930,12 @@ const AdminCreateJob = () => {
                   {/* Icône animée */}
                   <div
                     className={`flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300
-                                  ${
-                                    form.featured
-                                      ? "bg-amber-400 text-white rotate-12 scale-110 shadow-md"
-                                      : "bg-gray-100 text-gray-400 group-hover:bg-amber-100 group-hover:text-amber-500"
-                                  }
-                                `}
+                                        ${
+                                          form.featured
+                                            ? "bg-amber-400 text-white rotate-12 scale-110 shadow-md"
+                                            : "bg-gray-100 text-gray-400 group-hover:bg-amber-100 group-hover:text-amber-500"
+                                        }
+                                      `}
                   >
                     <Star
                       className={`w-8 h-8 transition-all ${
@@ -1076,12 +969,12 @@ const AdminCreateJob = () => {
                 {/* OPTION 2 : MISSION URGENTE (ROUGE/FEU) */}
                 <label
                   className={`relative group cursor-pointer p-6 rounded-2xl border-2 transition-all duration-300 ease-in-out flex items-start gap-4 overflow-hidden
-                                ${
-                                  form.isUrgent
-                                    ? "border-red-500 bg-red-50 shadow-lg shadow-red-100 scale-[1.02]"
-                                    : "border-gray-200 bg-white hover:border-red-200 hover:bg-red-50/30"
-                                }
-                              `}
+                                      ${
+                                        form.isUrgent
+                                          ? "border-red-500 bg-red-50 shadow-lg shadow-red-100 scale-[1.02]"
+                                          : "border-gray-200 bg-white hover:border-red-200 hover:bg-red-50/30"
+                                      }
+                                    `}
                 >
                   <input
                     name="isUrgent"
@@ -1101,12 +994,12 @@ const AdminCreateJob = () => {
                   {/* Icône animée */}
                   <div
                     className={`flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300
-                                  ${
-                                    form.isUrgent
-                                      ? "bg-red-500 text-white shadow-md shadow-red-200"
-                                      : "bg-gray-100 text-gray-400 group-hover:bg-red-100 group-hover:text-red-500"
-                                  }
-                                `}
+                                        ${
+                                          form.isUrgent
+                                            ? "bg-red-500 text-white shadow-md shadow-red-200"
+                                            : "bg-gray-100 text-gray-400 group-hover:bg-red-100 group-hover:text-red-500"
+                                        }
+                                      `}
                   >
                     <Flame
                       className={`w-8 h-8 transition-all ${
@@ -1139,88 +1032,54 @@ const AdminCreateJob = () => {
     }
   };
 
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100 py-8 px-4 sm:px-6">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-            Créer une mission (Admin)
-          </h1>
-          <p className="text-lg text-gray-600">
-            Publiez une offre pour le compte d'un client
-          </p>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">
+          Modifier la mission
+        </h1>
 
-        {/* PROGRESS BAR */}
-        <div className="hidden md:inline mb-8">
-          <div className="flex justify-between items-center">
-            {steps.map((step, index) => {
-              const Icon = step.icon;
-              const isActive = currentStep === step.number;
-              const isCompleted = currentStep > step.number;
-              return (
-                <div
-                  key={step.number}
-                  className="flex flex-grow items-center last:flex-grow-0"
-                >
-                  <div
-                    className={`flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full border-2 flex-shrink-0 ${
-                      isActive
-                        ? "bg-indigo-600 border-indigo-600 text-white"
-                        : isCompleted
-                        ? "bg-green-500 border-green-500 text-white"
-                        : "bg-white border-gray-300 text-gray-400"
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <CheckCircle className="h-6 w-6" />
-                    ) : (
-                      <Icon className="h-6 w-6" />
-                    )}
-                  </div>
-                  <div
-                    className={`ml-3 ${
-                      index === steps.length - 1 ? "hidden" : "block"
-                    }`}
-                  >
-                    <div
-                      className={`w-12 h-1 ${
-                        isCompleted ? "bg-green-500" : "bg-gray-200"
-                      }`}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* FORMULAIRE */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-          {error && (
-            <div className="bg-red-50 border-l-4 border-red-400 p-4 m-6">
-              <p className="text-red-700 flex items-center">
-                <AlertCircle className="w-5 h-5 mr-2" />
-                {error}
-              </p>
+        {/* Barre progression */}
+        <div className="flex justify-between items-center mb-8 max-w-2xl mx-auto">
+          {steps.map((step, idx) => (
+            <div key={idx} className="flex items-center">
+              <button
+                onClick={() => setCurrentStep(step.number)}
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                  currentStep === step.number
+                    ? "bg-indigo-600 text-white"
+                    : "bg-white border-gray-300 text-gray-400 hover:bg-indigo-50"
+                }`}
+              >
+                {step.number}
+              </button>
+              {idx < steps.length - 1 && (
+                <div className="w-10 h-1 mx-2 bg-gray-200"></div>
+              )}
             </div>
-          )}
+          ))}
+        </div>
 
-          <form onSubmit={handleSubmit} className="p-4 sm:p-8">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+          <form onSubmit={handleUpdate} className="p-6 sm:p-8">
             {getStepContent()}
 
             <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-200">
               <button
                 type="button"
-                onClick={prevStep}
-                disabled={currentStep === 0}
-                className={`px-6 py-3 rounded-xl font-medium ${
-                  currentStep === 0
-                    ? "text-gray-400 cursor-not-allowed"
-                    : "text-gray-700 bg-gray-100 hover:bg-gray-200"
-                }`}
+                onClick={
+                  currentStep === 0 ? () => navigate("/admin/jobs") : prevStep
+                }
+                className="px-6 py-3 rounded-xl font-medium text-gray-700 bg-gray-100 hover:bg-gray-200"
               >
-                Précédent
+                {currentStep === 0 ? "Annuler" : "Précédent"}
               </button>
 
               {currentStep < 5 ? (
@@ -1234,16 +1093,15 @@ const AdminCreateJob = () => {
               ) : (
                 <button
                   type="button"
-                  onClick={handleFinalSubmit}
-                  disabled={loading}
-                  className="px-8 py-3 bg-gradient-to-r from-green-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-indigo-700 shadow-lg flex items-center"
+                  onClick={() => setShowPreviewModal(true)}
+                  disabled={saving}
+                  className="px-8 py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 shadow-lg flex items-center"
                 >
-                  {loading ? (
-                    "Publication..."
+                  {saving ? (
+                    "Sauvegarde..."
                   ) : (
                     <>
-                      <CheckCircle className="h-5 w-5 mr-2" /> Publier la
-                      mission
+                      <Save className="h-5 w-5 mr-2" /> Vérifier et Publier
                     </>
                   )}
                 </button>
@@ -1252,68 +1110,196 @@ const AdminCreateJob = () => {
           </form>
         </div>
       </div>
-
-      {/* SUCCESS MODAL */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-10 h-10 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Mission Créée !
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Attribuée à <strong>{selectedClient?.profile?.firstName}</strong>{" "}
-              et publiée.
-            </p>
-            <button
-              onClick={() => navigate("/admin/jobs")}
-              className="w-full py-3 bg-gray-900 text-white rounded-xl hover:bg-gray-800"
-            >
-              Retour
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* PREVIEW MODAL */}
+      {/* --- MODALE DE PRÉVISUALISATION --- */}
       {showPreviewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-3xl p-8 relative">
-            <button
-              onClick={() => setShowPreviewModal(false)}
-              className="absolute top-4 right-4 bg-gray-100 p-2 rounded-full hover:bg-gray-200"
-            >
-              X
-            </button>
-            <h2 className="text-2xl font-bold mb-4">
-              {form.title || "Titre de la mission"}
-            </h2>
-            <div className="flex gap-4 text-sm text-gray-500 mb-4">
-              <span>{form.category}</span> • <span>{form.type}</span> •{" "}
-              <span>
-                {form.locationCity}, {form.locationCountry}
-              </span>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl my-8 overflow-hidden relative animate-in fade-in zoom-in duration-200">
+            {/* Header de la modale */}
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center sticky top-0 z-10">
+              <h2 className="text-lg font-bold text-gray-800 flex items-center">
+                <Eye className="w-5 h-5 mr-2 text-gray-500" />
+                Aperçu de l'offre
+              </h2>
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+              >
+                <span className="text-2xl leading-none">&times;</span>
+              </button>
             </div>
-            <div className="prose max-w-none bg-gray-50 p-4 rounded-lg mb-4 whitespace-pre-wrap">
-              {form.description || "Aucune description."}
+
+            {/* Contenu de la fiche de mission (Simulation) */}
+            <div className="p-6 md:p-8 space-y-8">
+              {/* En-tête de la mission */}
+              <div>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold uppercase tracking-wide">
+                    {categories.find((c) => c.value === form.category)?.label ||
+                      form.category}
+                  </span>
+                  {form.type && (
+                    <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold uppercase tracking-wide">
+                      {form.type}
+                    </span>
+                  )}
+                  {form.isUrgent && (
+                    <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold uppercase tracking-wide flex items-center">
+                      <Zap className="w-3 h-3 mr-1" /> Urgent
+                    </span>
+                  )}
+                </div>
+
+                <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-4 leading-tight">
+                  {form.title || "Titre de la mission"}
+                </h1>
+
+                <div className="flex flex-wrap gap-y-2 gap-x-6 text-sm text-gray-600 border-b border-gray-100 pb-6">
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-2 text-gray-400" />
+                    {form.locationCity
+                      ? `${form.locationCity}, ${form.locationCountry}`
+                      : form.locationType}
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 mr-2 text-gray-400" />
+                    {form.durationUnit === "projet"
+                      ? "Durée du projet"
+                      : `${form.durationValue || "?"} ${form.durationUnit}`}
+                  </div>
+                  <div className="flex items-center">
+                    <DollarSign className="w-4 h-4 mr-2 text-gray-400" />
+                    <span className="font-semibold text-green-700">
+                      {form.budget} {form.budgetCurrency}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 mb-3">
+                  À propos de la mission
+                </h3>
+                <div className="prose prose-blue max-w-none text-gray-600 whitespace-pre-wrap leading-relaxed bg-gray-50 p-6 rounded-xl border border-gray-100">
+                  {form.description || "Aucune description fournie."}
+                </div>
+              </div>
+
+              {/* Détails en grille */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">
+                    Compétences requises
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {form.skills ? (
+                      (Array.isArray(form.skills)
+                        ? form.skills
+                        : form.skills.split(",")
+                      ).map((skill, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md text-sm font-medium border border-gray-200"
+                        >
+                          {skill.trim()}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 text-sm italic">
+                        Non spécifiées
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">
+                    Langues
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {form.languages ? (
+                      (Array.isArray(form.languages)
+                        ? form.languages
+                        : form.languages.split(",")
+                      ).map((lang, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-md text-sm font-medium"
+                        >
+                          {lang.trim()}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 text-sm italic">
+                        Non spécifiées
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer de détails */}
+              <div className="bg-blue-50 rounded-xl p-5 border border-blue-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="block text-gray-500 text-xs mb-1">
+                    Expérience
+                  </span>
+                  <span className="font-semibold text-gray-800 capitalize">
+                    {experienceLevels.find((e) => e.value === form.experience)
+                      ?.label || form.experience}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-gray-500 text-xs mb-1">
+                    Éducation
+                  </span>
+                  <span className="font-semibold text-gray-800 capitalize">
+                    {educationLevels.find((e) => e.value === form.education)
+                      ?.label || form.education}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-gray-500 text-xs mb-1">Lieu</span>
+                  <span className="font-semibold text-gray-800 capitalize">
+                    {form.locationType}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-gray-500 text-xs mb-1">Tags</span>
+                  <span
+                    className="font-semibold text-gray-800 truncate block"
+                    title={form.tags}
+                  >
+                    {Array.isArray(form.tags)
+                      ? form.tags.join(", ")
+                      : form.tags || "-"}
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="flex justify-end mt-6">
+
+            {/* Actions de la modale */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end gap-3 sticky bottom-0 z-10">
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+              >
+                Fermer
+              </button>
               <button
                 onClick={() => {
                   setShowPreviewModal(false);
-                  handleFinalSubmit();
+                  handleUpdate();
                 }}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg"
               >
-                Confirmer et Publier
+                <Save className="w-4 h-4 mr-2" />
+                Confirmer et Mettre à jour
               </button>
             </div>
           </div>
         </div>
       )}
-
       <AIChatAssistant
         jobFormContext={form}
         isOpen={isChatOpen}
@@ -1326,4 +1312,4 @@ const AdminCreateJob = () => {
   );
 };
 
-export default AdminCreateJob;
+export default AdminEditJob;

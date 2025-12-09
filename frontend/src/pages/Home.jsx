@@ -2,9 +2,14 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom"; // Link et useNavigate
 import { useAuth } from "../contexts/AuthContext";
 import { apiService } from "../services/api";
-import { ArrowPathIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowPathIcon,
+  UserIcon,
+  BriefcaseIcon,
+  AcademicCapIcon, // Pour Étudiant
+  SparklesIcon, // Pour En recherche
+} from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
-// import FreelancerProfileModal from "../components/UI/FreelancerProfileModal"; // SUPPRIMÉ
 import TestimonialsSection from "../pages/TestimonialsSection";
 import homeIllustration from "../assets/images/home.jpg";
 import { Flame, Star, Sparkles } from "lucide-react";
@@ -147,6 +152,30 @@ const getAvatarUrl = (avatarPath) => {
   return `${baseUrl}${cleanPath}`;
 };
 
+const getStatusBadge = (type) => {
+  switch (type) {
+    case "student":
+      return {
+        label: "Étudiant",
+        icon: <AcademicCapIcon className="w-3 h-3 mr-1" />,
+        style: "bg-emerald-100 text-emerald-700 border-emerald-200",
+      };
+    case "unemployed":
+      return {
+        label: "En recherche", // ou "Disponible"
+        icon: <SparklesIcon className="w-3 h-3 mr-1" />,
+        style: "bg-amber-100 text-amber-700 border-amber-200",
+      };
+    case "freelance":
+    default:
+      return {
+        label: "Freelance",
+        icon: <BriefcaseIcon className="w-3 h-3 mr-1" />,
+        style: "bg-indigo-100 text-indigo-700 border-indigo-200",
+      };
+  }
+};
+
 // --- CARTE FREELANCER MODIFIÉE (Avec Navigation) ---
 const FreelancerCard = ({ user }) => {
   const navigate = useNavigate(); // Hook de navigation
@@ -161,6 +190,8 @@ const FreelancerCard = ({ user }) => {
     `${profile.firstName || ""} ${profile.lastName || ""}`.trim();
 
   const [stats, setStats] = useState({ average: 0, count: 0, loading: true });
+
+  const statusBadge = getStatusBadge(profile.candidateType || "freelance");
 
   useEffect(() => {
     let isMounted = true;
@@ -227,6 +258,12 @@ const FreelancerCard = ({ user }) => {
       className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200 shadow-sm hover:shadow-md 
                  hover:-translate-y-1 transition-all duration-300 cursor-pointer flex flex-col items-center gap-4 p-6"
     >
+      <div
+        className={`absolute top-4 left-4 flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusBadge.style}`}
+      >
+        {statusBadge.icon}
+        {statusBadge.label}
+      </div>
       {/* Avatar */}
       <div className="relative">
         <img
@@ -375,35 +412,65 @@ const Home = () => {
 
           {/* Boutons pour la creation des differents comptes a savoir : Candidat et Client */}
 
+          {isAuthenticated && user ? (
+            <form
+              onSubmit={onSearch}
+              className="flex flex-col sm:flex-row w-full max-w-md sm:max-w-xl mx-auto bg-white rounded-lg overflow-hidden border border-gray-200 shadow-md"
+            >
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Ex : Comptabilité, Design, React..."
+                className="flex-1 px-4 py-3 bg-transparent text-gray-700 placeholder-gray-400 focus:outline-none text-center sm:text-left"
+              />
+              <button
+                type="submit"
+                className="px-6 py-3 bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors"
+              >
+                Rechercher
+              </button>
+            </form>
+          ) : (
+            <div className="max-w-2xl mx-auto flex items-center justify-center gap-6 mt-8">
+              <Link
+                to="/register"
+                className="
+      flex items-center gap-2
+      px-8 py-3 
+      text-lg font-semibold 
+      rounded-xl 
+      backdrop-blur-lg 
+      bg-white/20 
+      border border-white/30 
+      shadow-lg 
+      hover:bg-blue-600 hover:text-white 
+      transition-all duration-300
+    "
+              >
+                <UserIcon className="w-5 h-5" />
+                Je suis candidat
+              </Link>
 
-              {isAuthenticated && user ? (
-                <form
-                  onSubmit={onSearch}
-                  className="flex flex-col sm:flex-row w-full max-w-md sm:max-w-xl mx-auto bg-white rounded-lg overflow-hidden border border-gray-200 shadow-md"
-                >
-                      <input
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Ex : Comptabilité, Design, React..."
-                        className="flex-1 px-4 py-3 bg-transparent text-gray-700 placeholder-gray-400 focus:outline-none text-center sm:text-left"
-                      />
-                      <button
-                        type="submit"
-                        className="px-6 py-3 bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors"
-                      >
-                        Rechercher
-                      </button>
-                </form>
-              ) : (
-              <div className="max-w-xl mx-auto flex items-center justify-around my-4">
-                  <Link to="/register" className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-lg border-4 border-white">
-                    Je suis candidat
-                  </Link>
-                  <Link to="/register" className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-lg border-4 border-white">
-                    Je suis client
-                  </Link>
-              </div>
-              )}
+              <Link
+                to="/register"
+                className="
+      flex items-center gap-2
+      px-8 py-3 
+      text-lg font-semibold 
+      rounded-xl 
+      backdrop-blur-lg 
+      bg-white/20 
+      border border-white/30 
+      shadow-lg 
+      hover:bg-green-600 hover:text-white 
+      transition-all duration-300
+    "
+              >
+                <BriefcaseIcon className="w-5 h-5" />
+                Je suis recruteur
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 

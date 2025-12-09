@@ -156,6 +156,7 @@ export const apiService = {
     adminDelete: (id) => apiClient.delete(`/admin/jobs/${id}`),
     adminUnfreeze: (id) => apiClient.patch(`/admin/jobs/${id}/unfreeze`),
     adminApprove: (id) => apiClient.patch(`/admin/jobs/${id}/approve`),
+    adminUpdate: (id, updates) => apiClient.put(`/admin/jobs/${id}`, updates),
   },
 
   // API des candidatures
@@ -217,6 +218,8 @@ export const apiService = {
     adminCreate: (userData) => apiClient.post("/admin/users", userData),
     adminGetUserById: (id) => apiClient.get(`/admin/users/${id}`),
     getAIJobMatches: () => apiClient.get("/users/ai-job-matches"),
+    convertFunds: (amount) =>
+      apiClient.post("/users/convert-funds", { amount }),
   },
 
   // API des notifications

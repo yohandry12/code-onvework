@@ -45,6 +45,8 @@ const UserDropdownMenu = ({ user, logout }) => {
     ? `${dbAvatarUrl}?t=${new Date().getTime()}`
     : fallbackAvatar;
 
+  const isCandidate = user?.role === "candidate";
+
   // Gestion de la fermeture au clic dehors
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -122,6 +124,15 @@ const UserDropdownMenu = ({ user, logout }) => {
               >
                 Mon Profil
               </NavLink>
+              {isCandidate && (
+                <NavLink
+                  to="/wallet"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Mon Portefeuille
+                </NavLink>
+              )}
 
               <NavLink
                 to="/settings"

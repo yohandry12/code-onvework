@@ -9,7 +9,11 @@ const {
   Application,
 } = require("../models"); // Importer tous les modèles nécessaires
 const { Op } = require("sequelize"); // Importer les opérateurs Sequelize
-const { authenticateToken, optionalAuth } = require("../middleware/auth");
+const {
+  authenticateToken,
+  optionalAuth,
+  requireRole,
+} = require("../middleware/auth");
 const { logger } = require("../utils/logger");
 const { findMatchingJobs } = require("../services/aiMatchingService");
 const { getCompletedJobsCount } = require("../utils/stats");
@@ -302,6 +306,89 @@ module.exports = function (io) {
       res.status(500).json({ success: false, error: "Erreur serveur." });
     }
   });
+
+  // --- POST /api/users/convert-funds - Convertir Argent en Points ---
+  router.post(
+    "/convert-funds",
+    authenticateToken,
+    requireRole("candidate"),
+    async (req, res) => {
+      const t = await sequelize.transaction();
+      try {
+        const { amount } = req.body;
+        const userId = req.user.id;
+
+        // Validation
+        const amountToConvert = parseFloat(amount);
+        if (isNaN(amountToConvert) || amountToConvert <= 0) {
+          return res
+            .status(400)
+            .json({ success: false, error: "Montant invalide." });
+        }
+
+        // 1. Récupérer le profil
+        const profile = await CandidateProfile.findOne({
+          where: { userId },
+          transaction: t,
+        });
+
+        if (!profile) {
+          await t.rollback();
+          return res
+            .status(404)
+            .json({ success: false, error: "Profil introuvable." });
+        }
+
+        // 2. Vérifier le solde
+        const currentBalance = parseFloat(profile.walletBalance || 0);
+        if (currentBalance < amountToConvert) {
+          await t.rollback();
+          return res
+            .status(400)
+            .json({ success: false, error: "Solde insuffisant." });
+        }
+
+        // 3. Effectuer la conversion (1 FCFA = 1 Point)
+        const currentPoints = parseInt(profile.trainingPoints || 0);
+        const pointsToAdd = Math.floor(amountToConvert); // On arrondit les points à l'entier
+
+        await profile.update(
+          {
+            walletBalance: currentBalance - amountToConvert,
+            trainingPoints: currentPoints + pointsToAdd,
+          },
+          { transaction: t }
+        );
+
+        // 4. Créer une activité (Historique)
+        // Note: Assurez-vous d'importer le modèle Activity en haut du fichier si ce n'est pas fait
+        /* const { Activity } = require("../models"); */
+        // Ou utiliser activityCreator si disponible, sinon create direct:
+        // await Activity.create({ ... }, { transaction: t });
+        // Pour simplifier ici, on suppose que vous gérez l'activité ou que c'est optionnel pour l'instant.
+
+        await t.commit();
+
+        logger.info(
+          `User ${userId} a converti ${amountToConvert} FCFA en ${pointsToAdd} points.`
+        );
+
+        res.json({
+          success: true,
+          message: "Conversion réussie !",
+          newBalance: profile.walletBalance,
+          newPoints: profile.trainingPoints,
+        });
+      } catch (error) {
+        await t.rollback();
+        logger.error("Erreur conversion fonds:", error);
+        res.status(500).json({
+          success: false,
+          error: "Erreur serveur lors de la conversion.",
+        });
+      }
+    }
+  );
 
   return router;
 };

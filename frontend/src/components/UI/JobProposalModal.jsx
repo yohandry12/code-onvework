@@ -140,7 +140,7 @@ const JobProposalModal = ({ isOpen, onClose, candidate, onSuccess }) => {
                   <select
                     value={selectedJobId}
                     onChange={(e) => setSelectedJobId(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
                     required
                   >
                     <option value="">-- Sélectionner une mission --</option>
@@ -163,7 +163,7 @@ const JobProposalModal = ({ isOpen, onClose, candidate, onSuccess }) => {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Bonjour, votre profil m'intéresse beaucoup pour cette mission..."
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
                 />
                 <p className="text-xs text-gray-500 mt-1 text-right">
                   Optionnel mais recommandé

@@ -153,6 +153,19 @@ module.exports = (sequelize) => {
         },
       },
       diplomas: { type: DataTypes.JSON, defaultValue: [] },
+      // --- NOUVEAUX CHAMPS WALLET ---
+      walletBalance: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0.0,
+        field: "wallet_balance",
+        comment: "Fonds personnels (70% des missions)",
+      },
+      trainingPoints: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        field: "training_points",
+        comment: "Points de formation (20% des missions)",
+      },
       recommendationBadge: {
         type: DataTypes.STRING,
         field: "recommendation_badge",

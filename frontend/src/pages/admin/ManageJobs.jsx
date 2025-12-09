@@ -12,6 +12,7 @@ import {
   EyeIcon,
   PlusIcon,
   DocumentDuplicateIcon,
+  PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import { apiService } from "../../services/api";
 import { format } from "date-fns";
@@ -310,6 +311,13 @@ const ManageJobs = () => {
                             <CheckCircleIcon className="h-5 w-5" />
                           </button>
                         )}
+                        <button
+                          onClick={() => navigate(`/admin/jobs/${job.id}/edit`)} // <-- Navigation
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Modifier la mission"
+                        >
+                          <PencilSquareIcon className="h-5 w-5" />
+                        </button>
                         <button
                           onClick={() => handleDelete(job.id)}
                           className="text-red-600 hover:text-red-900"

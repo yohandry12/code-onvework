@@ -85,6 +85,32 @@ module.exports = function (io) {
         application.amountPlatform = sharePlatform;
         application.currency = job.budgetCurrency || "EUR";
 
+        // 3. CRÉDITER LE CANDIDAT
+        const candidateProfile = await CandidateProfile.findOne({
+          where: { userId: application.candidateId },
+          transaction: t,
+        });
+
+        if (candidateProfile) {
+          const currentBalance = parseFloat(
+            candidateProfile.walletBalance || 0
+          );
+          const currentPoints = parseInt(candidateProfile.trainingPoints || 0);
+
+          await candidateProfile.update(
+            {
+              walletBalance: currentBalance + shareCandidate,
+              // On convertit le montant formation en points (1 Unité = 1 Point)
+              trainingPoints: currentPoints + shareTraining,
+            },
+            { transaction: t }
+          );
+
+          logger.info(
+            `Wallet crédité pour user ${application.candidateId}: +${shareCandidate} (Net), +${shareTraining} (Points)`
+          );
+        }
+
         // Log pour vérification
         logger.info(
           `Répartition financière calculée pour l'app ${application.id}: Total=${baseAmount}, Candidat=${shareCandidate}`
