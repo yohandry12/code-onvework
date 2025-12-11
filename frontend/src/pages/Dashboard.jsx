@@ -756,155 +756,156 @@ const Dashboard = () => {
   return (
     <div className="container mx-auto px-4 py-8 pb-10">
       {/* Header */}
-    <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
-      {/* Header global */}
+      <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
+        {/* Header global */}
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Bonjour {user?.profile?.firstName} !
-        </h1>
-        <div className="flex items-center text-gray-600">
-          <span
-            className={`capitalize px-3 py-1 rounded-full text-sm font-medium mr-3
-            ${
-              user?.role === "trainer"
-                ? "bg-emerald-100 text-emerald-800"
-                : "bg-blue-100 text-blue-800"
-            }
-          `}
-          >
-            {user?.role === "trainer" ? "Formateur" : user?.role}
-          </span>
-          {user?.profile?.location?.city && (
-            <>
-              <MapPinIcon className="h-4 w-4 mr-1" />
-              <span className="text-sm">
-                {user.profile.location.city},{" "}
-                {user.profile.location.country || "Cameroun"}
-              </span>
-            </>
-          )}
-          {user?.role === "candidate" && (
-            <span className="ml-4">
-              <RecommendationBadge badge={user.profile?.recommendationBadge} />
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Bonjour {user?.profile?.firstName} !
+          </h1>
+          <div className="flex items-center text-gray-600">
+            <span
+              className={`capitalize px-3 py-1 rounded-full text-sm font-medium mr-3
+              ${
+                user?.role === "trainer"
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-blue-100 text-blue-800"
+              }
+            `}
+            >
+              {user?.role === "trainer" ? "Formateur" : user?.role}
             </span>
-          )}
-        </div>
-      </div>
-
-      {/* Bloc Activité pour Candidat/Client */}
-      {(isCandidate || isClient) && (
-        <div className="mb-8 bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-            <BellIcon className="h-5 w-5 mr-2" />
-            Activité récente
-          </h2>
-
-          <div className="space-y-3 relative">
-            {recentActivity.map((activity, index) => (
-              <div
-                key={activity.id}
-                className={`flex items-center p-3 ${
-                  activity.read ? "bg-gray-50" : "bg-blue-50"
-                } rounded-lg group hover:shadow-sm transition-shadow relative`}
-              >
-                <div
-                  className={`w-2 h-2 rounded-full mr-3 ${
-                    activity.status === "pending"
-                      ? "bg-yellow-400"
-                      : activity.status === "new"
-                      ? "bg-green-400"
-                      : activity.status === "scheduled"
-                      ? "bg-blue-400"
-                      : "bg-gray-400"
-                  }`}
-                ></div>
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900">{activity.message}</p>
-                  <p className="text-xs text-gray-500">
-                    Il y a {timeAgo(activity.createdAt)}
-                  </p>
-                </div>
-
-                <div className="ml-4 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {!activity.read && (
-                    <button
-                      onClick={() => markAsRead(activity.id)}
-                      className="p-1 hover:bg-blue-100 rounded-full text-blue-600"
-                      title="Marquer comme lu"
-                    >
-                      <CheckIcon className="h-4 w-4" />
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => removeActivity(activity.id)}
-                    className="p-1 hover:bg-red-100 rounded-full text-red-600"
-                    title="Supprimer"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {recentActivity.length === 0 && (
-              <div className="text-center py-6 text-gray-500">
-                Aucune activité récente
-              </div>
+            {user?.profile?.location?.city && (
+              <>
+                <MapPinIcon className="h-4 w-4 mr-1" />
+                <span className="text-sm">
+                  {user.profile.location.city},{" "}
+                  {user.profile.location.country || "Cameroun"}
+                </span>
+              </>
+            )}
+            {user?.role === "candidate" && (
+              <span className="ml-4">
+                <RecommendationBadge badge={user.profile?.recommendationBadge} />
+              </span>
             )}
           </div>
         </div>
-      )}
 
-      {user?.role === "candidate" && <CandidateDashboard />}
-      {user?.role === "client" && <ClientDashboard />}
-      {user?.role === "trainer" && <TrainerDashboard />}
+        {/* Bloc Activité pour Candidat/Client */}
+        {(isCandidate || isClient) && (
+          <div className="mb-8 bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <BellIcon className="h-5 w-5 mr-2" />
+              Activité récente
+            </h2>
 
-      {user?.role === "admin" && (
-        <div className="text-center p-10">
-          Redirection vers le panel admin...
-        </div>
-      )}
+            <div className="space-y-3 relative">
+              {recentActivity.map((activity, index) => (
+                <div
+                  key={activity.id}
+                  className={`flex items-center p-3 ${
+                    activity.read ? "bg-gray-50" : "bg-blue-50"
+                  } rounded-lg group hover:shadow-sm transition-shadow relative`}
+                >
+                  <div
+                    className={`w-2 h-2 rounded-full mr-3 ${
+                      activity.status === "pending"
+                        ? "bg-yellow-400"
+                        : activity.status === "new"
+                        ? "bg-green-400"
+                        : activity.status === "scheduled"
+                        ? "bg-blue-400"
+                        : "bg-gray-400"
+                    }`}
+                  ></div>
 
-      {user?.role !== "admin" && (
-        <>
-          <FloatingFeedbackButton
-            onClick={() => setIsTestimonialModalOpen(true)}
-          />
-          {isTestimonialModalOpen && (
-            <TestimonialFormModal
-              onClose={() => setIsTestimonialModalOpen(false)}
-              onSubmitted={(status) => {
-                setIsTestimonialModalOpen(false);
-                if (status === "sucess") {
-                  setToast({
-                    type: "success",
-                    message: "Merci pour votre témoignage!",
-                  });
-                } else {
-                  setToast({
-                    type: "error",
-                    message: "Vous avez déjà envoyé un témoignage!",
-                  });
-                }
-              }}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900">{activity.message}</p>
+                    <p className="text-xs text-gray-500">
+                      Il y a {timeAgo(activity.createdAt)}
+                    </p>
+                  </div>
+
+                  <div className="ml-4 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {!activity.read && (
+                      <button
+                        onClick={() => markAsRead(activity.id)}
+                        className="p-1 hover:bg-blue-100 rounded-full text-blue-600"
+                        title="Marquer comme lu"
+                      >
+                        <CheckIcon className="h-4 w-4" />
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => removeActivity(activity.id)}
+                      className="p-1 hover:bg-red-100 rounded-full text-red-600"
+                      title="Supprimer"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {recentActivity.length === 0 && (
+                <div className="text-center py-6 text-gray-500">
+                  Aucune activité récente
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {user?.role === "candidate" && <CandidateDashboard />}
+        {user?.role === "client" && <ClientDashboard />}
+        {user?.role === "trainer" && <TrainerDashboard />}
+
+        {user?.role === "admin" && (
+          <div className="text-center p-10">
+            Redirection vers le panel admin...
+          </div>
+        )}
+
+        {user?.role !== "admin" && (
+          <>
+            <FloatingFeedbackButton
+              onClick={() => setIsTestimonialModalOpen(true)}
             />
-          )}
-        </>
-      )}
-      <Toast toast={toast} onClose={()=>{setToast(null)}}/>
-      {/* Utilisation du composant mobileMenu */}
-      {user && <MobileMenu user={user}/>}
+            {isTestimonialModalOpen && (
+              <TestimonialFormModal
+                onClose={() => setIsTestimonialModalOpen(false)}
+                onSubmitted={(status) => {
+                  setIsTestimonialModalOpen(false);
+                  if (status === "sucess") {
+                    setToast({
+                      type: "success",
+                      message: "Merci pour votre témoignage!",
+                    });
+                  } else {
+                    setToast({
+                      type: "error",
+                      message: "Vous avez déjà envoyé un témoignage!",
+                    });
+                  }
+                }}
+              />
+            )}
+          </>
+        )}
+        <Toast toast={toast} onClose={()=>{setToast(null)}}/>
+        {/* Utilisation du composant mobileMenu */}
+        {user && <MobileMenu user={user}/>}
 
-      <Toast
-        toast={toast}
-        onClose={() => {
-          setToast(null);
-        }}
-      />
+        <Toast
+          toast={toast}
+          onClose={() => {
+            setToast(null);
+          }}
+        />
 
+      </div>
     </div>
   );
 };
