@@ -17,11 +17,13 @@ module.exports = (sequelize) => {
       const profile =
         userObject.candidateProfile ||
         userObject.clientProfile ||
+        userObject.trainerProfile ||
         userObject.adminProfile;
       if (profile) {
         userObject.profile = profile;
         delete userObject.candidateProfile;
         delete userObject.clientProfile;
+        delete userObject.trainerProfile;
         delete userObject.adminProfile;
       }
       return userObject;
@@ -55,7 +57,7 @@ module.exports = (sequelize) => {
         validate: { len: [8, 255] },
       },
       role: {
-        type: DataTypes.ENUM("candidate", "client", "admin"),
+        type: DataTypes.ENUM("candidate", "client", "admin", "trainer"),
         allowNull: false,
       },
       // --- Champs communs de gestion ---
@@ -240,6 +242,46 @@ module.exports = (sequelize) => {
     }
   );
 
+  class TrainerProfile extends Model {}
+  TrainerProfile.init(
+    {
+      userId: { type: DataTypes.INTEGER, primaryKey: true, field: "user_id" },
+      firstName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        field: "first_name",
+      },
+      lastName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        field: "last_name",
+      },
+      phone: DataTypes.STRING,
+      location: DataTypes.JSON, // { city, country, etc. }
+      bio: DataTypes.TEXT, // Présentation du formateur
+      specialties: { type: DataTypes.JSON, defaultValue: [] }, // Ex: ["React", "Management", "Comptabilité"]
+      certifications: { type: DataTypes.JSON, defaultValue: [] },
+      yearsExperience: { type: DataTypes.INTEGER, field: "years_experience" },
+      linkedinProfile: { type: DataTypes.STRING, field: "linkedin_profile" },
+      website: DataTypes.STRING,
+      avatar: DataTypes.STRING,
+      // Gestion financière pour le formateur
+      walletBalance: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0.0,
+        field: "wallet_balance",
+        comment: "Gains des ventes de formations",
+      },
+    },
+    {
+      sequelize,
+      modelName: "TrainerProfile",
+      tableName: "trainer_profiles",
+      timestamps: true, // Utile pour savoir quand le profil a été créé/modifié
+      underscored: true,
+    }
+  );
+
   class AdminProfile extends Model {}
   AdminProfile.init(
     {
@@ -293,6 +335,14 @@ module.exports = (sequelize) => {
   });
   ClientProfile.belongsTo(User, { foreignKey: "userId" });
 
+  // Un utilisateur a UN profil formateur
+  User.hasOne(TrainerProfile, {
+    foreignKey: "userId",
+    as: "trainerProfile",
+    onDelete: "CASCADE",
+  });
+  TrainerProfile.belongsTo(User, { foreignKey: "userId" });
+
   // Un utilisateur a UN profil admin
   User.hasOne(AdminProfile, {
     foreignKey: "userId",
@@ -302,5 +352,11 @@ module.exports = (sequelize) => {
   AdminProfile.belongsTo(User, { foreignKey: "userId" });
 
   // ⬇️ Exporter un seul objet pour l'importer facilement dans `models/index.js`
-  return { User, CandidateProfile, ClientProfile, AdminProfile };
+  return {
+    User,
+    CandidateProfile,
+    ClientProfile,
+    AdminProfile,
+    TrainerProfile,
+  };
 };

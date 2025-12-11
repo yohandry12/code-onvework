@@ -115,6 +115,7 @@ const Header = () => {
     { to: "/", label: "Accueil" },
     { to: "/talents", label: "Nos Talents" },
     { to: "/jobs", label: "Trouver des missions" },
+    { to: "/trainings", label: "Formations" },
     // { to: "/recommendations", label: "Avis" },
   ];
 

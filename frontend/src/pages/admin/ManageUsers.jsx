@@ -165,6 +165,7 @@ const ManageUsers = () => {
             <option value="">Tous les rôles</option>
             <option value="candidate">Candidat</option>
             <option value="client">Client</option>
+            <option value="trainer">Formateur</option>
           </select>
           <select
             value={statusFilter}

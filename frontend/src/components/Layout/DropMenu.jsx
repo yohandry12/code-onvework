@@ -22,6 +22,7 @@ const UserDropdownMenu = ({ user, logout }) => {
     user.candidateProfile ||
     user.clientProfile ||
     user.adminProfile ||
+    user.trainerProfile ||
     user.profile ||
     {};
   const firstName = profile.firstName || "User";

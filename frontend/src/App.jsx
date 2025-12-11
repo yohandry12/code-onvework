@@ -47,6 +47,12 @@ import UserDetailPage from "./pages/admin/UserDetailPage";
 import FinanceSettings from "./pages/admin/FinanceSettings";
 import AdminEditJob from "./pages/admin/AdminEditJob";
 import Wallet from "./pages/Wallet";
+import CreateCourse from "./pages/CreateCourse";
+// --- 1. IMPORT DU NOUVEAU COMPOSANT ---
+import TrainerOnboarding from "./pages/TrainerOnboarding";
+import ManageTrainings from "./pages/admin/ManageTrainings";
+import AllTrainings from "./pages/AllTrainings";
+
 // --- LAYOUTS ET COMPOSANTS ---
 import Header from "./components/Layout/Header";
 import Footer from "./components/Layout/Footer";
@@ -68,7 +74,6 @@ const ProtectedRoute = ({ allowedRoles }) => {
   }
 
   if (!user) {
-    // Si la page demandée est une page admin, rediriger vers le login admin
     if (window.location.pathname.startsWith("/admin")) {
       return <Navigate to="/admin/login" replace />;
     }
@@ -82,7 +87,6 @@ const ProtectedRoute = ({ allowedRoles }) => {
   return <Outlet />;
 };
 
-// --- Layout pour les pages publiques ET les utilisateurs connectés ---
 const MainLayout = () => (
   <div className="min-h-screen bg-gray-50 flex flex-col dark:bg-gray-900">
     <Header />
@@ -108,7 +112,6 @@ function AppRoutes() {
     <>
       <OfflineBanner />
       <Routes>
-        {/* --- GROUPE 1: ROUTES PUBLIQUES & UTILISATEURS utilisant le MainLayout --- */}
         <Route element={<MainLayout />}>
           {/* Routes publiques */}
           <Route path="/" element={<Home />} />
@@ -117,32 +120,51 @@ function AppRoutes() {
           <Route path="/talents" element={<AllTalents />} />
           <Route path="/recommendations" element={<RecommendationsList />} />
           <Route path="/docs" element={<ApiDocumentation />} />
+          <Route path="/trainings" element={<AllTrainings />} />
 
-          {/* Routes protégées pour Clients & Candidats */}
+          {/* --- 2. MODIFICATION DU GROUPE PROTÉGÉ --- */}
+          {/* Ajout de 'trainer' dans allowedRoles pour qu'il puisse accéder au Dashboard, Profile, Wallet, etc. */}
           <Route
-            element={<ProtectedRoute allowedRoles={["client", "candidate"]} />}
+            element={
+              <ProtectedRoute
+                allowedRoles={["client", "candidate", "trainer"]}
+              />
+            }
           >
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/profile" element={<ProfilePage />} />
-            <Route
-              path="/manage-applications"
-              element={<ManageApplications />}
-            />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/settings" element={<SettingsPage />} />
+
+            {/* Routes Spécifiques Candidat */}
             <Route path="/my-applications" element={<MyApplications />} />
             <Route
               path="/onboarding/candidate"
               element={<OnboardingCandidate />}
             />
+
+            {/* Routes Spécifiques Client */}
+            <Route
+              path="/manage-applications"
+              element={<ManageApplications />}
+            />
             <Route path="/jobs/create" element={<CreateJob />} />
             <Route path="/client/job-history" element={<JobHistory />} />
             <Route path="/clients/:clientId" element={<ClientProfilePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/talents/:id" element={<TalentProfilePage />} />
-            <Route path="/wallet" element={<Wallet />} />
+
+            {/* --- 3. AJOUT DE LA ROUTE SPÉCIFIQUE FORMATEUR --- */}
+            <Route path="/onboarding/trainer" element={<TrainerOnboarding />} />
+            <Route path="/courses/create" element={<CreateCourse />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={["trainer"]} />}>
+            <Route path="/onboarding/trainer" element={<TrainerOnboarding />} />
+            <Route path="/courses/create" element={<CreateCourse />} />
           </Route>
         </Route>
 
-        {/* --- GROUPE 2: ROUTES D'AUTHENTIFICATION (sans layout) --- */}
+        {/* Routes Auth */}
         <Route
           path="/login"
           element={user ? <Navigate to="/dashboard" /> : <Login />}
@@ -162,13 +184,12 @@ function AppRoutes() {
           }
         />
 
-        {/* --- GROUPE 3: ROUTES ADMIN utilisant le AdminLayout --- */}
+        {/* Routes Admin */}
         <Route
           path="/admin"
           element={<ProtectedRoute allowedRoles={["admin"]} />}
         >
           <Route element={<AdminLayout />}>
-            {/* Redirection de /admin vers /admin/dashboard */}
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="jobs" element={<ManageJobs />} />
@@ -176,15 +197,14 @@ function AppRoutes() {
             <Route path="reports" element={<ManageReports />} />
             <Route path="users" element={<ManageUsers />} />
             <Route path="recommandations" element={<AdminRecommendations />} />
-            {/* <Route path="/admin/users/:id" element={<AdminUserDetails />} /> */}
             <Route path="/admin/jobs/create" element={<AdminCreateJob />} />
             <Route path="/admin/users/:id" element={<UserDetailPage />} />
             <Route path="finance" element={<FinanceSettings />} />
             <Route path="/admin/jobs/:id/edit" element={<AdminEditJob />} />
+            <Route path="trainings" element={<ManageTrainings />} />
           </Route>
         </Route>
 
-        {/* --- PAGES D'ERREUR --- */}
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="*" element={<h1>404 - Page Non Trouvée</h1>} />
       </Routes>

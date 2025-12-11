@@ -14,6 +14,7 @@ import {
   BellIcon,
   SparklesIcon,
   BanknotesIcon,
+  AcademicCapIcon,
 } from "@heroicons/react/24/outline";
 
 const AdminDashboard = () => {
@@ -145,7 +146,7 @@ const AdminDashboard = () => {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Administration
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
             <Link
               to="/admin/users"
               className="flex items-center p-4 border-2 border-dashed rounded-lg hover:border-blue-400 hover:bg-blue-50"
@@ -189,6 +190,14 @@ const AdminDashboard = () => {
             >
               <BanknotesIcon className="h-6 w-6 text-green-600 mr-3" />
               <span>Taux Financiers</span>
+            </Link>
+
+            <Link
+              to="/admin/trainings"
+              className="flex items-center p-4 border-2 border-dashed rounded-lg hover:border-indigo-400 hover:bg-indigo-50"
+            >
+              <AcademicCapIcon className="h-6 w-6 text-indigo-500 mr-3" />
+              <span>Gérer les Formations</span>
             </Link>
           </div>
         </div>

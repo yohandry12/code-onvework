@@ -1,5 +1,13 @@
 const express = require("express");
-const { Job, User, Application, sequelize } = require("../models");
+const {
+  Job,
+  User,
+  Application,
+  Training,
+  Enrollment,
+  TrainerProfile,
+  sequelize,
+} = require("../models");
 const { Op } = require("sequelize");
 const { authenticateToken } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
@@ -177,6 +185,83 @@ module.exports = function (io) {
           totalApplications,
           activeUsers: totalUsers, // À affiner si besoin
           monthlyGrowth: parseFloat(growth.toFixed(1)),
+        };
+      } // --- LOGIQUE POUR LE FORMATEUR (NOUVEAU) ---
+      else if (req.user.role === "trainer") {
+        // 1. Récupérer les IDs de toutes les formations du formateur
+        const trainerTrainings = await Training.findAll({
+          where: { trainerId: userId },
+          attributes: ["id"],
+          raw: true,
+        });
+        const trainingIds = trainerTrainings.map((t) => t.id);
+
+        // 2. Compter les formations actives (publiées)
+        const activeCourses = await Training.count({
+          where: {
+            trainerId: userId,
+            status: "published",
+          },
+        });
+
+        // 3. Compter le total des étudiants (Inscriptions)
+        let totalStudents = 0;
+        let totalRevenue = 0;
+
+        if (trainingIds.length > 0) {
+          totalStudents = await Enrollment.count({
+            where: { trainingId: { [Op.in]: trainingIds } },
+          });
+
+          // 4. Calculer le revenu total historique (Somme des amountPaid)
+          // Note : Le walletBalance dans le profil est le solde *actuel*, ici on calcule le CA *total*
+          const revenueResult = await Enrollment.sum("amountPaid", {
+            where: { trainingId: { [Op.in]: trainingIds } },
+          });
+          totalRevenue = revenueResult || 0;
+        }
+
+        // 5. Calculer la note moyenne globale
+        const avgResult = await Training.findAll({
+          where: { trainerId: userId, status: "published" },
+          attributes: [
+            [sequelize.fn("AVG", sequelize.col("average_rating")), "avgRating"],
+          ],
+          raw: true,
+        });
+        const averageRating = avgResult[0]?.avgRating
+          ? parseFloat(avgResult[0].avgRating).toFixed(1)
+          : 0;
+
+        // 6. Récupérer les 3 formations les plus récentes pour l'affichage
+        // On doit aussi récupérer le nombre d'étudiants pour CHAQUE cours
+        let recentCourses = await Training.findAll({
+          where: { trainerId: userId },
+          limit: 3,
+          order: [["createdAt", "DESC"]],
+          raw: true, // On récupère des objets JS simples
+        });
+
+        // Enrichir les cours récents avec le nombre d'étudiants
+        // (On fait une requête count par cours car le nombre est faible, c'est performant)
+        recentCourses = await Promise.all(
+          recentCourses.map(async (course) => {
+            const studentCount = await Enrollment.count({
+              where: { trainingId: course.id },
+            });
+            return {
+              ...course,
+              totalStudents: studentCount,
+            };
+          })
+        );
+
+        stats = {
+          activeCourses,
+          totalStudents,
+          totalRevenue, // Chiffre d'affaire global
+          averageRating,
+          recentCourses, // Tableau des 3 derniers cours avec leurs stats
         };
       }
 

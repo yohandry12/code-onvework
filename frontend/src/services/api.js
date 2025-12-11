@@ -308,6 +308,37 @@ export const apiService = {
     getChatReply: (messages, jobContext) =>
       apiService.post("/ai/chat", { messages, jobContext }),
   },
+
+  trainings: {
+    create: (data) => apiService.post("/training", data),
+    update: (id, data) => apiService.put(`/training/${id}`, data),
+    getAllMyTrainings: () => apiService.get("/training/my-trainings"),
+    getById: (id) => apiService.get(`/training/${id}/edit`),
+    delete: (id) => apiService.delete(`/training/${id}`),
+    publicTrainings: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return apiService.get(`/training/public?${query}`);
+    },
+
+    // Upload spécifique pour les médias de formation
+    uploadMedia: (file) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      return apiClient.post("/training/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    },
+
+    adminGetAll: (params = {}) => {
+      // params peut contenir { trainerId: 12, page: 1, ... }
+      const query = new URLSearchParams(params).toString();
+      return apiClient.get(`/admin/trainings?${query}`);
+    },
+
+    adminApprove: (id) => apiClient.patch(`/admin/trainings/${id}/approve`),
+    adminReject: (id, reason) =>
+      apiClient.patch(`/admin/trainings/${id}/reject`, { reason }),
+  },
 };
 
 // Export de l'instance Axios pour utilisation directe si nécessaire

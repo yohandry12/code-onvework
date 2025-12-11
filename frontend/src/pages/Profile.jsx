@@ -14,6 +14,8 @@ import {
   BuildingOfficeIcon as OfficeBuildingIcon,
   TagIcon,
   CameraIcon,
+  LinkIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
 
 // --- Composants d'aide pour le style (Inchangés) ---
@@ -81,7 +83,7 @@ const TextareaRow = ({ label, name, value, onChange }) => (
   </div>
 );
 
-// --- Composants de profil (Candidate & Client) ---
+// --- 1. COMPOSANT PROFIL CANDIDAT ---
 const CandidateProfile = ({
   user,
   isEditing,
@@ -92,7 +94,6 @@ const CandidateProfile = ({
   removeDiplomaField,
 }) => (
   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    {/* Colonne de Gauche */}
     <div className="lg:col-span-2 space-y-6">
       <ProfileCard title="À propos de moi">
         {isEditing ? (
@@ -147,7 +148,6 @@ const CandidateProfile = ({
       </ProfileCard>
     </div>
 
-    {/* Colonne de Droite */}
     <div className="space-y-6">
       <ProfileCard title="Contact">
         <InfoRow icon={<EnvelopeIcon />} label="Email" value={user.email} />
@@ -187,9 +187,9 @@ const CandidateProfile = ({
                     onChange={(e) =>
                       handleDiplomaChange(index, "type", e.target.value)
                     }
-                    className="select select-bordered w-full"
+                    className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm sm:text-sm"
                   >
-                    <option value="">* Sélectionnez un type</option>
+                    <option value="">* Type</option>
                     <option value="CAMES">CAMES</option>
                     <option value="GCE">GCE</option>
                     <option value="HND">HND</option>
@@ -198,7 +198,7 @@ const CandidateProfile = ({
                   <button
                     type="button"
                     onClick={() => removeDiplomaField(index)}
-                    className="btn btn-sm btn-ghost"
+                    className="text-red-500 hover:text-red-700 font-bold"
                   >
                     X
                   </button>
@@ -207,7 +207,7 @@ const CandidateProfile = ({
               <button
                 type="button"
                 onClick={addDiplomaField}
-                className="btn btn-outline btn-sm mt-2"
+                className="text-sm text-blue-600 hover:underline"
               >
                 + Ajouter un diplôme
               </button>
@@ -232,6 +232,7 @@ const CandidateProfile = ({
   </div>
 );
 
+// --- 2. COMPOSANT PROFIL CLIENT ---
 const ClientProfile = ({
   user,
   isEditing,
@@ -342,6 +343,219 @@ const ClientProfile = ({
   </div>
 );
 
+// --- 3. NOUVEAU COMPOSANT PROFIL FORMATEUR ---
+const TrainerProfile = ({
+  user,
+  isEditing,
+  formData,
+  handleProfileChange,
+  handleCertificationChange,
+  addCertificationField,
+  removeCertificationField,
+}) => (
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="lg:col-span-2 space-y-6">
+      {/* BIO */}
+      <ProfileCard title="Présentation & Pédagogie">
+        {isEditing ? (
+          <TextareaRow
+            label="Votre Bio"
+            name="bio"
+            value={formData.profile.bio}
+            onChange={handleProfileChange}
+          />
+        ) : (
+          <p className="text-sm text-gray-600 whitespace-pre-line">
+            {user.profile.bio || "Aucune bio renseignée."}
+          </p>
+        )}
+      </ProfileCard>
+
+      {/* SPÉCIALITÉS */}
+      <ProfileCard title="Domaines d'expertise">
+        {isEditing ? (
+          <InputRow
+            label="Spécialités (séparées par des virgules)"
+            name="specialties"
+            placeholder="Ex: React, Marketing, Finance..."
+            value={
+              formData.profile.specialties
+                ? formData.profile.specialties.join(", ")
+                : ""
+            }
+            onChange={(e) => {
+              const event = {
+                target: {
+                  name: "specialties",
+                  value: e.target.value.split(",").map((s) => s.trim()),
+                },
+              };
+              handleProfileChange(event);
+            }}
+          />
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {user.profile.specialties?.length > 0 ? (
+              user.profile.specialties.map((spec, idx) => (
+                <span
+                  key={idx}
+                  className="px-3 py-1 text-sm bg-emerald-100 text-emerald-800 rounded-full font-medium"
+                >
+                  {spec}
+                </span>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500">
+                Aucune spécialité ajoutée.
+              </p>
+            )}
+          </div>
+        )}
+      </ProfileCard>
+
+      {/* CERTIFICATIONS */}
+      <ProfileCard title="Certifications & Diplômes">
+        {isEditing ? (
+          <div className="space-y-4">
+            {formData.profile.certifications.map((cert, index) => (
+              <div key={index} className="flex gap-2 items-end">
+                <div className="flex-grow">
+                  <label className="block text-xs text-gray-500">
+                    Intitulé
+                  </label>
+                  <input
+                    type="text"
+                    value={cert.name}
+                    onChange={(e) =>
+                      handleCertificationChange(index, "name", e.target.value)
+                    }
+                    className="block w-full px-2 py-1 bg-white border border-gray-300 rounded-md sm:text-sm"
+                  />
+                </div>
+                <div className="w-24">
+                  <label className="block text-xs text-gray-500">Année</label>
+                  <input
+                    type="text"
+                    value={cert.year}
+                    onChange={(e) =>
+                      handleCertificationChange(index, "year", e.target.value)
+                    }
+                    className="block w-full px-2 py-1 bg-white border border-gray-300 rounded-md sm:text-sm"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeCertificationField(index)}
+                  className="text-red-500 hover:text-red-700 font-bold px-2 py-1"
+                >
+                  X
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addCertificationField}
+              className="text-sm text-emerald-600 hover:underline"
+            >
+              + Ajouter une certification
+            </button>
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {user.profile.certifications?.length > 0 ? (
+              user.profile.certifications.map((cert, idx) => (
+                <li key={idx} className="flex items-center text-sm">
+                  <AcademicCapIcon className="h-5 w-5 text-emerald-500 mr-2" />
+                  <span className="font-semibold text-gray-800">
+                    {cert.name}
+                  </span>
+                  {cert.year && (
+                    <span className="text-gray-500 ml-2">({cert.year})</span>
+                  )}
+                </li>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500">
+                Aucune certification ajoutée.
+              </p>
+            )}
+          </ul>
+        )}
+      </ProfileCard>
+    </div>
+
+    <div className="space-y-6">
+      <ProfileCard title="Détails Professionnels">
+        <InfoRow icon={<EnvelopeIcon />} label="Email" value={user.email} />
+        {isEditing ? (
+          <>
+            <InputRow
+              label="Téléphone"
+              name="phone"
+              value={formData.profile.phone}
+              onChange={handleProfileChange}
+            />
+            <InputRow
+              label="Années d'expérience"
+              name="yearsExperience"
+              type="number"
+              value={formData.profile.yearsExperience}
+              onChange={handleProfileChange}
+            />
+            <div className="border-t pt-4 mt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Réseaux & Web
+              </h4>
+              <InputRow
+                label="Site Web"
+                name="website"
+                value={formData.profile.website}
+                onChange={handleProfileChange}
+                placeholder="https://..."
+              />
+              <div className="mt-2"></div>
+              <InputRow
+                label="Profil LinkedIn"
+                name="linkedinProfile"
+                value={formData.profile.linkedinProfile}
+                onChange={handleProfileChange}
+                placeholder="https://linkedin.com/in/..."
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <InfoRow
+              icon={<PhoneIcon />}
+              label="Téléphone"
+              value={user.profile.phone}
+            />
+            <InfoRow
+              icon={<ClockIcon />}
+              label="Expérience"
+              value={
+                user.profile.yearsExperience
+                  ? `${user.profile.yearsExperience} ans`
+                  : null
+              }
+            />
+            <InfoRow
+              icon={<GlobeAltIcon />}
+              label="Site Web"
+              value={user.profile.website}
+            />
+            <InfoRow
+              icon={<LinkIcon />}
+              label="LinkedIn"
+              value={user.profile.linkedinProfile}
+            />
+          </>
+        )}
+      </ProfileCard>
+    </div>
+  </div>
+);
+
 // --- Composant principal de la page ---
 
 const ProfilePage = () => {
@@ -372,28 +586,38 @@ const ProfilePage = () => {
     fetchCities();
   }, []);
 
-  // 2. Initialiser formData
+  // 2. Initialiser formData (Mise à jour pour Formateur)
   useEffect(() => {
     if (user) {
+      // SÉCURITÉ : On s'assure que user.profile existe, sinon on prend un objet vide
+      const p = user.profile || {};
+
       setFormData({
         profile: {
-          firstName: user.profile.firstName || "",
-          lastName: user.profile.lastName || "",
-          phone: user.profile.phone || "",
-          profession: user.profile.profession || "",
-          bio: user.profile.bio || "",
-          website: user.profile.website || "",
-          candidateType: user.profile.candidateType || "freelance",
-          // On s'assure que location existe toujours
-          location: user.profile.location || { city: "", country: "Cameroun" },
-          skills: user.profile.skills || [],
-          diplomas: user.profile.diplomas || [],
-          company: user.profile.company || "",
-          commercialName: user.profile.commercialName || "",
-          sector: user.profile.sector || "",
-          employerType: user.profile.employerType || "",
-          avatar: user.profile.avatar || "",
-          address: user.profile.address || "",
+          firstName: p.firstName || "",
+          lastName: p.lastName || "",
+          phone: p.phone || "",
+          profession: p.profession || "",
+          bio: p.bio || "",
+          website: p.website || "",
+          // Commun
+          location: p.location || { city: "", country: "Cameroun" },
+          avatar: p.avatar || "",
+          // Candidat
+          candidateType: p.candidateType || "freelance",
+          skills: p.skills || [],
+          diplomas: p.diplomas || [],
+          address: p.address || "",
+          // Client
+          company: p.company || "",
+          commercialName: p.commercialName || "",
+          sector: p.sector || "",
+          employerType: p.employerType || "",
+          // Formateur (Nouveaux champs)
+          yearsExperience: p.yearsExperience || "",
+          specialties: p.specialties || [],
+          certifications: p.certifications || [],
+          linkedinProfile: p.linkedinProfile || "",
         },
       });
     }
@@ -402,7 +626,6 @@ const ProfilePage = () => {
   // 3. Gestionnaire de changement de l'input ville
   const handleCityChange = (e) => {
     const userInput = e.target.value;
-    // --- CORRECTION : Mise à jour imbriquée correcte ---
     setFormData((prev) => ({
       ...prev,
       profile: {
@@ -502,7 +725,7 @@ const ProfilePage = () => {
     }
   };
 
-  // --- Fonctions existantes ---
+  // --- Fonctions Candidat ---
   const handleDiplomaChange = (index, field, value) => {
     const updatedDiplomas = [...formData.profile.diplomas];
     updatedDiplomas[index][field] = value;
@@ -533,6 +756,40 @@ const ProfilePage = () => {
     }));
   };
 
+  // --- Fonctions Formateur (Certifications) ---
+  const handleCertificationChange = (index, field, value) => {
+    const updatedCerts = [...formData.profile.certifications];
+    updatedCerts[index][field] = value;
+    setFormData((prev) => ({
+      ...prev,
+      profile: { ...prev.profile, certifications: updatedCerts },
+    }));
+  };
+
+  const addCertificationField = () => {
+    setFormData((prev) => ({
+      ...prev,
+      profile: {
+        ...prev.profile,
+        certifications: [
+          ...prev.profile.certifications,
+          { name: "", year: "" },
+        ],
+      },
+    }));
+  };
+
+  const removeCertificationField = (index) => {
+    const updatedCerts = formData.profile.certifications.filter(
+      (_, i) => i !== index
+    );
+    setFormData((prev) => ({
+      ...prev,
+      profile: { ...prev.profile, certifications: updatedCerts },
+    }));
+  };
+
+  // --- Communs ---
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -554,7 +811,6 @@ const ProfilePage = () => {
     setIsSaving(true);
 
     try {
-      // On s'assure que location a bien la bonne structure
       const locationData = {
         city: formData.profile.location?.city || "",
         country: "Cameroun",
@@ -564,7 +820,9 @@ const ProfilePage = () => {
         profile: {
           ...formData.profile,
           location: locationData,
+          // Nettoyage des tableaux vides si nécessaire
           diplomas: formData.profile.diplomas.filter((d) => d.type),
+          certifications: formData.profile.certifications.filter((c) => c.name),
         },
       };
       await apiService.auth.updateProfile(updates);
@@ -584,7 +842,6 @@ const ProfilePage = () => {
   const handleCancelEdit = () => {
     setIsEditing(false);
     if (user) {
-      // Revenir aux données d'origine
       setFormData({
         profile: {
           ...user.profile,
@@ -594,7 +851,6 @@ const ProfilePage = () => {
     }
   };
 
-  // Utilitaire pour construire l'URL de l'avatar
   const getAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
@@ -725,52 +981,27 @@ const ProfilePage = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Statut
                         </label>
-
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-                            <i className="fa-solid fa-user-tag"></i>
-                          </span>
-
                           <select
                             name="candidateType"
                             value={formData.profile.candidateType}
                             onChange={handleProfileChange}
-                            className="
-            w-full pl-10 pr-4 py-2.5 
-            rounded-xl 
-            bg-white/80 
-            shadow-sm 
-            border border-gray-200
-            focus:outline-none focus:ring-2 focus:ring-blue-500/60 
-            transition-all
-          "
+                            className="w-full pl-3 pr-4 py-2.5 rounded-xl bg-white/80 shadow-sm border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/60 transition-all"
                           >
-                            <option value="freelance">
-                              Freelance / Indépendant
-                            </option>
+                            <option value="freelance">Freelance</option>
                             <option value="student">Étudiant</option>
                             <option value="unemployed">Sans emploi</option>
                           </select>
                         </div>
                       </div>
                     ) : (
-                      <span
-                        className="
-        inline-flex items-center gap-2 
-        px-3 py-1.5 
-        rounded-full text-sm font-medium 
-        bg-blue-50 text-blue-700 
-        border border-blue-200 capitalize
-      "
-                      >
-                        <i className="fa-solid fa-user-tag text-blue-600"></i>
+                      <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 capitalize">
                         {formData.profile.candidateType === "unemployed"
                           ? "Sans emploi"
                           : formData.profile.candidateType}
                       </span>
                     )}
                   </div>
-
                   {isEditing ? (
                     <div className="mt-2">
                       <InputRow
@@ -792,7 +1023,6 @@ const ProfilePage = () => {
 
               {isEditing ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 w-full">
-                  {/* --- COLONNE 1 : VILLE --- */}
                   <div className="relative" ref={wrapperRef}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Ville
@@ -811,13 +1041,10 @@ const ProfilePage = () => {
                         placeholder="Ex: Douala, Yaoundé..."
                         autoComplete="off"
                       />
-                      {/* Icone positionnée absolument au centre vertical */}
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                         <MapPinIcon className="h-5 w-5 text-gray-400" />
                       </div>
                     </div>
-
-                    {/* Liste déroulante des suggestions */}
                     {showSuggestions && citySuggestions.length > 0 && (
                       <ul className="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto">
                         {citySuggestions.map((cityName, index) => (
@@ -833,8 +1060,6 @@ const ProfilePage = () => {
                       </ul>
                     )}
                   </div>
-
-                  {/* --- COLONNE 2 : PAYS --- */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Pays
@@ -928,6 +1153,17 @@ const ProfilePage = () => {
             formData={formData}
             handleProfileChange={handleProfileChange}
             handleEmployerTypeChange={handleEmployerTypeChange}
+          />
+        )}
+        {user.role === "trainer" && (
+          <TrainerProfile
+            user={user}
+            isEditing={isEditing}
+            formData={formData}
+            handleProfileChange={handleProfileChange}
+            handleCertificationChange={handleCertificationChange}
+            addCertificationField={addCertificationField}
+            removeCertificationField={removeCertificationField}
           />
         )}
       </form>
