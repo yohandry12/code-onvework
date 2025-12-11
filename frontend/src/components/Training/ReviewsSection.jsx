@@ -56,7 +56,7 @@ const ReviewsSection = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Votre note
               </label>
-              <StarRatingInput rating={rating} setRating={setRating} />
+              <StarRatingInput rating={rating} onRatingChange={setRating} />
             </div>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">

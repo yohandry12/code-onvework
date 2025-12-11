@@ -330,6 +330,11 @@ export const apiService = {
     },
 
     addReview: (id, data) => apiClient.post(`/training/${id}/review`, data),
+    publicDetails: (id) => apiService.get(`/training/${id}/public-detail`),
+    enroll: (id, data) => apiClient.post(`/training/${id}/enroll`, data),
+    // getMyEnrollments: () => apiService.get("/training/my-enrollments"),
+    // getMyEnrollmentDetails: (id) =>
+    //   apiService.get(`/training/enrollment/${id}/details`),
 
     adminGetAll: (params = {}) => {
       // params peut contenir { trainerId: 12, page: 1, ... }

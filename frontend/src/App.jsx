@@ -52,6 +52,7 @@ import CreateCourse from "./pages/CreateCourse";
 import TrainerOnboarding from "./pages/TrainerOnboarding";
 import ManageTrainings from "./pages/admin/ManageTrainings";
 import AllTrainings from "./pages/AllTrainings";
+import TrainingDetail from "./pages/TrainingDetail";
 
 // --- LAYOUTS ET COMPOSANTS ---
 import Header from "./components/Layout/Header";
@@ -121,6 +122,7 @@ function AppRoutes() {
           <Route path="/recommendations" element={<RecommendationsList />} />
           <Route path="/docs" element={<ApiDocumentation />} />
           <Route path="/trainings" element={<AllTrainings />} />
+          <Route path="/trainings/:id" element={<TrainingDetail />} />
 
           {/* --- 2. MODIFICATION DU GROUPE PROTÉGÉ --- */}
           {/* Ajout de 'trainer' dans allowedRoles pour qu'il puisse accéder au Dashboard, Profile, Wallet, etc. */}

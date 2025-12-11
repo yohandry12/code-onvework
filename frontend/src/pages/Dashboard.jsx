@@ -31,7 +31,7 @@ import CreateJob from "./CreateJob";
 import { apiService } from "../services/api";
 import AIJobSuggestions from "../components/UI/AIJobSuggestions";
 import Toast from "../components/UI/Toast";
-import MobileMenu from "components/UI/MobileMenu"
+import MobileMenu from "../components/UI/MobileMenu";
 
 import FloatingFeedbackButton from "../components/UI/FloatingFeedbackButton";
 import TestimonialFormModal from "../components/UI/TestimonialFormModal";
@@ -786,7 +786,9 @@ const Dashboard = () => {
             )}
             {user?.role === "candidate" && (
               <span className="ml-4">
-                <RecommendationBadge badge={user.profile?.recommendationBadge} />
+                <RecommendationBadge
+                  badge={user.profile?.recommendationBadge}
+                />
               </span>
             )}
           </div>
@@ -894,9 +896,14 @@ const Dashboard = () => {
             )}
           </>
         )}
-        <Toast toast={toast} onClose={()=>{setToast(null)}}/>
+        <Toast
+          toast={toast}
+          onClose={() => {
+            setToast(null);
+          }}
+        />
         {/* Utilisation du composant mobileMenu */}
-        {user && <MobileMenu user={user}/>}
+        {user && <MobileMenu user={user} />}
 
         <Toast
           toast={toast}
@@ -904,7 +911,6 @@ const Dashboard = () => {
             setToast(null);
           }}
         />
-
       </div>
     </div>
   );

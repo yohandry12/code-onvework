@@ -14,14 +14,14 @@ import {
   ArrowLeft,
   ArrowRight,
   DollarSign,
-  GripVertical,
   LayoutList,
   Layers,
   MonitorPlay,
-  HelpCircle,
-  CheckSquare,
-  XCircle,
   Clock,
+  Globe,
+  Tag,
+  Award,
+  AlertCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -98,13 +98,19 @@ const CreateCourse = () => {
 
   const [formData, setFormData] = useState({
     title: "",
+    subtitle: "", // AJOUTÉ
     category: "",
+    subCategory: "", // AJOUTÉ
     level: "Débutant",
+    language: "Français", // AJOUTÉ
     price: "",
+    discountPrice: "", // AJOUTÉ
     duration: "",
     description: "",
     thumbnail: "",
+    certificateEnabled: true, // AJOUTÉ
     objectives: [""],
+    prerequisites: [""], // AJOUTÉ
     modules: [
       {
         title: "Module 1 : Introduction",
@@ -123,8 +129,11 @@ const CreateCourse = () => {
   });
 
   // --- LOGIQUE (Identique à avant, juste nettoyée) ---
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) => {
+    const value =
+      e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    setFormData({ ...formData, [e.target.name]: value });
+  };
 
   const handleUpload = async (e, field) => {
     const file = e.target.files[0];
@@ -246,10 +255,10 @@ const CreateCourse = () => {
       const payload = {
         ...formData,
         price: parseFloat(formData.price) || 0,
-        // Conversion de la durée totale en minutes pour le backend
-        // Si l'utilisateur entre "10" (heures), on envoie 600 minutes
+        discountPrice: parseFloat(formData.discountPrice) || 0, // AJOUTÉ
         duration: (parseInt(formData.duration) || 0) * 60,
         objectives: formData.objectives.filter((o) => o.trim() !== ""),
+        prerequisites: formData.prerequisites.filter((p) => p.trim() !== ""), // AJOUTÉ
         modules: formData.modules.map((m) => ({
           ...m,
           lessons: m.lessons.filter((l) => l.title.trim() !== ""),
@@ -292,6 +301,7 @@ const CreateCourse = () => {
         </h2>
 
         <div className="space-y-5">
+          {/* Titre & Sous-titre */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1.5">
               Titre de la formation
@@ -305,7 +315,21 @@ const CreateCourse = () => {
               placeholder="Ex: Devenir Expert React en 30 jours"
             />
           </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Sous-titre (Accroche)
+            </label>
+            <input
+              type="text"
+              name="subtitle"
+              value={formData.subtitle}
+              onChange={handleChange}
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+              placeholder="Ex: Apprenez les bases et les concepts avancés..."
+            />
+          </div>
 
+          {/* Catégories */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -331,6 +355,28 @@ const CreateCourse = () => {
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                Sous-catégorie
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  name="subCategory"
+                  value={formData.subCategory}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
+                  placeholder="Ex: Web, Mobile, SEO..."
+                />
+                <div className="absolute right-4 top-3.5 pointer-events-none text-gray-500">
+                  <Tag size={16} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Niveau & Langue */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
                 Niveau
               </label>
               <div className="relative">
@@ -350,45 +396,24 @@ const CreateCourse = () => {
                 </div>
               </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Prix (FCFA)
+                Langue
               </label>
               <div className="relative">
-                <span className="absolute left-4 top-3.5 text-gray-400">
-                  <DollarSign size={18} />
-                </span>
-                <input
-                  type="number"
-                  name="price"
-                  value={formData.price}
+                <select
+                  name="language"
+                  value={formData.language}
                   onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                  placeholder="Ex: 15000"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                Durée estimée (Heures)
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-3.5 text-gray-400">
-                  <Clock size={18} />
-                </span>
-                <input
-                  type="number"
-                  name="duration" // Correspond au state ajouté
-                  value={formData.duration}
-                  onChange={handleChange}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all"
-                  placeholder="Ex: 10"
-                  min="0"
-                />
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none appearance-none bg-white"
+                >
+                  <option value="Français">Français</option>
+                  <option value="Anglais">Anglais</option>
+                  <option value="Espagnol">Espagnol</option>
+                </select>
+                <div className="absolute right-4 top-3.5 pointer-events-none text-gray-500">
+                  <Globe size={16} />
+                </div>
               </div>
             </div>
           </div>
@@ -403,50 +428,139 @@ const CreateCourse = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Upload & Description */}
+      {/* 1. Prix & Durée */}
+      <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100/50">
+        <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+          <span className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+            <DollarSign size={20} />
+          </span>
+          Tarification & Durée
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Prix (FCFA)
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-3.5 text-gray-400">
+                <DollarSign size={18} />
+              </span>
+              <input
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleChange}
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 outline-none transition-all"
+                placeholder="Ex: 15000"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Prix Promo (Optionnel)
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-3.5 text-gray-400">
+                <DollarSign size={18} />
+              </span>
+              <input
+                type="number"
+                name="discountPrice"
+                value={formData.discountPrice}
+                onChange={handleChange}
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 outline-none transition-all"
+                placeholder="Ex: 10000"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Durée estimée (Heures)
+            </label>
+            <div className="relative">
+              <span className="absolute left-4 top-3.5 text-gray-400">
+                <Clock size={18} />
+              </span>
+              <input
+                type="number"
+                name="duration"
+                value={formData.duration}
+                onChange={handleChange}
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 outline-none transition-all"
+                placeholder="Ex: 10"
+                min="0"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Médias */}
       <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100/50">
         <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
           <span className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
             <ImageIcon size={20} />
           </span>
-          Médias & Présentation
+          Médias & Description
         </h2>
 
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Image de couverture
-          </label>
-          <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer bg-gray-50 hover:bg-emerald-50 hover:border-emerald-400 transition-all group relative overflow-hidden">
-            {formData.thumbnail ? (
-              <>
-                <img
-                  src={getImageUrl(formData.thumbnail)}
-                  alt="Cover"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-white font-medium flex items-center">
-                    <ImageIcon className="mr-2" /> Changer l'image
-                  </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="w-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Image de couverture
+            </label>
+            <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer bg-gray-50 hover:bg-emerald-50 hover:border-emerald-400 transition-all group relative overflow-hidden">
+              {formData.thumbnail ? (
+                <>
+                  <img
+                    src={formData.thumbnail}
+                    alt="Cover"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white font-medium flex items-center">
+                      <ImageIcon className="mr-2" /> Changer
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center pt-5 pb-6 text-gray-400 group-hover:text-emerald-600">
+                  <ImageIcon className="w-8 h-8 mb-2" />
+                  <p className="text-xs">Cliquez pour uploader</p>
                 </div>
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center pt-5 pb-6 text-gray-400 group-hover:text-emerald-600 transition-colors">
-                <ImageIcon className="w-12 h-12 mb-3" />
-                <p className="text-sm font-medium">
-                  Cliquez ou glissez une image ici
-                </p>
-                <p className="text-xs mt-1 text-gray-400">JPG, PNG (Max 5Mo)</p>
+              )}
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={(e) => handleUpload(e, "thumbnail")}
+                disabled={uploading}
+              />
+            </label>
+          </div>
+          <div className="w-full">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Certificat
+            </label>
+            <div className="flex items-center justify-between p-4 border border-gray-300 rounded-xl bg-gray-50">
+              <div className="flex items-center">
+                <Award className="w-8 h-8 text-yellow-500 mr-3" />
+                <div>
+                  <p className="font-semibold text-gray-800">
+                    Délivrer un certificat ?
+                  </p>
+                  <p className="text-xs text-gray-500">À la fin du cours</p>
+                </div>
               </div>
-            )}
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={(e) => handleUpload(e, "thumbnail")}
-              disabled={uploading}
-            />
-          </label>
+              <input
+                type="checkbox"
+                name="certificateEnabled"
+                checked={formData.certificateEnabled}
+                onChange={handleChange}
+                className="toggle toggle-success"
+              />
+            </div>
+          </div>
         </div>
 
         <div>
@@ -459,53 +573,83 @@ const CreateCourse = () => {
             onChange={handleChange}
             rows="5"
             className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none transition-all resize-none"
-            placeholder="De quoi parle votre formation ?..."
+            placeholder="Décrivez votre formation..."
           ></textarea>
         </div>
       </div>
 
-      {/* Objectifs */}
-      <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100/50">
-        <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-          <span className="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
-            <CheckCircle size={20} />
-          </span>
-          Objectifs Pédagogiques
-        </h2>
-        <div className="space-y-3">
-          {formData.objectives.map((obj, index) => (
-            <div key={index} className="flex gap-3 items-center group">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 text-xs flex items-center justify-center font-bold">
-                {index + 1}
-              </span>
-              <input
-                type="text"
-                value={obj}
-                onChange={(e) =>
-                  updateArrayItem("objectives", index, e.target.value)
-                }
-                className="flex-grow px-3 py-2 rounded-lg border border-gray-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200 outline-none"
-                placeholder="Ex: Maîtriser les Hooks..."
-              />
-              <button
-                onClick={() => removeArrayItem("objectives", index)}
-                className="text-gray-300 hover:text-red-500 transition-colors p-2"
-              >
-                <Trash2 size={18} />
-              </button>
-            </div>
-          ))}
-          <button
-            onClick={() =>
-              setFormData({
-                ...formData,
-                objectives: [...formData.objectives, ""],
-              })
-            }
-            className="mt-2 text-sm font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1 py-2 px-3 rounded-lg hover:bg-emerald-50 transition-colors w-fit"
-          >
-            <Plus size={16} /> Ajouter un objectif
-          </button>
+      {/* 3. Objectifs & Pré-requis */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100/50">
+          <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg">
+              <CheckCircle size={18} />
+            </span>
+            Objectifs Pédagogiques
+          </h2>
+          <div className="space-y-3">
+            {formData.objectives.map((obj, index) => (
+              <div key={index} className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={obj}
+                  onChange={(e) =>
+                    updateArrayItem("objectives", index, e.target.value)
+                  }
+                  className="flex-grow px-3 py-2 rounded-lg border border-gray-200 focus:border-emerald-500 outline-none text-sm"
+                  placeholder="Objectif..."
+                />
+                <button
+                  onClick={() => removeArrayItem("objectives", index)}
+                  className="text-gray-300 hover:text-red-500"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() => addArrayItem("objectives")}
+              className="mt-2 text-xs font-bold text-emerald-600 uppercase hover:underline"
+            >
+              + Ajouter
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100/50">
+          <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <span className="p-1.5 bg-orange-100 text-orange-600 rounded-lg">
+              <AlertCircle size={18} />
+            </span>
+            Pré-requis
+          </h2>
+          <div className="space-y-3">
+            {formData.prerequisites.map((pre, index) => (
+              <div key={index} className="flex gap-2 items-center">
+                <input
+                  type="text"
+                  value={pre}
+                  onChange={(e) =>
+                    updateArrayItem("prerequisites", index, e.target.value)
+                  }
+                  className="flex-grow px-3 py-2 rounded-lg border border-gray-200 focus:border-emerald-500 outline-none text-sm"
+                  placeholder="Pré-requis..."
+                />
+                <button
+                  onClick={() => removeArrayItem("prerequisites", index)}
+                  className="text-gray-300 hover:text-red-500"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+            <button
+              onClick={() => addArrayItem("prerequisites")}
+              className="mt-2 text-xs font-bold text-emerald-600 uppercase hover:underline"
+            >
+              + Ajouter
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>

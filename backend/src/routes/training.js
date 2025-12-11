@@ -13,7 +13,11 @@ const {
   Review,
   sequelize,
 } = require("../models");
-const { authenticateToken, requireRole } = require("../middleware/auth");
+const {
+  authenticateToken,
+  requireRole,
+  optionalAuth,
+} = require("../middleware/auth");
 const upload = require("../middleware/upload");
 const { logger } = require("../utils/logger");
 
@@ -647,5 +651,83 @@ module.exports = function (io) {
       }
     }
   );
+
+  router.get("/:id/public-detail", optionalAuth, async (req, res) => {
+    try {
+      const trainingId = req.params.id;
+      const userId = req.user?.id; // Peut être undefined si visiteur non connecté
+
+      const training = await Training.findByPk(trainingId, {
+        include: [
+          {
+            model: Module,
+            as: "modules",
+            include: [
+              {
+                model: Lesson,
+                as: "lessons",
+                attributes: [
+                  "id",
+                  "title",
+                  "type",
+                  "duration",
+                  "isFreePreview",
+                ],
+              },
+            ], // On n'envoie pas le contenu/videoUrl ici pour protéger
+          },
+          {
+            model: User,
+            as: "trainer",
+            attributes: ["id"],
+            include: [{ model: TrainerProfile, as: "trainerProfile" }],
+          },
+          {
+            model: Review,
+            as: "reviews",
+            limit: 5, // On charge les 5 derniers avis
+            order: [["createdAt", "DESC"]],
+            include: [
+              {
+                model: User,
+                as: "student",
+                attributes: ["id"],
+                include: [
+                  {
+                    model: CandidateProfile,
+                    as: "candidateProfile",
+                    attributes: ["firstName", "lastName"],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      if (!training || training.status !== "published") {
+        return res.status(404).json({ error: "Formation introuvable" });
+      }
+
+      // Vérifier si l'utilisateur est inscrit
+      let hasEnrolled = false;
+      let hasReviewed = false;
+
+      if (userId) {
+        const enrollment = await Enrollment.findOne({
+          where: { trainingId, candidateId: userId },
+        });
+        hasEnrolled = !!enrollment;
+
+        const review = await Review.findOne({ where: { trainingId, userId } });
+        hasReviewed = !!review;
+      }
+
+      res.json({ success: true, training, hasEnrolled, hasReviewed });
+    } catch (error) {
+      logger.error("Erreur détail public:", error);
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  });
   return router;
 };
