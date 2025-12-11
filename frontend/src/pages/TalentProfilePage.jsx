@@ -231,11 +231,11 @@ const TalentProfilePage = () => {
           onClose={() => setShowRecruitModal(false)}
           candidate={talent} // On passe l'objet talent complet (qui contient user.id)
           onSuccess={() => {
-            // Feedback utilisateur
-            alert(
-              "Proposition envoyée avec succès ! Le candidat a été notifié."
-            );
-            // ou toast.success("Proposition envoyée !");
+            // // Feedback utilisateur
+            // alert(
+            //   "Proposition envoyée avec succès ! Le candidat a été notifié."
+            // );
+            toast.success("Proposition envoyée !");
           }}
         />
       )}

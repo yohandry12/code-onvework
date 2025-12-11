@@ -189,7 +189,7 @@ const TalentCard = ({ talent }) => {
             </span>
           </>
         ) : (
-          <span className="text-sm text-gray-400 italic">Aucun avis</span>
+          <span className="text-sm text-gray-400 normal">Aucun avis</span>
         )}
       </div>
 
