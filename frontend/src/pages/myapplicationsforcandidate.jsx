@@ -8,6 +8,7 @@ import MissionCompletionModal from "../components/UI/MissionCompletionModal";
 import EmptyState from "../components/EmptyState";
 import LoadingSkeleton from "../components/LoadingSkeleton";
 import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
+import toast from "react-hot-toast";
 
 const MyApplications = () => {
   const [applications, setApplications] = useState([]);
@@ -59,7 +60,7 @@ const MyApplications = () => {
       );
 
       if (res.success) {
-        alert(
+        toast.success(
           response === "accept"
             ? "Mission acceptée ! 🎉"
             : "Proposition déclinée."
@@ -70,7 +71,8 @@ const MyApplications = () => {
       }
     } catch (err) {
       console.error("Erreur réponse proposition:", err);
-      alert("Une erreur est survenue.");
+      // alert("Une erreur est survenue.");
+      toast.error("Une erreur est survenue.");
     }
   };
 
@@ -151,10 +153,12 @@ const MyApplications = () => {
       setWithdrawModal({ isOpen: false, applicationId: null, jobTitle: "" });
 
       // Optionnel : toast/notification
-      alert("Candidature retirée avec succès ✓");
+      // alert("Candidature retirée avec succès ✓");
+      toast.success("Candidature retirée avec succès ✓");
     } catch (error) {
       console.error("Erreur lors du retrait:", error);
-      alert("Erreur lors du retrait de la candidature.");
+      // alert("Erreur lors du retrait de la candidature.");
+      toast.error("Erreur lors du retrait de la candidature.");
     } finally {
       setIsWithdrawing(false);
     }
