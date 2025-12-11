@@ -25,18 +25,12 @@ const MobileMenu = ({ user }) => {
     { to: "/talents", label: "Talents", icon: UserGroupIcon },
   ];
 
-<<<<<<< HEAD
-  // Choix du menu en fonction du profil de l'utilisateur
-  const links =
-    user?.role === "client" || user?.role === "candidate"
-      ? clientLinks
-      : candidateLinks;
-=======
+
     // Choix du menu en fonction du profil de l'utilisateur
     const links = user?.role === "client" 
     ? clientLinks 
     : candidateLinks;
->>>>>>> 9d7c70335e2dbe4ec1903a7ffb6429d3d9381a84
+
 
   return (
     <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-white border-t border-gray-200 md:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
