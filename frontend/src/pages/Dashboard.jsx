@@ -31,7 +31,6 @@ import CreateJob from "./CreateJob";
 import { apiService } from "../services/api";
 import AIJobSuggestions from "../components/UI/AIJobSuggestions";
 import Toast from "../components/UI/Toast";
-import MobileMenu from "components/UI/MobileMenu"
 
 import FloatingFeedbackButton from "../components/UI/FloatingFeedbackButton";
 import TestimonialFormModal from "../components/UI/TestimonialFormModal";
@@ -754,7 +753,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 pb-10">
+    <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="container mx-auto px-4 py-8 bg-gray-50 min-h-screen">
         {/* Header global */}
@@ -895,15 +894,6 @@ const Dashboard = () => {
           </>
         )}
         <Toast toast={toast} onClose={()=>{setToast(null)}}/>
-        {/* Utilisation du composant mobileMenu */}
-        {user && <MobileMenu user={user}/>}
-
-        <Toast
-          toast={toast}
-          onClose={() => {
-            setToast(null);
-          }}
-        />
 
       </div>
     </div>

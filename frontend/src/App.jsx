@@ -60,6 +60,7 @@ import LoadingSpinner from "./components/UI/LoadingSpinner";
 import AdminLayout from "./components/Layout/AdminLayout";
 import OfflineBanner from "./components/UI/OfflineBanner";
 import { useTheme } from "./hooks/useTheme";
+import MobileLayout from "./components/UI/MobileLayout"; //Layout pour le menu mobile du dashboard
 
 // --- ProtectedRoute (Final) ---
 const ProtectedRoute = ({ allowedRoles }) => {
@@ -131,37 +132,39 @@ function AppRoutes() {
               />
             }
           >
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/wallet" element={<Wallet />} />
-            <Route path="/settings" element={<SettingsPage />} />
+            <Route element={<MobileLayout />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/wallet" element={<Wallet />} />
+                <Route path="/settings" element={<SettingsPage />} />
 
-            {/* Routes Spécifiques Candidat */}
-            <Route path="/my-applications" element={<MyApplications />} />
-            <Route
-              path="/onboarding/candidate"
-              element={<OnboardingCandidate />}
-            />
+                {/* Routes Spécifiques Candidat */}
+                <Route path="/my-applications" element={<MyApplications />} />
+                <Route
+                  path="/onboarding/candidate"
+                  element={<OnboardingCandidate />}
+                />
 
-            {/* Routes Spécifiques Client */}
-            <Route
-              path="/manage-applications"
-              element={<ManageApplications />}
-            />
-            <Route path="/jobs/create" element={<CreateJob />} />
-            <Route path="/client/job-history" element={<JobHistory />} />
-            <Route path="/clients/:clientId" element={<ClientProfilePage />} />
-            <Route path="/talents/:id" element={<TalentProfilePage />} />
+                {/* Routes Spécifiques Client */}
+                <Route
+                  path="/manage-applications"
+                  element={<ManageApplications />}
+                />
+                <Route path="/jobs/create" element={<CreateJob />} />
+                <Route path="/client/job-history" element={<JobHistory />} />
+                <Route path="/clients/:clientId" element={<ClientProfilePage />} />
+                <Route path="/talents/:id" element={<TalentProfilePage />} />  
 
-            {/* --- 3. AJOUT DE LA ROUTE SPÉCIFIQUE FORMATEUR --- */}
-            <Route path="/onboarding/trainer" element={<TrainerOnboarding />} />
-            <Route path="/courses/create" element={<CreateCourse />} />
+                {/* --- 3. AJOUT DE LA ROUTE SPÉCIFIQUE FORMATEUR --- */}
+                <Route path="/onboarding/trainer" element={<TrainerOnboarding />} />
+                <Route path="/courses/create" element={<CreateCourse />} />           
+            </Route>
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={["trainer"]} />}>
+          {/* <Route element={<ProtectedRoute allowedRoles={["trainer"]} />}>
             <Route path="/onboarding/trainer" element={<TrainerOnboarding />} />
             <Route path="/courses/create" element={<CreateCourse />} />
-          </Route>
+          </Route> */}
         </Route>
 
         {/* Routes Auth */}

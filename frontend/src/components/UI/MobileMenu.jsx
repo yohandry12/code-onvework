@@ -26,7 +26,7 @@ const MobileMenu = ({user}) =>{
     ];
 
     // Choix du menu en fonction du profil de l'utilisateur
-    const links = (user?.role === "client" || user?.role === "candidate") 
+    const links = user?.role === "client" 
     ? clientLinks 
     : candidateLinks;
 
