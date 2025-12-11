@@ -33,7 +33,7 @@ export const SocketProvider = ({ children }) => {
     if (isAuthenticated && user && !socketRef.current) {
       // URL du serveur Socket.IO
       const SOCKET_URL =
-        import.meta.env.VITE_SOCKET_URL || "http://192.168.1.118:4000";
+        import.meta.env.VITE_SOCKET_URL || "http://192.168.1.119:4000";
 
       // Créer la connexion
       socketRef.current = io(SOCKET_URL, {
@@ -140,7 +140,7 @@ export const SocketProvider = ({ children }) => {
 
         // 1. Afficher une notification toast pour féliciter l'utilisateur
         toast.success(
-          `Félicitations ! ${data.employerName} vous a recommandé(e). Nouveau badge : ${data.newBadge} !`,
+          `Félicitations ! ${data.employerCompany} vous a recommandé(e). Nouveau badge : ${data.newBadge} !`,
           {
             duration: 8000, // Durée plus longue pour un message important
             icon: "⭐",

@@ -3,6 +3,7 @@ const {
   User,
   CandidateProfile,
   ClientProfile,
+  TrainerProfile,
   sequelize,
 } = require("../models");
 const { Op } = require("sequelize");
@@ -39,6 +40,7 @@ router.get("/", async (req, res) => {
         { email: { [Op.iLike]: `%${search}%` } },
         { "$candidateProfile.first_name$": { [Op.iLike]: `%${search}%` } },
         { "$clientProfile.first_name$": { [Op.iLike]: `%${search}%` } },
+        { "$trainerProfile.first_name$": { [Op.iLike]: `%${search}%` } },
       ];
     }
 
@@ -59,14 +61,26 @@ router.get("/", async (req, res) => {
           as: "clientProfile",
           attributes: ["firstName", "lastName", "company"],
         },
+        {
+          model: TrainerProfile,
+          as: "trainerProfile",
+          attributes: ["firstName", "lastName", "specialties"],
+        },
       ],
     });
 
     const formattedUsers = users.map((u) => {
       const user = u.get({ plain: true });
-      user.profile = user.candidateProfile || user.clientProfile;
+      // CORRECTION ICI : Fusionner le trainerProfile aussi
+      user.profile =
+        user.candidateProfile ||
+        user.clientProfile ||
+        user.trainerProfile ||
+        {};
+
       delete user.candidateProfile;
       delete user.clientProfile;
+      delete user.trainerProfile;
       return user;
     });
 
@@ -98,6 +112,7 @@ router.post("/", async (req, res) => {
       profession,
       location,
       sector,
+      specialties,
     } = req.body;
 
     // --- Validation des données ---
@@ -148,6 +163,17 @@ router.post("/", async (req, res) => {
           location,
           sector,
           company: company || "Non spécifiée",
+        },
+        { transaction: t }
+      );
+    } else if (role === "trainer") {
+      // CORRECTION : Création du profil formateur
+      await TrainerProfile.create(
+        {
+          userId: newUser.id,
+          firstName,
+          lastName,
+          specialties: specialties || [], // Gérer le cas où c'est vide
         },
         { transaction: t }
       );
@@ -258,6 +284,7 @@ router.get("/:id", async (req, res) => {
           as: "clientProfile",
           // On prend tous les attributs du profil
         },
+        { model: TrainerProfile, as: "trainerProfile" },
       ],
     });
 
@@ -269,14 +296,15 @@ router.get("/:id", async (req, res) => {
 
     // Formatter la réponse comme pour la liste, pour simplifier le front
     const formattedUser = user.get({ plain: true });
-
-    // On fusionne le profil spécifique dans une propriété générique 'profile'
     formattedUser.profile =
-      formattedUser.candidateProfile || formattedUser.clientProfile || {};
+      formattedUser.candidateProfile ||
+      formattedUser.clientProfile ||
+      formattedUser.trainerProfile ||
+      {};
 
-    // On nettoie les clés spécifiques pour éviter la confusion
     delete formattedUser.candidateProfile;
     delete formattedUser.clientProfile;
+    delete formattedUser.trainerProfile;
 
     res.json({ success: true, user: formattedUser });
   } catch (error) {

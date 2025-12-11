@@ -8,6 +8,8 @@ import {
   BriefcaseIcon,
   DocumentTextIcon, // Icône pour les candidatures
   CheckBadgeIcon,
+  AcademicCapIcon, // Pour le formateur
+  VideoCameraIcon,
 } from "@heroicons/react/24/outline";
 import { apiService } from "../../services/api";
 import toast from "react-hot-toast";
@@ -19,6 +21,7 @@ const UserDetailPage = () => {
   const [user, setUser] = useState(null);
   const [clientJobs, setClientJobs] = useState([]); // Pour les Clients
   const [candidateApps, setCandidateApps] = useState([]); // Pour les Candidats (NOUVEAU)
+  const [trainerCourses, setTrainerCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,6 +58,17 @@ const UserDetailPage = () => {
 
             if (appsResponse.success) {
               setCandidateApps(appsResponse.applications);
+            }
+          }
+
+          if (userData.role === "trainer") {
+            const trainingResponse = await apiService.trainings.adminGetAll({
+              limit: 50,
+              trainerId: id, // On filtre par l'ID du formateur qu'on regarde
+            });
+
+            if (trainingResponse.success) {
+              setTrainerCourses(trainingResponse.trainings);
             }
           }
         } else {
@@ -145,13 +159,15 @@ const UserDetailPage = () => {
             <h1 className="text-3xl font-bold text-gray-900">{fullName}</h1>
             <div className="flex items-center gap-3 mt-2">
               <span
-                className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide  ${
                   user.role === "client"
                     ? "bg-purple-100 text-purple-700"
+                    : user.role === "trainer"
+                    ? "bg-emerald-100 text-emerald-700"
                     : "bg-blue-100 text-blue-700"
                 }`}
               >
-                {user.role}
+                {user.role === "trainer" ? "Formateur" : user.role}
               </span>
               <span
                 className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
@@ -215,6 +231,8 @@ const UserDetailPage = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
                 {user.role === "client"
                   ? "Détails Entreprise"
+                  : user.role === "trainer"
+                  ? "Profil Formateur"
                   : "Profil Candidat"}
               </h3>
 
@@ -337,8 +355,7 @@ const UserDetailPage = () => {
                               {new Date(job.createdAt).toLocaleDateString()}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                              {job.budgetMin} - {job.budgetMax}{" "}
-                              {job.budgetCurrency}
+                              {job.budget} - {job.budgetCurrency}
                             </td>
                           </tr>
                         ))}
@@ -411,6 +428,86 @@ const UserDetailPage = () => {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
                               {new Date(app.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* --- FORMATEUR : FORMATIONS --- */}
+            {user.role === "trainer" && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-6 border-b border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <AcademicCapIcon className="w-5 h-5 text-emerald-600" />{" "}
+                    Formations créées ({trainerCourses.length})
+                  </h3>
+                </div>
+
+                {trainerCourses.length === 0 ? (
+                  <div className="p-10 text-center text-gray-500">
+                    Ce formateur n'a pas encore créé de cours.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            Titre
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            Prix
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                            Statut
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                            Étudiants
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {trainerCourses.map((course) => (
+                          <tr key={course.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center">
+                                <div className="h-10 w-10 flex-shrink-0 bg-gray-100 rounded overflow-hidden mr-3">
+                                  {course.thumbnail ? (
+                                    <img
+                                      src={course.thumbnail}
+                                      className="h-full w-full object-cover"
+                                    />
+                                  ) : (
+                                    <VideoCameraIcon className="p-2 text-gray-400" />
+                                  )}
+                                </div>
+                                <div className="text-sm font-medium text-gray-900">
+                                  {course.title}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500">
+                              {course.price} FCFA
+                            </td>
+                            <td className="px-6 py-4">
+                              <span
+                                className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    ${
+                                      course.status === "published"
+                                        ? "bg-green-100 text-green-800"
+                                        : "bg-gray-100 text-gray-800"
+                                    }`}
+                              >
+                                {course.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right text-sm text-gray-500">
+                              {course.totalStudents || 0}
                             </td>
                           </tr>
                         ))}

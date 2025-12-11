@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   XMarkIcon,
@@ -19,13 +19,78 @@ const AddUserSlideOver = ({ isOpen, onClose }) => {
     email: "",
     profession: "",
     password: "",
-    location: { city: "", country: "" },
+    location: { city: "", country: "Cameroun" },
     role: "candidate",
     sector: "",
     company: "",
+    specialties: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const errorTimeoutRef = useRef(null);
+
+  // --- LOGIQUE AUTOCOMPLÉTION VILLE ---
+  const [allCities, setAllCities] = useState([]);
+  const [citySuggestions, setCitySuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const response = await apiService.cities.getAll();
+        const cityNames = (response.data || []).map((c) => c.name);
+        setAllCities(cityNames);
+      } catch (err) {
+        console.error("Erreur chargement villes:", err);
+      }
+    };
+    fetchCities();
+  }, []);
+
+  const handleCityInputChange = (e) => {
+    const userInput = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      locationCity: userInput,
+    }));
+
+    if (userInput.length > 0) {
+      const filtered = allCities.filter((city) =>
+        city.toLowerCase().includes(userInput.toLowerCase())
+      );
+      setCitySuggestions(filtered.slice(0, 5));
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const selectCity = (cityName) => {
+    setFormData((prev) => ({
+      ...prev,
+      locationCity: cityName,
+    }));
+    setShowSuggestions(false);
+  };
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [wrapperRef]);
+
+  useEffect(() => {
+    return () => {
+      if (errorTimeoutRef.current) clearTimeout(errorTimeoutRef.current);
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,17 +116,40 @@ const AddUserSlideOver = ({ isOpen, onClose }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
     try {
-      await apiService.users.adminCreate(formData);
-      alert("Utilisateur ajouté avec succès !");
-      onClose(); // Ferme et déclenche le rafraîchissement
-    } catch (err) {
-      setError(err.response?.data?.error || "Une erreur est survenue.");
+      // Préparation des données
+      const payload = { ...formData };
+
+      // Si c'est un formateur, on transforme la string de spécialités en tableau
+      if (formData.role === "trainer" && formData.specialties) {
+        payload.specialties = formData.specialties
+          .split(",")
+          .map((s) => s.trim());
+      }
+
+      await apiService.users.adminCreate(payload);
+      alert("Utilisateur créé avec succès !");
+      setFormData({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        role: "candidate",
+        company: "",
+        specialties: "",
+      });
+      onClose(); // Ferme et rafraîchit la liste (voir ManageUsers.jsx)
+    } catch (error) {
+      alert(
+        "Erreur: " +
+          (error.response?.data?.error || "Impossible de créer l'utilisateur")
+      );
     } finally {
       setLoading(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <AnimatePresence>
@@ -137,6 +225,21 @@ const AddUserSlideOver = ({ isOpen, onClose }) => {
                       >
                         Client
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData((f) => ({ ...f, role: "trainer" }))
+                        }
+                        className={clsx(
+                          "w-1/2 p-2 rounded-md font-semibold text-sm transition-all",
+                          formData.role === "trainer"
+                            ? "bg-white shadow text-blue-700"
+                            : "text-gray-600"
+                        )}
+                      >
+                        Formateur
+                      </button>
                     </div>
 
                     {/* Champs de profil */}
@@ -155,21 +258,60 @@ const AddUserSlideOver = ({ isOpen, onClose }) => {
                       onChange={handleChange}
                     />
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <InputWithIcon
-                        Icon={MapPinIcon}
-                        name="location.city" // Important: utilisez la notation "objet.propriété"
-                        label="Ville"
-                        value={formData.location.city}
-                        onChange={handleChange}
-                      />
-                      <InputWithIcon
-                        Icon={MapPinIcon}
-                        name="location.country" // Important: utilisez la notation "objet.propriété"
-                        label="Pays"
-                        value={formData.location.country}
-                        onChange={handleChange}
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* --- COLONNE VILLE --- */}
+                      <div className="relative" ref={wrapperRef}>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Ville
+                        </label>
+
+                        <div className="relative mt-1">
+                          <input
+                            type="text"
+                            name="city"
+                            value={formData.locationCity}
+                            onChange={handleCityInputChange}
+                            onFocus={() =>
+                              formData.locationCity && setShowSuggestions(true)
+                            }
+                            className="input input-bordered w-full pl-10"
+                            placeholder="Ex: Douala..."
+                            autoComplete="off"
+                          />
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                            <MapPinIcon className="h-5 w-5 text-gray-400" />
+                          </div>
+                        </div>
+
+                        {showSuggestions && citySuggestions.length > 0 && (
+                          <ul className="absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-xl mt-1 max-h-60 overflow-y-auto">
+                            {citySuggestions.map((cityName, index) => (
+                              <li
+                                key={index}
+                                onClick={() => selectCity(cityName)}
+                                className="px-4 py-3 hover:bg-indigo-50 cursor-pointer text-gray-700 transition-colors border-b last:border-b-0 border-gray-100 flex items-center"
+                              >
+                                <MapPinIcon className="h-4 w-4 mr-2 text-gray-400" />
+                                {cityName}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+
+                      {/* --- COLONNE PAYS --- */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                          Pays
+                        </label>
+                        <input
+                          type="text"
+                          name="country"
+                          value="Cameroun"
+                          disabled
+                          className="input input-bordered w-full mt-1 bg-gray-100 text-gray-500 cursor-not-allowed"
+                        />
+                      </div>
                     </div>
                     {formData.role === "client" && (
                       <AnimatePresence>
@@ -211,6 +353,30 @@ const AddUserSlideOver = ({ isOpen, onClose }) => {
                             value={formData.profession}
                             onChange={handleChange}
                           />
+                        </motion.div>
+                      </AnimatePresence>
+                    )}
+
+                    {formData.role === "trainer" && (
+                      <AnimatePresence>
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                        >
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Spécialités (séparées par des virgules)
+                            </label>
+                            <input
+                              type="text"
+                              name="specialties"
+                              placeholder="React, Finance, Anglais..."
+                              value={formData.specialties}
+                              onChange={handleChange}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm border p-2"
+                            />
+                          </div>
                         </motion.div>
                       </AnimatePresence>
                     )}

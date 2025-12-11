@@ -3,6 +3,7 @@ const {
   User,
   CandidateProfile,
   ClientProfile,
+  TrainerProfile,
   City,
   sequelize,
 } = require("../models"); // Import de tous les modèles + l'instance sequelize
@@ -107,14 +108,38 @@ router.post("/register", async (req, res) => {
         },
         { transaction: t }
       );
+    } else if (role === "trainer") {
+      // --- AJOUTER CE BLOC ---
+      await TrainerProfile.create(
+        {
+          userId: user.id,
+          firstName,
+          lastName,
+          phone,
+          location,
+          // On initialise les champs spécifiques vides ou avec des valeurs par défaut
+          bio: "",
+          specialties: [],
+        },
+        { transaction: t }
+      );
     }
 
     // Si tout va bien, on valide la transaction
     await t.commit();
 
     // 3. Préparer la réponse
+    const includeModel =
+      role === "candidate"
+        ? "candidateProfile"
+        : role === "client"
+        ? "clientProfile"
+        : role === "trainer"
+        ? "trainerProfile"
+        : undefined;
+
     const fullUser = await User.findByPk(user.id, {
-      include: role === "candidate" ? "candidateProfile" : "clientProfile",
+      include: includeModel,
     });
 
     const token = generateToken(user.id);
@@ -170,6 +195,8 @@ router.post("/login", async (req, res) => {
           ? "candidateProfile"
           : user.role === "client"
           ? "clientProfile"
+          : user.role === "trainer"
+          ? "trainerProfile"
           : undefined,
     });
 
@@ -253,6 +280,8 @@ router.get("/me", authenticateToken, async (req, res) => {
           ? "candidateProfile"
           : req.user.role === "client"
           ? "clientProfile"
+          : req.user.role === "trainer"
+          ? "trainerProfile"
           : undefined,
     });
 
@@ -351,6 +380,13 @@ router.put("/profile", authenticateToken, async (req, res) => {
         defaults: profileUpdates,
         transaction: t,
       });
+    } else if (user.role === "trainer") {
+      // --- AJOUTER CE BLOC ---
+      [profileToUpdate, created] = await TrainerProfile.findOrCreate({
+        where: { userId: user.id },
+        defaults: profileUpdates,
+        transaction: t,
+      });
     }
 
     // Si le profil existait déjà, on le met à jour
@@ -363,7 +399,13 @@ router.put("/profile", authenticateToken, async (req, res) => {
       }
 
       // Gestion des champs JSON
-      const jsonFields = ["location", "skills", "diplomas"];
+      const jsonFields = [
+        "location",
+        "skills",
+        "diplomas",
+        "specialties",
+        "certifications",
+      ];
       for (const field of jsonFields) {
         if (cleanedUpdates[field] !== undefined) {
           if (
@@ -532,6 +574,12 @@ router.post(
         });
       } else if (role === "client") {
         profile = await ClientProfile.findOne({
+          where: { userId },
+          transaction: t,
+        });
+      } else if (role === "trainer") {
+        // --- AJOUTER CE BLOC ---
+        profile = await TrainerProfile.findOne({
           where: { userId },
           transaction: t,
         });

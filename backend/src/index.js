@@ -33,6 +33,9 @@ const candidatesRoutes = require("./routes/candidates");
 const citiesRoutes = require("./routes/cities");
 const startNotifyUpcomingDeadlines = require("./tasks/notifyUpcomingDeadlines");
 const aiRoutes = require("./routes/ai");
+const trainingRoutes = require("./routes/training");
+const adminTrainingRoutes = require("./routes/adminTraining");
+// --- 📁 Chemins statiques -- -
 const uploadsPath = path.resolve(process.cwd(), "uploads");
 const avatarPath = path.resolve(process.cwd(), "avatar");
 // --- 🌍 CORS ---
@@ -108,6 +111,8 @@ app.use("/api/admin/jobs", adminJobRoutes(io));
 app.use("/api/candidates", candidatesRoutes);
 app.use("/api/cities", citiesRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/training", trainingRoutes(io));
+app.use("/api/admin/trainings", adminTrainingRoutes(io));
 // Sert les fichiers statiques du dossier 'uploads'
 app.use("/api/uploads", express.static(uploadsPath));
 app.use("/avatar", express.static(avatarPath));

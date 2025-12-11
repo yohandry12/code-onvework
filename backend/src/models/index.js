@@ -19,6 +19,7 @@ const userModels = require("./User")(sequelize);
 db.User = userModels.User;
 db.CandidateProfile = userModels.CandidateProfile;
 db.ClientProfile = userModels.ClientProfile;
+db.TrainerProfile = userModels.TrainerProfile;
 db.AdminProfile = userModels.AdminProfile;
 
 // Import des autres modèles
@@ -32,6 +33,12 @@ db.Activity = require("./Activity")(sequelize);
 // Cities
 db.City = require("./City")(sequelize);
 db.PlatformSetting = require("./PlatformSetting")(sequelize);
+db.Training = require("./Training")(sequelize);
+db.Module = require("./Module")(sequelize);
+db.Lesson = require("./Lesson")(sequelize);
+db.Certificate = require("./Certificate")(sequelize);
+db.Enrollment = require("./Enrollment")(sequelize);
+db.Review = require("./Review")(sequelize);
 
 db.User.hasOne(db.UserSettings, {
   foreignKey: "userId",
@@ -148,6 +155,92 @@ db.Recommendation.belongsTo(db.User, {
   foreignKey: "employerId",
   as: "employer",
 });
+
+// ============================================
+// RELATIONS FORMATEUR -> FORMATIONS
+// ============================================
+// Un User (Formateur) crée des formations
+db.User.hasMany(db.Training, {
+  foreignKey: "trainerId",
+  as: "createdTrainings",
+});
+db.Training.belongsTo(db.User, { foreignKey: "trainerId", as: "trainer" });
+
+// ============================================
+// HIERARCHIE PEDAGOGIQUE
+// ============================================
+db.Training.hasMany(db.Module, {
+  foreignKey: "trainingId",
+  as: "modules",
+  onDelete: "CASCADE",
+});
+db.Module.belongsTo(db.Training, { foreignKey: "trainingId", as: "training" });
+
+db.Module.hasMany(db.Lesson, {
+  foreignKey: "moduleId",
+  as: "lessons",
+  onDelete: "CASCADE",
+});
+db.Lesson.belongsTo(db.Module, { foreignKey: "moduleId", as: "module" });
+
+// ============================================
+// RELATIONS CANDIDAT -> INSCRIPTIONS
+// ============================================
+
+// 1. Un User (Candidat) a plusieurs inscriptions
+db.User.hasMany(db.Enrollment, {
+  foreignKey: "candidateId",
+  as: "enrollments",
+});
+
+// 2. Une Inscription appartient à un User (Candidat)
+db.Enrollment.belongsTo(db.User, {
+  foreignKey: "candidateId",
+  as: "candidate",
+});
+
+// 3. Une Formation a plusieurs Inscriptions
+db.Training.hasMany(db.Enrollment, {
+  foreignKey: "trainingId",
+  as: "students",
+});
+db.Enrollment.belongsTo(db.Training, {
+  foreignKey: "trainingId",
+  as: "training",
+});
+
+// ============================================
+// RELATIONS CERTIFICATS
+// ============================================
+db.User.hasMany(db.Certificate, {
+  foreignKey: "candidateId",
+  as: "certificates",
+});
+db.Certificate.belongsTo(db.User, {
+  foreignKey: "candidateId",
+  as: "candidate",
+});
+
+db.Training.hasMany(db.Certificate, {
+  foreignKey: "trainingId",
+  as: "issuedCertificates",
+});
+db.Certificate.belongsTo(db.Training, {
+  foreignKey: "trainingId",
+  as: "training",
+});
+
+// Une formation a plusieurs avis
+db.Training.hasMany(db.Review, { foreignKey: "trainingId", as: "reviews" });
+db.Review.belongsTo(db.Training, { foreignKey: "trainingId", as: "training" });
+
+// Un utilisateur écrit plusieurs avis
+db.User.hasMany(db.Review, { foreignKey: "userId", as: "reviewsWritten" });
+db.Review.belongsTo(db.User, { foreignKey: "userId", as: "student" });
+
+// Un formateur reçoit des avis (via ses cours)
+db.User.hasMany(db.Review, { foreignKey: "trainerId", as: "reviewsReceived" });
+db.Review.belongsTo(db.User, { foreignKey: "trainerId", as: "trainer" });
 
 // Une recommandation concerne UN SEUL utilisateur (l'employé/candidat)
 db.User.hasMany(db.Recommendation, {
