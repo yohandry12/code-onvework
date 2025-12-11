@@ -265,6 +265,10 @@ module.exports = (sequelize) => {
       linkedinProfile: { type: DataTypes.STRING, field: "linkedin_profile" },
       website: DataTypes.STRING,
       avatar: DataTypes.STRING,
+      averageRating: {
+        type: DataTypes.DECIMAL(2, 1),
+        defaultValue: 0.0,
+      },
       // Gestion financière pour le formateur
       walletBalance: {
         type: DataTypes.DECIMAL(10, 2),

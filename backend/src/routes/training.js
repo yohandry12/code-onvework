@@ -10,10 +10,11 @@ const {
   CandidateProfile,
   Enrollment,
   Activity,
+  Review,
   sequelize,
 } = require("../models");
 const { authenticateToken, requireRole } = require("../middleware/auth");
-const upload = require("../middleware/upload"); // Votre middleware Multer existant
+const upload = require("../middleware/upload");
 const { logger } = require("../utils/logger");
 
 module.exports = function (io) {
@@ -548,6 +549,101 @@ module.exports = function (io) {
         res
           .status(500)
           .json({ success: false, error: "Erreur lors de l'inscription." });
+      }
+    }
+  );
+
+  // --- I. AJOUTER UN AVIS (NOTE) ---
+  router.post(
+    "/:id/review",
+    authenticateToken,
+    requireRole("candidate"),
+    async (req, res) => {
+      const t = await sequelize.transaction();
+      try {
+        const trainingId = req.params.id;
+        const { rating, comment } = req.body;
+        const studentId = req.user.id;
+
+        // 1. Vérifications
+        const training = await Training.findByPk(trainingId);
+        if (!training) {
+          await t.rollback();
+          return res.status(404).json({ error: "Formation introuvable" });
+        }
+
+        // Vérifier si l'utilisateur est inscrit
+        const enrollment = await Enrollment.findOne({
+          where: { trainingId, candidateId: studentId },
+        });
+        if (!enrollment) {
+          await t.rollback();
+          return res
+            .status(403)
+            .json({ error: "Vous devez être inscrit pour noter ce cours." });
+        }
+
+        // Vérifier s'il a déjà noté
+        const existingReview = await Review.findOne({
+          where: { trainingId, userId: studentId },
+        });
+        if (existingReview) {
+          await t.rollback();
+          return res
+            .status(400)
+            .json({ error: "Vous avez déjà noté ce cours." });
+        }
+
+        // 2. Créer l'avis
+        await Review.create(
+          {
+            userId: studentId,
+            trainingId,
+            trainerId: training.trainerId,
+            rating,
+            comment,
+          },
+          { transaction: t }
+        );
+
+        // 3. Recalculer la note moyenne de la FORMATION
+        const trainingStats = await Review.findOne({
+          where: { trainingId },
+          attributes: [
+            [sequelize.fn("AVG", sequelize.col("rating")), "avgRating"],
+          ],
+          transaction: t,
+        });
+
+        const newTrainingRating = parseFloat(
+          trainingStats.dataValues.avgRating || 0
+        ).toFixed(1);
+
+        await training.update(
+          { averageRating: newTrainingRating },
+          { transaction: t }
+        );
+
+        await t.commit();
+
+        // Notification au formateur
+        const activity = await Activity.create({
+          userId: training.trainerId,
+          type: "review",
+          message: `Nouvel avis (${rating}/5) sur votre formation "${training.title}".`,
+          referenceId: training.id,
+          referenceType: "training",
+          status: "info",
+        });
+        io.to(`user-${training.trainerId}`).emit("activity", activity);
+
+        res
+          .status(201)
+          .json({ success: true, message: "Merci pour votre avis !" });
+      } catch (error) {
+        await t.rollback();
+        logger.error("Erreur ajout avis:", error);
+        res.status(500).json({ success: false, error: "Erreur serveur" });
       }
     }
   );

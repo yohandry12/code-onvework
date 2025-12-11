@@ -329,6 +329,8 @@ export const apiService = {
       });
     },
 
+    addReview: (id, data) => apiClient.post(`/training/${id}/review`, data),
+
     adminGetAll: (params = {}) => {
       // params peut contenir { trainerId: 12, page: 1, ... }
       const query = new URLSearchParams(params).toString();
