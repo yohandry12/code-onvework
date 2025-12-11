@@ -894,18 +894,17 @@ const Dashboard = () => {
           )}
         </>
       )}
-<<<<<<< HEAD
       <Toast toast={toast} onClose={()=>{setToast(null)}}/>
       {/* Utilisation du composant mobileMenu */}
       {user && <MobileMenu user={user}/>}
-=======
+
       <Toast
         toast={toast}
         onClose={() => {
           setToast(null);
         }}
       />
->>>>>>> 07e3b09531084b01372d9d87a77d8664e6a41adf
+
     </div>
   );
 };
