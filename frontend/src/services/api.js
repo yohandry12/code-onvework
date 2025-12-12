@@ -222,6 +222,13 @@ export const apiService = {
       apiClient.post("/users/convert-funds", { amount }),
 
     rateTrainer: (id, data) => apiClient.post(`/users/${id}/rate`, data),
+    getTrainerRatings: (id, params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return apiClient.get(`/users/${id}/ratings?${query}`);
+    },
+
+    adminUpdatePoints: (userId, points, action) =>
+      apiClient.patch(`/admin/users/${userId}/points`, { points, action }),
   },
 
   // API des notifications
@@ -351,6 +358,10 @@ export const apiService = {
     adminDelete: (id) => apiClient.delete(`/admin/trainings/${id}`),
     adminGetById: (id) => apiClient.get(`/admin/trainings/${id}`),
     adminUpdate: (id, data) => apiClient.put(`/admin/trainings/${id}`, data),
+
+    getWalletData: () => apiClient.get("/training/wallet/data"),
+    requestWithdraw: (data) =>
+      apiClient.post("/training/wallet/withdraw", data),
   },
 };
 

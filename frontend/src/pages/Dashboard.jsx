@@ -902,15 +902,6 @@ const Dashboard = () => {
             setToast(null);
           }}
         />
-        {/* Utilisation du composant mobileMenu */}
-        {user && <MobileMenu user={user} />}
-
-        <Toast
-          toast={toast}
-          onClose={() => {
-            setToast(null);
-          }}
-        />
       </div>
     </div>
   );

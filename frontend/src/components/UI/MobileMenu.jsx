@@ -26,10 +26,7 @@ const MobileMenu = ({ user }) => {
   ];
 
   // Choix du menu en fonction du profil de l'utilisateur
-  const links =
-    user?.role === "client" || user?.role === "candidate"
-      ? clientLinks
-      : candidateLinks;
+  const links = user?.role === "client" ? clientLinks : candidateLinks;
 
   return (
     <div className="fixed bottom-0 left-0 z-50 w-full h-16 bg-white border-t border-gray-200 md:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">

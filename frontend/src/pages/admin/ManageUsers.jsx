@@ -18,7 +18,9 @@ import {
   TrashIcon,
   PencilIcon as EditIcon,
   EyeIcon,
+  WalletIcon,
 } from "@heroicons/react/24/outline";
+import ManagePointsModal from "../../components/admin/ManagePointsModal";
 
 const ManageUsers = () => {
   const navigate = useNavigate();
@@ -26,6 +28,7 @@ const ManageUsers = () => {
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState(null);
   const [page, setPage] = useState(1);
+  const [pointsModalUser, setPointsModalUser] = useState(null);
 
   // --- NOUVEAUX ÉTATS POUR L'ÉDITION ---
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -247,6 +250,17 @@ const ManageUsers = () => {
                       >
                         <EditIcon className="w-5 h-5" />
                       </button>
+                      {/* BOUTON POINTS (Seulement pour les candidats) */}
+                      {user.role === "candidate" && (
+                        <button
+                          onClick={() => setPointsModalUser(user)}
+                          className="text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 p-1.5 rounded-lg transition-colors"
+                          title="Gérer les points"
+                        >
+                          <WalletIcon className="w-5 h-5" />{" "}
+                          {/* Importez WalletIcon depuis heroicons/outline */}
+                        </button>
+                      )}
                       <button
                         onClick={() => handleViewDetails(user)} // <-- APPEL DE LA NOUVELLE FONCTION
                         className="text-gray-400 hover:text-indigo-600"
@@ -298,6 +312,13 @@ const ManageUsers = () => {
       )}
       {/* 5. ON AFFICHE LE COMPOSANT DU PANNEAU LATÉRAL */}
       <AddUserSlideOver isOpen={isAddUserOpen} onClose={handleCloseAddUser} />
+      {pointsModalUser && (
+        <ManagePointsModal
+          user={pointsModalUser}
+          onClose={() => setPointsModalUser(null)}
+          onSuccess={fetchUsers} // Pour rafraîchir la liste et voir le nouveau solde si vous l'affichez
+        />
+      )}
     </div>
   );
 };

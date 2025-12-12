@@ -745,5 +745,139 @@ module.exports = function (io) {
       res.status(500).json({ error: "Erreur serveur" });
     }
   });
+
+  // --- K. WALLET FORMATEUR (Stats & Historique) ---
+  router.get("/wallet/data", isTrainer, async (req, res) => {
+    try {
+      const trainerId = req.user.id;
+
+      // 1. Récupérer le solde actuel
+      const trainerProfile = await TrainerProfile.findOne({
+        where: { userId: trainerId },
+        attributes: ["walletBalance"],
+      });
+
+      // 2. Récupérer l'historique des ventes (Enrollments liés aux Trainings du formateur)
+      const sales = await Enrollment.findAll({
+        attributes: ["amountPaid", "createdAt"],
+        include: [
+          {
+            model: Training,
+            as: "training",
+            where: { trainerId: trainerId }, // Filtre clé : cours de ce formateur
+            attributes: ["id", "title"],
+          },
+          {
+            model: User,
+            as: "candidate",
+            attributes: ["id"],
+            include: [
+              {
+                model: CandidateProfile,
+                as: "candidateProfile",
+                attributes: ["firstName", "lastName"],
+              },
+            ],
+          },
+        ],
+        order: [["createdAt", "DESC"]],
+      });
+
+      // 3. Calculer le total historique gagné (pas juste le solde actuel)
+      // Note: Ici on fait une somme brute. Si vous avez des frais (commissions), il faut adapter le calcul.
+      // Dans notre logique précédente d'achat, on créditait le wallet avec (Prix - 10%).
+      // Pour l'historique, on va sommer ce qui a été crédité réellement.
+
+      // Pour simplifier l'affichage, on va dire que Total Gagné = Somme des ventes affichées * 0.9 (si 10% com)
+      // Ou mieux : on se base sur le walletBalance pour l'instant T.
+
+      // Calculons le total des ventes brutes
+      const totalSalesVolume = sales.reduce(
+        (acc, sale) => acc + parseFloat(sale.amountPaid),
+        0
+      );
+
+      // On estime le revenu net historique (approx 90%)
+      const estimatedNetEarnings = totalSalesVolume * 0.9;
+
+      res.json({
+        success: true,
+        balance: parseFloat(trainerProfile.walletBalance || 0),
+        totalSalesVolume,
+        estimatedNetEarnings,
+        transactions: sales,
+      });
+    } catch (error) {
+      logger.error("Erreur wallet formateur:", error);
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  });
+
+  // --- L. DEMANDE DE RETRAIT ---
+  router.post("/wallet/withdraw", isTrainer, async (req, res) => {
+    const t = await sequelize.transaction();
+    try {
+      const { amount, method, details } = req.body; // method: 'momo', 'bank'
+      const trainerId = req.user.id;
+
+      if (!amount || amount <= 0)
+        return res.status(400).json({ error: "Montant invalide" });
+
+      const trainerProfile = await TrainerProfile.findOne({
+        where: { userId: trainerId },
+        transaction: t,
+      });
+
+      if (parseFloat(trainerProfile.walletBalance) < parseFloat(amount)) {
+        await t.rollback();
+        return res.status(400).json({ error: "Solde insuffisant." });
+      }
+
+      // 1. Débiter le wallet (On "bloque" les fonds)
+      await trainerProfile.decrement("walletBalance", {
+        by: amount,
+        transaction: t,
+      });
+
+      // 2. Créer une notification pour l'ADMIN (Activity)
+      // Idéalement, vous devriez avoir une table `WithdrawalRequests` pour gérer ça proprement.
+      // Pour l'instant, on utilise Activity pour notifier l'admin.
+
+      // On récupère les admins (optionnel, ou on met un userId admin générique si vous en avez un)
+      // Ici on crée une activité de type 'system' ou pour un admin spécifique.
+
+      // Pour simplifier ici : on log juste et on notifie le formateur que c'est en cours.
+
+      const activity = await Activity.create(
+        {
+          userId: trainerId,
+          type: "system",
+          message: `Demande de retrait de ${amount} FCFA (${method}) envoyée. En attente de validation.`,
+          referenceId: trainerId,
+          referenceType: "withdrawal",
+          status: "pending",
+        },
+        { transaction: t }
+      );
+
+      await t.commit();
+
+      io.to(`user-${trainerId}`).emit("activity", activity);
+
+      // TODO: Envoyer un email à l'admin ici avec les détails du paiement (Momo number, etc.)
+      logger.info(
+        `Retrait demandé par ${trainerId}: ${amount} FCFA via ${method}`
+      );
+
+      res.json({
+        success: true,
+        message: "Demande envoyée. Traitement sous 48h.",
+      });
+    } catch (error) {
+      await t.rollback();
+      logger.error("Erreur retrait:", error);
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  });
   return router;
 };

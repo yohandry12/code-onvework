@@ -4,6 +4,7 @@ const {
   CandidateProfile,
   ClientProfile,
   TrainerProfile,
+  Activity,
   sequelize,
 } = require("../models");
 const { Op } = require("sequelize");
@@ -54,7 +55,7 @@ router.get("/", async (req, res) => {
         {
           model: CandidateProfile,
           as: "candidateProfile",
-          attributes: ["firstName", "lastName"],
+          attributes: ["firstName", "lastName", "profession", "trainingPoints"],
         },
         {
           model: ClientProfile,
@@ -272,7 +273,15 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const user = await User.findByPk(id, {
-      attributes: ["id", "email", "role", "isActive", "createdAt", "lastLogin"],
+      attributes: [
+        "id",
+        "email",
+        "role",
+        "trainingPoints",
+        "isActive",
+        "createdAt",
+        "lastLogin",
+      ],
       include: [
         {
           model: CandidateProfile,
@@ -310,6 +319,108 @@ router.get("/:id", async (req, res) => {
   } catch (error) {
     logger.error("Erreur récupération détail utilisateur (admin):", error);
     res.status(500).json({ success: false, error: "Erreur serveur." });
+  }
+});
+
+// --- PATCH /api/admin/users/:id/points - Modifier les points de formation (Candidat uniquement) ---
+router.patch("/:id/points", async (req, res) => {
+  // Démarrage de la transaction
+  const t = await sequelize.transaction();
+
+  try {
+    const { id } = req.params;
+    const { points, action } = req.body; // action = 'add' ou 'remove'
+
+    // 1. Validation des entrées
+    const amount = parseInt(points, 10);
+    if (isNaN(amount) || amount <= 0) {
+      await t.rollback();
+      return res.status(400).json({
+        error: "Le montant des points doit être un nombre entier positif.",
+      });
+    }
+    if (!["add", "remove"].includes(action)) {
+      await t.rollback();
+      return res
+        .status(400)
+        .json({ error: "Action invalide (attendu: 'add' ou 'remove')." });
+    }
+
+    // 2. Récupération du candidat avec verrouillage (LOCK)
+    // Le lock empêche une modification concurrente pendant cette transaction
+    const user = await User.findByPk(id, {
+      include: [{ model: CandidateProfile, as: "candidateProfile" }],
+      transaction: t,
+      lock: true,
+    });
+
+    if (!user || !user.candidateProfile) {
+      await t.rollback();
+      return res.status(404).json({ error: "Profil candidat introuvable." });
+    }
+
+    const profile = user.candidateProfile;
+    let currentPoints = parseInt(profile.trainingPoints || 0, 10);
+    let newPoints = currentPoints;
+
+    // 3. Calcul du nouveau solde
+    if (action === "add") {
+      newPoints += amount;
+    } else {
+      // Vérification pour éviter un solde négatif
+      if (currentPoints < amount) {
+        await t.rollback();
+        return res.status(400).json({
+          error: `Solde insuffisant pour retirer ${amount} points. Solde actuel : ${currentPoints}.`,
+        });
+      }
+      newPoints -= amount;
+    }
+
+    // 4. Mise à jour en base
+    await profile.update({ trainingPoints: newPoints }, { transaction: t });
+
+    // 5. Création de l'historique d'activité (Audit Trail)
+    // C'est important pour que l'admin et l'utilisateur sachent pourquoi le solde a changé.
+    const activityMessage =
+      action === "add"
+        ? `L'administrateur vous a crédité de ${amount} points de formation.`
+        : `L'administrateur a débité ${amount} points de votre solde.`;
+
+    await Activity.create(
+      {
+        userId: user.id, // L'activité est liée au candidat pour qu'il la voie
+        type: "system", // Ou 'admin-action'
+        message: activityMessage,
+        referenceId: req.user.id, // On garde l'ID de l'admin comme référence
+        referenceType: "admin_update",
+        status: action === "add" ? "success" : "warning",
+      },
+      { transaction: t }
+    );
+
+    // 6. Validation de la transaction
+    await t.commit();
+
+    logger.info(
+      `[ADMIN] ${req.user.email} a ${
+        action === "add" ? "ajouté" : "retiré"
+      } ${amount} points au candidat ${user.email} (ID: ${
+        user.id
+      }). Nouveau solde: ${newPoints}`
+    );
+
+    res.json({
+      success: true,
+      newPoints,
+      message: `Opération réussie. Nouveau solde : ${newPoints} points.`,
+    });
+  } catch (error) {
+    await t.rollback();
+    logger.error("Erreur update points admin:", error);
+    res
+      .status(500)
+      .json({ error: "Erreur serveur lors de la mise à jour des points." });
   }
 });
 

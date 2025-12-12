@@ -47,6 +47,7 @@ const UserDropdownMenu = ({ user, logout }) => {
     : fallbackAvatar;
 
   const isCandidate = user?.role === "candidate";
+  const isTrainer = user?.role === "trainer";
 
   // Gestion de la fermeture au clic dehors
   useEffect(() => {
@@ -128,6 +129,16 @@ const UserDropdownMenu = ({ user, logout }) => {
               {isCandidate && (
                 <NavLink
                   to="/wallet"
+                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  onClick={() => setIsDropdownOpen(false)}
+                >
+                  Mon Portefeuille
+                </NavLink>
+              )}
+
+              {isTrainer && (
+                <NavLink
+                  to="/trainer/wallet"
                   className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   onClick={() => setIsDropdownOpen(false)}
                 >

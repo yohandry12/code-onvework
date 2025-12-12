@@ -464,5 +464,51 @@ module.exports = function (io) {
       }
     }
   );
+
+  router.get("/:trainerId/ratings", async (req, res) => {
+    try {
+      const trainerId = req.params.trainerId;
+      const { page = 1, limit = 10 } = req.query;
+      const offset = (page - 1) * limit;
+
+      const { count, rows } = await TrainerRating.findAndCountAll({
+        where: { trainer_id: trainerId },
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        order: [["createdAt", "DESC"]],
+        include: [
+          {
+            model: User,
+            as: "author", // L'étudiant qui a noté
+            attributes: ["id", "email"],
+            include: [
+              {
+                model: CandidateProfile,
+                as: "candidateProfile",
+                attributes: ["firstName", "lastName", "avatar"],
+              },
+            ],
+          },
+        ],
+      });
+
+      // Calcul de la moyenne pour affichage (optionnel si déjà dans le profil)
+      const stats = await TrainerRating.findAll({
+        where: { trainer_id: trainerId },
+        attributes: [[sequelize.fn("AVG", sequelize.col("rating")), "avg"]],
+        raw: true,
+      });
+
+      res.json({
+        success: true,
+        reviews: rows,
+        total: count,
+        averageRating: parseFloat(stats[0].avg || 0).toFixed(1),
+      });
+    } catch (error) {
+      logger.error("Erreur récupération avis formateur:", error);
+      res.status(500).json({ error: "Erreur serveur" });
+    }
+  });
   return router;
 };

@@ -19,6 +19,7 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/solid";
 import { MapPinIcon } from "@heroicons/react/24/outline";
+import TrainerReviews from "../components/Training/TrainerReviews";
 
 const TrainerPublicProfile = () => {
   const { id } = useParams();
@@ -52,24 +53,32 @@ const TrainerPublicProfile = () => {
         limit: 100,
       });
 
-      if (userRes.success) setTrainer(userRes.user);
+      // 1. On prépare les données du profil
+      let profileData = {};
+      if (userRes.success) {
+        setTrainer(userRes.user);
+        // On récupère le profil correctement
+        profileData = userRes.user.profile || userRes.user.trainerProfile || {};
+      }
 
       if (coursesRes.success) {
         setCourses(coursesRes.trainings);
+
         const totalStudents = coursesRes.trainings.reduce(
           (acc, c) => acc + (c.totalStudents || 0),
           0
         );
-        const ratings = coursesRes.trainings
-          .filter((c) => c.averageRating > 0)
-          .map((c) => parseFloat(c.averageRating));
-        const averageRating = ratings.length
-          ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1)
+
+        // --- CORRECTION ICI ---
+        // On utilise la note qui vient de la BDD (TrainerProfile)
+        // et non pas un recalcul basé sur les cours.
+        const averageRating = profileData.averageRating
+          ? parseFloat(profileData.averageRating).toFixed(1)
           : "0.0";
 
         setStats({
           totalStudents,
-          averageRating,
+          averageRating, // On utilise la vraie note
           totalReviews: 0,
           courseCount: coursesRes.trainings.length,
         });
@@ -262,6 +271,8 @@ const TrainerPublicProfile = () => {
                 )}
               </div>
             </div>
+            {/* AVIS DU FORMATEUR (NOUVEAU) */}
+            <TrainerReviews trainerId={id} />
           </div>
 
           {/* COLONNE DROITE : PROFIL STICKY */}

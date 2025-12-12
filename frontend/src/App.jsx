@@ -55,6 +55,7 @@ import ManageTrainings from "./pages/admin/ManageTrainings";
 import AllTrainings from "./pages/AllTrainings";
 import TrainingDetail from "./pages/TrainingDetail";
 import TrainerPublicProfile from "./pages/TrainerPublicProfile";
+import TrainerWallet from "./pages/TrainerWallet";
 
 // --- LAYOUTS ET COMPOSANTS ---
 import Header from "./components/Layout/Header";
@@ -163,19 +164,20 @@ function AppRoutes() {
               />
               <Route path="/talents/:id" element={<TalentProfilePage />} />
 
-              {/* --- 3. AJOUT DE LA ROUTE SPÉCIFIQUE FORMATEUR --- */}
+              {/* --- 3. AJOUT DE LA ROUTE SPÉCIFIQUE FORMATEUR ---
               <Route
                 path="/onboarding/trainer"
                 element={<TrainerOnboarding />}
               />
-              <Route path="/courses/create" element={<CreateCourse />} />
+              <Route path="/courses/create" element={<CreateCourse />} /> */}
             </Route>
           </Route>
 
-          {/* <Route element={<ProtectedRoute allowedRoles={["trainer"]} />}>
+          <Route element={<ProtectedRoute allowedRoles={["trainer"]} />}>
             <Route path="/onboarding/trainer" element={<TrainerOnboarding />} />
             <Route path="/courses/create" element={<CreateCourse />} />
-          </Route> */}
+            <Route path="/trainer/wallet" element={<TrainerWallet />} />
+          </Route>
         </Route>
 
         {/* Routes Auth */}
