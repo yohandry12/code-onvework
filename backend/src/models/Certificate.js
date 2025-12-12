@@ -1,6 +1,5 @@
 // --- models/Certificate.js ---
 const { DataTypes, Model } = require("sequelize");
-const { v4: uuidv4 } = require("uuid");
 
 module.exports = (sequelize) => {
   class Certificate extends Model {}
@@ -13,6 +12,7 @@ module.exports = (sequelize) => {
         primaryKey: true,
       },
       userId: { type: DataTypes.INTEGER, allowNull: false, field: "user_id" },
+
       trainingId: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -24,12 +24,14 @@ module.exports = (sequelize) => {
         defaultValue: DataTypes.NOW,
         field: "issued_at",
       },
+
       verificationCode: {
         type: DataTypes.STRING,
-        unique: true,
+        allowNull: false, // ← IMPORTANT (empêche NULL qui brise l'unicité)
         field: "verification_code",
       },
-      pdfUrl: { type: DataTypes.STRING, field: "pdf_url" }, // URL du PDF généré
+
+      pdfUrl: { type: DataTypes.STRING, field: "pdf_url" },
     },
     {
       sequelize,
@@ -37,9 +39,9 @@ module.exports = (sequelize) => {
       tableName: "certificates",
       timestamps: true,
       underscored: true,
+
       hooks: {
         beforeCreate: (certificate) => {
-          // Génère un code unique court (ex: TRAIN-X7Z9-1234)
           certificate.verificationCode = `CERT-${Math.random()
             .toString(36)
             .substr(2, 9)

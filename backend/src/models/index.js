@@ -39,6 +39,7 @@ db.Lesson = require("./Lesson")(sequelize);
 db.Certificate = require("./Certificate")(sequelize);
 db.Enrollment = require("./Enrollment")(sequelize);
 db.Review = require("./Review")(sequelize);
+db.TrainerRating = require("./TrainerRating")(sequelize, Sequelize.DataTypes);
 
 db.User.hasOne(db.UserSettings, {
   foreignKey: "userId",
@@ -154,6 +155,12 @@ db.User.hasMany(db.Recommendation, {
 db.Recommendation.belongsTo(db.User, {
   foreignKey: "employerId",
   as: "employer",
+});
+
+db.User.hasMany(db.TrainerRating, { foreignKey: "trainer_id", as: "ratings" });
+db.User.hasMany(db.TrainerRating, {
+  foreignKey: "user_id",
+  as: "givenRatings",
 });
 
 // ============================================

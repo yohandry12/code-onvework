@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { apiService } from "../../services/api";
 import { useDebounce } from "use-debounce";
 import {
@@ -10,6 +11,8 @@ import {
   FunnelIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  TrashIcon,
+  PencilSquareIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 
@@ -17,6 +20,7 @@ const ManageTrainings = () => {
   const [trainings, setTrainings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState(null);
+  const navigate = useNavigate();
 
   // Filtres
   const [page, setPage] = useState(1);
@@ -72,6 +76,22 @@ const ManageTrainings = () => {
       fetchTrainings();
     } catch (error) {
       toast.error("Erreur lors du rejet.");
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (
+      !window.confirm(
+        "Êtes-vous sûr de vouloir supprimer cette formation définitivement ?"
+      )
+    )
+      return;
+    try {
+      await apiService.trainings.adminDelete(id);
+      toast.success("Formation supprimée.");
+      fetchTrainings();
+    } catch (error) {
+      toast.error("Erreur lors de la suppression.");
     }
   };
 
@@ -264,6 +284,24 @@ const ManageTrainings = () => {
                             </button>
                           </>
                         )}
+
+                        <button
+                          onClick={() =>
+                            navigate(`/admin/trainings/${training.id}/edit`)
+                          } // <--- MODIFICATION
+                          title="Modifier"
+                          className="p-1.5 text-gray-500 hover:text-orange-600 bg-gray-100 hover:bg-orange-50 rounded"
+                        >
+                          <PencilSquareIcon className="w-5 h-5" />
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(training.id)}
+                          title="Supprimer"
+                          className="p-1.5 text-red-500 hover:text-red-700 bg-gray-100 hover:bg-red-50 rounded"
+                        >
+                          <TrashIcon className="w-5 h-5" />
+                        </button>
                       </div>
                     </td>
                   </tr>

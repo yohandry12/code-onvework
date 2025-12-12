@@ -37,6 +37,8 @@ module.exports = function (io) {
         description,
         category,
         subCategory,
+        subtitle,
+        duration,
         level,
         language,
         objectives,
@@ -50,6 +52,16 @@ module.exports = function (io) {
 
       const initialStatus = req.user.role === "admin" ? "published" : "pending";
 
+      // --- CALCUL DES TOTAUX ---
+      // On compte ce qu'il y a dans le tableau modules envoyé par le front
+      const calculatedTotalModules = modules ? modules.length : 0;
+      const calculatedTotalLessons = modules
+        ? modules.reduce(
+            (acc, m) => acc + (m.lessons ? m.lessons.length : 0),
+            0
+          )
+        : 0;
+
       // 1. Création de la Formation parente
       const newTraining = await Training.create(
         {
@@ -58,6 +70,8 @@ module.exports = function (io) {
           description,
           category,
           subCategory,
+          subtitle,
+          duration,
           level,
           language,
           objectives, // Sequelize gère automatiquement le JSON
@@ -66,6 +80,8 @@ module.exports = function (io) {
           discountPrice,
           thumbnail,
           trailerUrl,
+          totalModules: calculatedTotalModules,
+          totalLessons: calculatedTotalLessons,
           status: initialStatus, // Toujours brouillon à la création
         },
         { transaction: t }

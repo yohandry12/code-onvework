@@ -266,13 +266,9 @@ module.exports = (sequelize) => {
       website: DataTypes.STRING,
       avatar: DataTypes.STRING,
       averageRating: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 5, // Par défaut 5 étoiles
-        validate: {
-          min: 1,
-          max: 5,
-        },
+        type: DataTypes.FLOAT, // Utiliser FLOAT pour avoir des décimales (ex: 4.5)
+        defaultValue: 0,
+        field: "average_rating",
       },
       // Gestion financière pour le formateur
       walletBalance: {

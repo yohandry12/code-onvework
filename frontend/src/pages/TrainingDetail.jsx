@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { apiService } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { formatPoints } from "../utils/format";
@@ -129,8 +130,8 @@ const TrainingDetail = () => {
           <div className="md:w-2/3 pr-0 md:pr-8">
             <div className="flex gap-2 text-sm font-semibold text-emerald-400 mb-4">
               <span>{training.category}</span>
-              {/* <span>{">"}</span>
-              <span>{training.subCategory || "Général"}</span> */}
+              <span>{">"}</span>
+              <span>{training.subCategory || "Général"}</span>
             </div>
 
             <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
@@ -316,10 +317,15 @@ const TrainingDetail = () => {
                 alt="Avatar"
               />
               <div>
-                <h3 className="font-bold text-lg text-emerald-700 underline mb-1">
-                  {training.trainer?.trainerProfile?.firstName}{" "}
-                  {training.trainer?.trainerProfile?.lastName}
-                </h3>
+                <Link
+                  to={`/trainers/${training.trainer.id}`}
+                  className="hover:underline"
+                >
+                  <h3 className="font-bold text-lg text-emerald-700 underline mb-1">
+                    {training.trainer?.trainerProfile?.firstName}{" "}
+                    {training.trainer?.trainerProfile?.lastName}
+                  </h3>
+                </Link>
                 <p className="text-gray-500 text-sm mb-4">
                   {training.trainer?.trainerProfile?.specialties?.join(", ")}
                 </p>
@@ -479,7 +485,10 @@ const TrainingDetail = () => {
                     </span>
                   </div>
                   <span className="font-bold text-gray-900">
-                    {user.profile?.trainingPoints || 0} points
+                    {(user.profile?.trainingPoints || 0).toLocaleString(
+                      "fr-FR"
+                    )}{" "}
+                    Pts
                   </span>
                 </div>
 

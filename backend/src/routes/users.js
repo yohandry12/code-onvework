@@ -4,9 +4,13 @@ const {
   User,
   CandidateProfile,
   ClientProfile,
+  Activity,
+  TrainerProfile,
+  Review,
   Job,
   sequelize,
   Application,
+  TrainerRating,
 } = require("../models"); // Importer tous les modèles nécessaires
 const { Op } = require("sequelize"); // Importer les opérateurs Sequelize
 const {
@@ -170,6 +174,7 @@ module.exports = function (io) {
         include: [
           { model: CandidateProfile, as: "candidateProfile" },
           { model: ClientProfile, as: "clientProfile" },
+          { model: TrainerProfile, as: "trainerProfile" },
         ],
       });
 
@@ -214,6 +219,9 @@ module.exports = function (io) {
         userResponse.profile = user.candidateProfile.get({ plain: true });
       if (user.clientProfile)
         userResponse.profile = user.clientProfile.get({ plain: true });
+      if (user.trainerProfile) {
+        userResponse.profile = user.trainerProfile.get({ plain: true });
+      }
 
       if (user.role === "candidate") {
         // Compter les candidatures avec statut 'completed' ou 'filled'
@@ -390,5 +398,71 @@ module.exports = function (io) {
     }
   );
 
+  router.post(
+    "/:trainerId/rate",
+    authenticateToken,
+    requireRole("candidate"),
+    async (req, res) => {
+      try {
+        const trainerId = req.params.trainerId;
+        const { rating, comment } = req.body;
+        const userId = req.user.id;
+
+        if (!rating || rating < 1 || rating > 5) {
+          return res
+            .status(400)
+            .json({ error: "La note doit être entre 1 et 5." });
+        }
+
+        // Vérifier que le formateur existe
+        const trainer = await User.findByPk(trainerId);
+        if (!trainer || trainer.role !== "trainer") {
+          return res.status(404).json({ error: "Formateur introuvable." });
+        }
+
+        // Enregistrer la note
+        const review = await TrainerRating.create({
+          user_id: userId,
+          trainer_id: trainerId,
+          rating,
+          comment,
+        });
+
+        // Mise à jour de la moyenne du formateur
+        const stats = await TrainerRating.findAll({
+          where: { trainer_id: trainerId },
+          attributes: [[sequelize.fn("AVG", sequelize.col("rating")), "avg"]],
+        });
+
+        const newAverage = parseFloat(stats[0].avg || 0).toFixed(1);
+
+        // --- CORRECTION ICI ---
+        // On met à jour le TrainerProfile, pas le User
+        await TrainerProfile.update(
+          { averageRating: newAverage },
+          { where: { userId: trainerId } }
+        );
+
+        // 5. Notification (Optionnel)
+        const activity = await Activity.create({
+          userId: trainerId,
+          type: "review",
+          message: `Nouvelle note (${rating}/5) reçue sur votre profil.`,
+          referenceId: userId,
+          referenceType: "user",
+          status: "info",
+        });
+        io.to(`user-${trainerId}`).emit("activity", activity);
+
+        res.json({
+          message: "Notation enregistrée avec succès.",
+          review,
+        });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Erreur serveur." });
+      }
+    }
+  );
   return router;
 };

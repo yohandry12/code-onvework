@@ -220,6 +220,8 @@ export const apiService = {
     getAIJobMatches: () => apiClient.get("/users/ai-job-matches"),
     convertFunds: (amount) =>
       apiClient.post("/users/convert-funds", { amount }),
+
+    rateTrainer: (id, data) => apiClient.post(`/users/${id}/rate`, data),
   },
 
   // API des notifications
@@ -345,6 +347,10 @@ export const apiService = {
     adminApprove: (id) => apiClient.patch(`/admin/trainings/${id}/approve`),
     adminReject: (id, reason) =>
       apiClient.patch(`/admin/trainings/${id}/reject`, { reason }),
+
+    adminDelete: (id) => apiClient.delete(`/admin/trainings/${id}`),
+    adminGetById: (id) => apiClient.get(`/admin/trainings/${id}`),
+    adminUpdate: (id, data) => apiClient.put(`/admin/trainings/${id}`, data),
   },
 };
 

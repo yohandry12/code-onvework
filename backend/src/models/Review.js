@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
       },
       trainingId: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         field: "training_id",
       },
       trainerId: {

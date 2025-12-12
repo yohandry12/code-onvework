@@ -48,11 +48,13 @@ import FinanceSettings from "./pages/admin/FinanceSettings";
 import AdminEditJob from "./pages/admin/AdminEditJob";
 import Wallet from "./pages/Wallet";
 import CreateCourse from "./pages/CreateCourse";
+import AdminEditTraining from "./pages/admin/AdminEditTraining";
 // --- 1. IMPORT DU NOUVEAU COMPOSANT ---
 import TrainerOnboarding from "./pages/TrainerOnboarding";
 import ManageTrainings from "./pages/admin/ManageTrainings";
 import AllTrainings from "./pages/AllTrainings";
 import TrainingDetail from "./pages/TrainingDetail";
+import TrainerPublicProfile from "./pages/TrainerPublicProfile";
 
 // --- LAYOUTS ET COMPOSANTS ---
 import Header from "./components/Layout/Header";
@@ -135,31 +137,38 @@ function AppRoutes() {
             }
           >
             <Route element={<MobileLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="/wallet" element={<Wallet />} />
-                <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/trainers/:id" element={<TrainerPublicProfile />} />
 
-                {/* Routes Spécifiques Candidat */}
-                <Route path="/my-applications" element={<MyApplications />} />
-                <Route
-                  path="/onboarding/candidate"
-                  element={<OnboardingCandidate />}
-                />
+              {/* Routes Spécifiques Candidat */}
+              <Route path="/my-applications" element={<MyApplications />} />
+              <Route
+                path="/onboarding/candidate"
+                element={<OnboardingCandidate />}
+              />
 
-                {/* Routes Spécifiques Client */}
-                <Route
-                  path="/manage-applications"
-                  element={<ManageApplications />}
-                />
-                <Route path="/jobs/create" element={<CreateJob />} />
-                <Route path="/client/job-history" element={<JobHistory />} />
-                <Route path="/clients/:clientId" element={<ClientProfilePage />} />
-                <Route path="/talents/:id" element={<TalentProfilePage />} />  
+              {/* Routes Spécifiques Client */}
+              <Route
+                path="/manage-applications"
+                element={<ManageApplications />}
+              />
+              <Route path="/jobs/create" element={<CreateJob />} />
+              <Route path="/client/job-history" element={<JobHistory />} />
+              <Route
+                path="/clients/:clientId"
+                element={<ClientProfilePage />}
+              />
+              <Route path="/talents/:id" element={<TalentProfilePage />} />
 
-                {/* --- 3. AJOUT DE LA ROUTE SPÉCIFIQUE FORMATEUR --- */}
-                <Route path="/onboarding/trainer" element={<TrainerOnboarding />} />
-                <Route path="/courses/create" element={<CreateCourse />} />           
+              {/* --- 3. AJOUT DE LA ROUTE SPÉCIFIQUE FORMATEUR --- */}
+              <Route
+                path="/onboarding/trainer"
+                element={<TrainerOnboarding />}
+              />
+              <Route path="/courses/create" element={<CreateCourse />} />
             </Route>
           </Route>
 
@@ -207,6 +216,10 @@ function AppRoutes() {
             <Route path="finance" element={<FinanceSettings />} />
             <Route path="/admin/jobs/:id/edit" element={<AdminEditJob />} />
             <Route path="trainings" element={<ManageTrainings />} />
+            <Route
+              path="/admin/trainings/:id/edit"
+              element={<AdminEditTraining />}
+            />
           </Route>
         </Route>
 

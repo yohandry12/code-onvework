@@ -22,6 +22,7 @@ import {
   Tag,
   Award,
   AlertCircle,
+  XCircle,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -153,7 +154,7 @@ const CreateCourse = () => {
     }
   };
 
-  // Helpers Arrays
+  // Helpers Arrays (Objectifs & Pré-requis)
   const updateArrayItem = (arr, idx, val) => {
     const newArr = [...formData[arr]];
     newArr[idx] = val;
@@ -164,6 +165,9 @@ const CreateCourse = () => {
       ...formData,
       [arr]: formData[arr].filter((_, i) => i !== idx),
     });
+  };
+  const addArrayItem = (arr) => {
+    setFormData({ ...formData, [arr]: [...formData[arr], ""] });
   };
 
   // Helpers Modules

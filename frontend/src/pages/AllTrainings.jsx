@@ -284,8 +284,9 @@ const AllTrainings = () => {
                       </p>
 
                       <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-                        <Clock size={18} /> Durée : {course.duration} heures au
-                        total
+                        <Clock size={18} /> Durée :{" "}
+                        {Math.floor(course.duration / 60)}h{" "}
+                        {course.duration % 60}m durée totale
                       </p>
 
                       {/* Rating & Stats */}
