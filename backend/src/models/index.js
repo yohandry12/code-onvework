@@ -238,8 +238,16 @@ db.Certificate.belongsTo(db.Training, {
 });
 
 // Une formation a plusieurs avis
-db.Training.hasMany(db.Review, { foreignKey: "trainingId", as: "reviews" });
-db.Review.belongsTo(db.Training, { foreignKey: "trainingId", as: "training" });
+db.Training.hasMany(db.Review, {
+  foreignKey: "trainingId",
+  as: "reviews",
+  onDelete: "CASCADE",
+});
+db.Review.belongsTo(db.Training, {
+  foreignKey: "trainingId",
+  as: "training",
+  onDelete: "CASCADE",
+});
 
 // Un utilisateur écrit plusieurs avis
 db.User.hasMany(db.Review, { foreignKey: "userId", as: "reviewsWritten" });

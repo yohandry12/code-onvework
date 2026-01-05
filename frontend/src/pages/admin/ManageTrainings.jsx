@@ -13,6 +13,7 @@ import {
   ChevronRightIcon,
   TrashIcon,
   PencilSquareIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 
@@ -141,6 +142,14 @@ const ManageTrainings = () => {
           <p className="text-sm text-gray-500 mt-1">
             {pagination?.total || 0} formations trouvées
           </p>
+        </div>
+        <div className="mt-4 sm:mt-0">
+          <button
+            onClick={() => navigate("/admin/trainings/create")}
+            className="inline-flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-emerald-700"
+          >
+            <PlusIcon className="w-5 h-5" /> Créer une formation
+          </button>
         </div>
       </div>
 

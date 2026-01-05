@@ -431,7 +431,7 @@ const Home = () => {
               </button>
             </form>
           ) : (
-            <div className="max-w-2xl mx-auto flex items-center justify-center gap-6 mt-8">
+            <div className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-6 mt-8">
               <Link
                 to="/register"
                 className="

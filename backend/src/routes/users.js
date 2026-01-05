@@ -10,6 +10,8 @@ const {
   Job,
   sequelize,
   Application,
+  Enrollment,
+  Training,
   TrainerRating,
 } = require("../models"); // Importer tous les modèles nécessaires
 const { Op } = require("sequelize"); // Importer les opérateurs Sequelize
@@ -25,7 +27,7 @@ const { getCompletedJobsCount } = require("../utils/stats");
 module.exports = function (io) {
   const router = express.Router();
 
-  // --- GET /api/users/search - Recherche d'utilisateurs (traduit pour Sequelize) ---
+  // --- GET /api/users/search - Recherche d'utilisateurs (avec tri par note) ---
   router.get("/search", async (req, res) => {
     try {
       const {
@@ -40,9 +42,26 @@ module.exports = function (io) {
       const limitNum = parseInt(limit, 10);
       const offset = (pageNum - 1) * limitNum;
 
+      // 1. Définition du Tri (Ordre de mérite)
+      // Par défaut : les plus récents
+      let orderClause = [["createdAt", "DESC"]];
+
+      // Si on cherche des candidats (ou tous les rôles), on met les mieux notés en premier
+      if (!role || role === "candidate") {
+        orderClause = [
+          // Tri principal : Note moyenne décroissante sur le modèle joint
+          [
+            { model: CandidateProfile, as: "candidateProfile" },
+            "averageRating",
+            "DESC",
+          ],
+          // Tri secondaire : Date de création (pour départager)
+          ["createdAt", "DESC"],
+        ];
+      }
+
       const whereClause = {
         isActive: true,
-        // La vérification `publicProfile` se fait au niveau du profil spécifique si nécessaire
       };
 
       if (role) {
@@ -50,11 +69,9 @@ module.exports = function (io) {
       }
 
       const includeOptions = [];
-      const orConditions = [];
 
       // Construire la recherche textuelle
       if (query) {
-        // For robust case-insensitive matching, lower both column and query
         const qLower = `%${String(query).toLowerCase()}%`;
 
         if (!role || role === "candidate") {
@@ -90,7 +107,7 @@ module.exports = function (io) {
                 ),
               ],
             },
-            required: !!role, // Si un rôle est spécifié, la jointure est obligatoire
+            required: !!role,
           });
         }
 
@@ -124,7 +141,7 @@ module.exports = function (io) {
           });
         }
       } else {
-        // Inclure les profils même sans requête textuelle pour récupérer les données complètes
+        // Inclure les profils même sans requête textuelle
         if (!role || role === "candidate")
           includeOptions.push({
             model: CandidateProfile,
@@ -137,10 +154,10 @@ module.exports = function (io) {
       const { count, rows } = await User.findAndCountAll({
         where: whereClause,
         include: includeOptions,
-        distinct: true, // Important avec les `include` pour un décompte correct
+        distinct: true,
         limit: limitNum,
         offset: offset,
-        order: [["createdAt", "DESC"]],
+        order: orderClause, // <--- Utilisation du tri dynamique ici
       });
 
       const totalPages = Math.ceil(count / limitNum);
@@ -510,5 +527,141 @@ module.exports = function (io) {
       res.status(500).json({ error: "Erreur serveur" });
     }
   });
+
+  // --- GET /api/users/wallet/history - Historique consolidé des transactions ---
+  router.get(
+    "/wallet/history",
+    authenticateToken,
+    requireRole("candidate"),
+    async (req, res) => {
+      try {
+        const userId = req.user.id;
+        // Pagination par défaut
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 20;
+
+        // On récupère plus de données que la limite pour gérer la fusion/tri correctement
+        const fetchLimit = limit * 5;
+
+        // 1. Exécution parallèle des requêtes pour la performance
+        const [enrollments, activities] = await Promise.all([
+          // A. Récupérer les achats de formation (Dépenses)
+          Enrollment.findAll({
+            where: { candidateId: userId },
+            attributes: ["id", "amountPaid", "paymentStatus", "createdAt"],
+            include: [
+              {
+                model: Training,
+                as: "training",
+                attributes: ["title"],
+              },
+            ],
+            order: [["createdAt", "DESC"]],
+            limit: fetchLimit,
+          }),
+
+          // B. Récupérer les activités financières (Gains, Conversions, Retraits)
+          Activity.findAll({
+            where: {
+              userId,
+              // On ne prend que les types liés à l'argent/points
+              type: {
+                [Op.in]: [
+                  "payment_received",
+                  "conversion",
+                  "withdrawal",
+                  "bonus",
+                ],
+              },
+            },
+            attributes: ["id", "type", "message", "createdAt", "status"],
+            order: [["createdAt", "DESC"]],
+            limit: fetchLimit,
+          }),
+        ]);
+
+        // 2. Normalisation des données pour le Frontend
+        // On transforme tout en un format unique : { id, date, type, title, amount, status, direction }
+
+        const formattedEnrollments = enrollments.map((e) => ({
+          id: `enroll-${e.id}`,
+          originalId: e.id,
+          date: e.createdAt,
+          type: "enrollment",
+          title: `Achat : ${e.training?.title || "Formation"}`,
+          amount: parseFloat(e.amountPaid),
+          currency: "Pts",
+          direction: "out", // Sortie d'argent
+          status: e.paymentStatus === "paid" ? "success" : "pending",
+        }));
+
+        const formattedActivities = activities.map((a) => {
+          // Tentative d'extraction du montant depuis le message via Regex (ex: "converti 5000 FCFA")
+          // Adaptez la regex selon le format de vos messages dans activity.js
+          const amountMatch = a.message.match(/(\d+(?:\.\d+)?)/);
+          const amount = amountMatch ? parseFloat(amountMatch[0]) : 0;
+
+          let title = "Opération diverse";
+          let direction = "in"; // Par défaut entrée
+          let currency = "FCFA";
+
+          if (a.type === "conversion") {
+            title = "Conversion de fonds";
+            currency = "Pts"; // On a reçu des points
+          } else if (a.type === "withdrawal") {
+            title = "Demande de retrait";
+            direction = "out";
+            currency = "FCFA";
+          } else if (a.type === "payment_received") {
+            title = "Paiement mission reçu";
+          }
+
+          return {
+            id: `act-${a.id}`,
+            originalId: a.id,
+            date: a.createdAt,
+            type: a.type,
+            title: title,
+            description: a.message,
+            amount: amount,
+            currency: currency,
+            direction: direction,
+            status: a.status, // 'success', 'pending', etc.
+          };
+        });
+
+        // 3. Fusion et Tri global
+        const combinedHistory = [
+          ...formattedEnrollments,
+          ...formattedActivities,
+        ];
+
+        // Tri du plus récent au plus ancien
+        combinedHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // 4. Pagination finale sur la liste fusionnée
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedData = combinedHistory.slice(startIndex, endIndex);
+
+        res.json({
+          success: true,
+          history: paginatedData,
+          pagination: {
+            totalItems: combinedHistory.length,
+            currentPage: page,
+            totalPages: Math.ceil(combinedHistory.length / limit),
+            limit,
+          },
+        });
+      } catch (error) {
+        logger.error("Erreur historique wallet:", error);
+        res.status(500).json({
+          success: false,
+          error: "Impossible de récupérer l'historique.",
+        });
+      }
+    }
+  );
   return router;
 };

@@ -47,6 +47,10 @@ module.exports = function (io) {
         discountPrice,
         thumbnail,
         trailerUrl,
+        trainingType,
+        startDate,
+        location,
+        schedule,
         modules, // Array of modules, containing array of lessons
       } = req.body;
 
@@ -80,6 +84,10 @@ module.exports = function (io) {
           discountPrice,
           thumbnail,
           trailerUrl,
+          trainingType,
+          startDate,
+          location,
+          schedule,
           totalModules: calculatedTotalModules,
           totalLessons: calculatedTotalLessons,
           status: initialStatus, // Toujours brouillon à la création
@@ -302,19 +310,27 @@ module.exports = function (io) {
       const trainings = await Training.findAll({
         where: { trainerId: req.user.id },
         order: [["updatedAt", "DESC"]],
-        // On n'inclut pas tout le contenu pour alléger la liste
-        attributes: [
-          "id",
-          "title",
-          "thumbnail",
-          "price",
-          "status",
-          "totalStudents",
-          "createdAt",
+        // 1. ON ENLEVE 'attributes: [...]' pour récupérer description, duration, level, etc.
+
+        // 2. ON AJOUTE L'INCLUDE pour avoir le nom du formateur
+        include: [
+          {
+            model: User,
+            as: "trainer",
+            attributes: ["id"],
+            include: [
+              {
+                model: TrainerProfile,
+                as: "trainerProfile",
+                attributes: ["firstName", "lastName"],
+              },
+            ],
+          },
         ],
       });
       res.json({ success: true, trainings });
     } catch (error) {
+      logger.error("Erreur my-trainings:", error); // Ajoutez un log pour le debug
       res.status(500).json({ success: false, error: "Erreur serveur" });
     }
   });

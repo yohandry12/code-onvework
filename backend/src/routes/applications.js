@@ -184,7 +184,7 @@ module.exports = function (io) {
         if (status === "accepted") {
           // Récupérer les infos du candidat et du job
           const candidate = await User.findByPk(application.candidateId, {
-            include: [{ model: CandidateProfile, as: "profile" }],
+            include: [{ model: CandidateProfile, as: "candidateProfile" }],
           });
 
           if (candidate && candidate.email) {
@@ -211,10 +211,10 @@ module.exports = function (io) {
         } else if (status === "completed") {
           // Envoyer les emails de validation de mission complétée
           const candidate = await User.findByPk(application.candidateId, {
-            include: [{ model: CandidateProfile, as: "profile" }],
+            include: [{ model: CandidateProfile, as: "candidateProfile" }],
           });
           const client = await User.findByPk(job.clientId, {
-            include: [{ model: ClientProfile, as: "profile" }],
+            include: [{ model: ClientProfile, as: "clientProfile" }],
           });
 
           // Email au candidat
@@ -476,7 +476,7 @@ module.exports = function (io) {
       // --- ENVOI D'EMAIL AU CLIENT ---
       try {
         const client = await User.findByPk(job.clientId, {
-          include: [{ model: ClientProfile, as: "profile" }],
+          include: [{ model: ClientProfile, as: "clientProfile" }],
         });
 
         if (client && client.email) {

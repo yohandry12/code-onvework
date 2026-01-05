@@ -168,6 +168,11 @@ module.exports = (sequelize) => {
         field: "training_points",
         comment: "Points de formation (20% des missions)",
       },
+      averageRating: {
+        type: DataTypes.FLOAT, // Float pour avoir 4.5, 3.8 etc.
+        defaultValue: 0,
+        field: "average_rating",
+      },
       recommendationBadge: {
         type: DataTypes.STRING,
         field: "recommendation_badge",
@@ -246,6 +251,28 @@ module.exports = (sequelize) => {
   TrainerProfile.init(
     {
       userId: { type: DataTypes.INTEGER, primaryKey: true, field: "user_id" },
+
+      // --- NOUVEAUX CHAMPS POUR GÉRER LE TYPE DE FORMATEUR ---
+      trainerType: {
+        type: DataTypes.ENUM(
+          "training_center", // Centre de formation
+          "professional_establishment", // Établissement professionnel
+          "individual_pro" // Particulier Pro (Freelance expert)
+        ),
+        allowNull: false,
+        defaultValue: "individual_pro",
+        field: "trainer_type",
+      },
+      organizationName: {
+        type: DataTypes.STRING,
+        allowNull: true, // Null si c'est un "individual_pro", rempli sinon
+        field: "organization_name",
+        comment: "Nom du centre ou de l'établissement (Raison sociale)",
+      },
+      // -------------------------------------------------------
+
+      // Ces champs restent pour identifier la personne RESPONSABLE du compte
+      // ou le formateur lui-même si c'est un "individual_pro"
       firstName: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -256,21 +283,28 @@ module.exports = (sequelize) => {
         allowNull: false,
         field: "last_name",
       },
+
       phone: DataTypes.STRING,
-      location: DataTypes.JSON, // { city, country, etc. }
-      bio: DataTypes.TEXT, // Présentation du formateur
-      specialties: { type: DataTypes.JSON, defaultValue: [] }, // Ex: ["React", "Management", "Comptabilité"]
-      certifications: { type: DataTypes.JSON, defaultValue: [] },
+      location: DataTypes.JSON, // { city, country, address... }
+
+      bio: DataTypes.TEXT, // Présentation du centre ou du formateur pro
+
+      specialties: { type: DataTypes.JSON, defaultValue: [] },
+      certifications: { type: DataTypes.JSON, defaultValue: [] }, // Qualiopi, RNCP, etc.
       yearsExperience: { type: DataTypes.INTEGER, field: "years_experience" },
+
       linkedinProfile: { type: DataTypes.STRING, field: "linkedin_profile" },
       website: DataTypes.STRING,
+
+      // Pour un centre, l'avatar sera le LOGO
       avatar: DataTypes.STRING,
+
       averageRating: {
-        type: DataTypes.FLOAT, // Utiliser FLOAT pour avoir des décimales (ex: 4.5)
+        type: DataTypes.FLOAT,
         defaultValue: 0,
         field: "average_rating",
       },
-      // Gestion financière pour le formateur
+
       walletBalance: {
         type: DataTypes.DECIMAL(10, 2),
         defaultValue: 0.0,
@@ -282,7 +316,7 @@ module.exports = (sequelize) => {
       sequelize,
       modelName: "TrainerProfile",
       tableName: "trainer_profiles",
-      timestamps: true, // Utile pour savoir quand le profil a été créé/modifié
+      timestamps: true,
       underscored: true,
     }
   );

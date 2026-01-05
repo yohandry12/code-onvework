@@ -227,6 +227,7 @@ const UserDetailPage = () => {
             </div>
 
             {/* Détails spécifiques */}
+            {/* Détails spécifiques */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">
                 {user.role === "client"
@@ -236,8 +237,8 @@ const UserDetailPage = () => {
                   : "Profil Candidat"}
               </h3>
 
-              <div className="space-y-3 text-sm">
-                {user.role === "client" ? (
+              <div className="space-y-4 text-sm">
+                {user.role === "client" && (
                   <>
                     <div>
                       <p className="text-gray-500 mb-1">Nom de l'entreprise</p>
@@ -258,7 +259,9 @@ const UserDetailPage = () => {
                       </p>
                     </div>
                   </>
-                ) : (
+                )}
+
+                {user.role === "candidate" && (
                   <>
                     <div>
                       <p className="text-gray-500 mb-1">Profession</p>
@@ -283,6 +286,106 @@ const UserDetailPage = () => {
                         )}
                       </div>
                     </div>
+                  </>
+                )}
+
+                {/* --- CORRECTION POUR LE FORMATEUR --- */}
+                {user.role === "trainer" && (
+                  <>
+                    <div>
+                      <p className="text-gray-500 mb-1 font-semibold">Bio</p>
+                      <p className="text-gray-700 italic text-sm leading-relaxed">
+                        {profile.bio || "Aucune bio renseignée."}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-gray-500 mb-1 font-semibold">
+                        Spécialités
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.specialties &&
+                        profile.specialties.length > 0 ? (
+                          (Array.isArray(profile.specialties)
+                            ? profile.specialties
+                            : profile.specialties.split(",")
+                          ).map((s, i) => (
+                            <span
+                              key={i}
+                              className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs border border-emerald-100"
+                            >
+                              {s.trim()}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-gray-400 italic">Aucune</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-gray-500 mb-1 font-semibold">
+                        Certifications
+                      </p>
+                      {profile.certifications &&
+                      profile.certifications.length > 0 ? (
+                        <ul className="list-disc list-inside text-gray-700 text-sm space-y-1">
+                          {profile.certifications.map((cert, i) => (
+                            <li key={i}>
+                              <span className="font-medium">{cert.name}</span>
+                              {cert.year && (
+                                <span className="text-gray-500 ml-1">
+                                  ({cert.year})
+                                </span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="text-gray-400 italic">Aucune</span>
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="text-gray-500 mb-1 font-semibold">
+                        Expérience
+                      </p>
+                      <p className="text-gray-900">
+                        {profile.yearsExperience
+                          ? `${profile.yearsExperience} ans`
+                          : "Non renseigné"}
+                      </p>
+                    </div>
+
+                    {(profile.website || profile.linkedinProfile) && (
+                      <div className="pt-2 border-t border-gray-100 mt-2">
+                        <p className="text-gray-500 mb-2 font-semibold">
+                          Liens
+                        </p>
+                        <div className="flex flex-col gap-1">
+                          {profile.website && (
+                            <a
+                              href={profile.website}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-600 hover:underline truncate block"
+                            >
+                              Site Web
+                            </a>
+                          )}
+                          {profile.linkedinProfile && (
+                            <a
+                              href={profile.linkedinProfile}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-blue-600 hover:underline truncate block"
+                            >
+                              LinkedIn
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

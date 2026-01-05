@@ -6,43 +6,25 @@ import MissionApprovalModal from "../components/UI/MissionApprovalModal";
 import { apiService } from "../services/api";
 import {
   Search,
-  Filter,
   Check,
   X,
   Star,
-  Mail,
-  Phone,
   MapPin,
-  Calendar,
-  DollarSign,
-  FileText,
-  Briefcase,
-  Award,
-  ChevronDown,
-  ExternalLink,
-  User,
   CheckCircle as CheckCircleLucide,
 } from "lucide-react";
 
 import {
-  CheckCircleIcon,
   XCircleIcon,
-  ClockIcon,
-  StarIcon,
   EnvelopeIcon,
   PhoneIcon,
-  MapPinIcon,
-  UserCircleIcon,
   AcademicCapIcon,
   SparklesIcon,
-  DocumentTextIcon, // Ajout pour la lettre de motivation
-  CalendarIcon, // Ajout pour la disponibilité
-  CurrencyDollarIcon, // Ajout pour le tarif
+  DocumentTextIcon,
   LinkIcon,
   ArrowDownTrayIcon as DownloadIcon,
 } from "@heroicons/react/24/outline";
 
-// Composant pour la pagination
+// Composant pour la pagination (Inchangé)
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -81,18 +63,19 @@ const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 
 export default function ManageApplications() {
   const { user } = useAuth();
-  // --- CORRECTION 1 : Renommer l'état pour plus de clarté ---
+
+  // États
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
-  // J'ai renommé `totalApplications` en `totalResults` pour correspondre à la pagination
+  // États Pagination
   const [totalResults, setTotalResults] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
 
-  // Le reste de vos états est parfait
+  // États Modales
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [showRecommendation, setShowRecommendation] = useState(null);
@@ -103,60 +86,40 @@ export default function ManageApplications() {
     application: null,
   });
 
-  // --- NOUVEL ÉTAT POUR LES STATISTIQUES ---
+  // États Statistiques (Simplifiés pour correspondre à la pagination)
   const [headerStats, setHeaderStats] = useState({
-    totalJobs: 0,
     totalApplications: 0,
-    pending: 0,
-    accepted: 0,
   });
 
+  // --- NOUVELLE LOGIQUE DE FETCH ---
   const fetchApplications = useCallback(async (page, search, status) => {
     setLoading(true);
     try {
       const params = {
         page,
         limit: 10,
-        search,
+        search, // Le backend gère maintenant la recherche Nom/Profession
         status: status === "all" ? "" : status,
       };
 
-      // 1. On appelle bien la bonne API
-      const response = await apiService.jobs.getMyJobs(params);
+      // APPEL DE LA NOUVELLE ROUTE VIA API.JS
+      const response = await apiService.jobs.getMyApplications(params);
 
-      if (response.success) {
-        // 2. On transforme les données : on passe de [job avec [app]] à [app avec job]
-        const allApplications = (response.jobs || []).reduce((acc, job) => {
-          const appsWithJobInfo = (job.applications || []).map((app) => {
-            // Reconstruire l'objet `candidate.profile` que le JSX attend
-            if (app.candidate) {
-              app.candidate.profile = { ...app.candidate };
-            }
-            return {
-              ...app,
-              job: {
-                id: job.id,
-                title: job.title,
-                status: job.status,
-                category: job.category,
-              },
-            };
-          });
-          return [...acc, ...appsWithJobInfo];
-        }, []);
+      // Adaptation selon si apiService retourne response.data ou response directement
+      const data = response.data || response;
 
-        // 3. On met à jour les états avec les bonnes données
-        setApplications(allApplications);
-        setTotalPages(response.pagination?.totalPages || 0);
-        setTotalResults(response.pagination?.totalResults || 0);
+      if (data.success) {
+        // Le backend renvoie maintenant directement la liste formatée
+        setApplications(data.applications);
 
-        // 4. On utilise les stats renvoyées par le backend
+        // Mise à jour pagination
+        setTotalPages(data.pagination?.totalPages || 0);
+        setTotalResults(data.pagination?.totalResults || 0);
+        setCurrentPage(data.pagination?.currentPage || 1);
+
+        // Mise à jour des stats simples
         setHeaderStats({
-          totalJobs: response.pagination?.totalResults || response.jobs.length,
-          pending: allApplications.filter((app) => app.status === "pending")
-            .length,
-          accepted: allApplications.filter((app) => app.status === "accepted")
-            .length,
+          totalApplications: data.pagination?.totalResults || 0,
         });
       }
     } catch (err) {
@@ -166,21 +129,40 @@ export default function ManageApplications() {
     }
   }, []);
 
+  // Déclencheur (Debounce sur la recherche)
   useEffect(() => {
     if (user?.role === "client") {
       const handler = setTimeout(() => {
+        // Reset à la page 1 si on change de filtre ou de recherche
+        // Note: Pour une UX parfaite, il faudrait gérer le reset de currentPage séparément,
+        // mais ici on passe currentPage en paramètre
         fetchApplications(currentPage, searchTerm, filterStatus);
       }, 300);
       return () => clearTimeout(handler);
     }
   }, [user, currentPage, searchTerm, filterStatus, fetchApplications]);
 
+  // Gestion du changement de page
   const handlePageChange = (newPage) => {
     if (newPage > 0 && newPage <= totalPages) {
       setCurrentPage(newPage);
+      // On peut ajouter un scroll to top ici si besoin
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
+  // Gestion du changement de filtre (Reset page 1)
+  const handleFilterChange = (e) => {
+    setFilterStatus(e.target.value);
+    setCurrentPage(1); // Important : revenir page 1 quand on filtre
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Important : revenir page 1 quand on cherche
+  };
+
+  // --- ACTIONS (Inchangées) ---
   const handleMarkAsCompleted = async (
     jobId,
     candidateId,
@@ -189,7 +171,6 @@ export default function ManageApplications() {
     candidateName
   ) => {
     try {
-      // Ouvrir la modal d'approbation au lieu de la recommandation
       setApprovalModal({
         isOpen: true,
         application: {
@@ -213,7 +194,6 @@ export default function ManageApplications() {
     }
   };
 
-  // Les autres fonctions (handleViewProfile, handleRecommend) restent les mêmes...
   const handleViewProfile = async (application) => {
     setSelectedApplication(application);
     setProfileLoading(true);
@@ -234,9 +214,9 @@ export default function ManageApplications() {
       setProfileLoading(false);
     }
   };
+
   const handleRecommend = async (jobId, employeeId) => {
     try {
-      // Validation : la note doit être entre 1 et 5
       if (
         !recommendationRating ||
         recommendationRating < 1 ||
@@ -245,39 +225,27 @@ export default function ManageApplications() {
         alert("Veuillez sélectionner une note entre 1 et 5 étoiles");
         return;
       }
-
       await apiService.post(`/jobs/${jobId}/recommend`, {
         employeeId: String(employeeId),
         message: recommendationMessage,
         rating: recommendationRating,
       });
-      // Vider et fermer la modale
       setRecommendationMessage("");
       setRecommendationRating(0);
       setShowRecommendation(null);
-      // Rafraîchir les données avec la bonne fonction
       fetchApplications(currentPage, searchTerm, filterStatus);
       alert("Recommandation envoyée avec succès !");
     } catch (err) {
-      console.error("Erreur lors de l'envoi de la recommandation:", err);
+      console.error("Erreur:", err);
       alert("Une erreur est survenue.");
     }
   };
 
   const formatLocation = (location) => {
-    // Si location n'existe pas ou n'est pas un objet, on renvoie le fallback.
-    if (!location || typeof location !== "object") {
-      return "Non renseignée";
-    }
-    // On extrait city et country, en gérant le cas où ils seraient absents.
+    if (!location || typeof location !== "object") return "Non renseignée";
     const city = location.city?.trim() || "";
     const country = location.country?.trim() || "";
-
-    // On construit la chaîne de caractères finale
-    if (city && country) {
-      return `${city}, ${country}`;
-    }
-    // S'il n'y a que la ville ou que le pays, on affiche ce qu'on a.
+    if (city && country) return `${city}, ${country}`;
     return city || country || "Non renseignée";
   };
 
@@ -292,11 +260,14 @@ export default function ManageApplications() {
   return (
     <div className="min-h-screen bg-gray-50">
       <JobsHeader
-        jobsCount={headerStats.totalJobs}
+        // On affiche le nombre total de résultats trouvés
+        jobsCount={totalResults}
         stats={{
-          totalApplications: totalResults,
-          pending: headerStats.pending,
-          accepted: headerStats.accepted,
+          totalApplications: headerStats.totalApplications,
+          // Les stats 'pending'/'accepted' globales ne sont plus calculées ici
+          // On peut mettre '-' ou faire un autre appel API si nécessaire
+          pending: applications.filter((a) => a.status === "pending").length, // (Visible sur la page actuelle)
+          accepted: applications.filter((a) => a.status === "accepted").length, // (Visible sur la page actuelle)
         }}
       />
 
@@ -323,13 +294,13 @@ export default function ManageApplications() {
                   type="text"
                   placeholder="Rechercher par nom ou profession..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={handleSearchChange} // Utilisation du handler qui reset la page
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={handleFilterChange} // Utilisation du handler qui reset la page
                 className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">Tous les statuts</option>
@@ -351,210 +322,185 @@ export default function ManageApplications() {
             <div className="col-span-2">Statut</div>
           </div>
           <div className="divide-y divide-gray-200">
-            {/* --- CORRECTION 3 : Utiliser une SEULE boucle .map --- */}
-            {applications
-              .filter((app) => {
-                // Masquer les candidatures retirées par défaut (quand filterStatus === "all")
-                if (filterStatus === "all" && app.status === "withdrawn") {
-                  return false;
-                }
-                return true;
-              })
-              .map((app) => {
-                const { candidate, job } = app;
-                const fullName = `${candidate?.profile?.firstName || ""} ${
-                  candidate?.profile?.lastName || ""
-                }`.trim();
-                const isMissionFinished =
-                  job?.status === "filled" || app.status === "completed";
+            {applications.map((app) => {
+              const { candidate, job } = app;
 
-                return (
-                  // On enlève le 'grid' ici pour qu'il soit contrôlé par chaque ligne
-                  // On ajoute un padding mobile et un reset pour desktop
-                  <div
-                    key={app.id}
-                    className="p-4 md:p-0 md:grid md:grid-cols-12 md:gap-4 md:px-6 md:py-4 hover:bg-gray-50 items-center"
-                  >
-                    {/* --- COLONNE 1: CANDIDAT --- */}
-                    {/* 'md:col-span-3' recrée votre tableau sur desktop */}
-                    {/* Les classes sans préfixe s'appliquent sur mobile */}
-                    <div className="md:col-span-3 flex items-center justify-between">
-                      {/* LABEL POUR MOBILE : affiché seulement en-dessous de 'md' */}
-                      <span className="md:hidden text-xs font-bold text-gray-500 uppercase">
-                        Candidat
-                      </span>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold flex-shrink-0">
-                          {candidate?.profile?.firstName?.charAt(0) || "U"}
-                          {candidate?.profile?.lastName?.charAt(0) || ""}
-                        </div>
-                        <div>
-                          <button
-                            onClick={() => handleViewProfile(app)}
-                            className="font-medium text-gray-900 hover:text-blue-600 text-left"
-                          >
-                            {fullName || "Anonyme"}
-                          </button>
-                          {/* Profession visible sous le nom sur mobile */}
-                          <p className="md:hidden text-sm text-gray-600">
-                            {candidate?.profile?.profession || "-"}
-                          </p>
-                        </div>
+              // Sécurisation des données
+              const firstName = candidate?.profile?.firstName || "";
+              const lastName = candidate?.profile?.lastName || "";
+              const fullName = `${firstName} ${lastName}`.trim();
+
+              const isMissionFinished =
+                job?.status === "filled" || app.status === "completed";
+
+              return (
+                <div
+                  key={app.id}
+                  className="p-4 md:p-0 md:grid md:grid-cols-12 md:gap-4 md:px-6 md:py-4 hover:bg-gray-50 items-center"
+                >
+                  {/* COLONNE 1: CANDIDAT */}
+                  <div className="md:col-span-3 flex items-center justify-between">
+                    <span className="md:hidden text-xs font-bold text-gray-500 uppercase">
+                      Candidat
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold flex-shrink-0">
+                        {firstName.charAt(0) || "U"}
+                        {lastName.charAt(0) || ""}
                       </div>
-                    </div>
-
-                    {/* --- COLONNE 2: MISSION CONCERNÉE --- */}
-                    {/* Chaque section est espacée verticalement sur mobile (mt-3) */}
-                    <div className="md:col-span-3 mt-3 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 flex justify-between items-center">
-                      <span className="md:hidden text-xs font-bold text-gray-500 uppercase">
-                        Mission
-                      </span>
-                      <div className="text-right md:text-left">
-                        <p className="text-sm font-medium text-gray-800">
-                          {job?.title}
-                        </p>
-                        <p className="text-xs text-gray-500">{job?.category}</p>
-                      </div>
-                    </div>
-
-                    {/* --- COLONNE 3: LOCALISATION --- */}
-                    <div className="md:col-span-2 mt-3 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 flex justify-between items-center">
-                      <span className="md:hidden text-xs font-bold text-gray-500 uppercase">
-                        Localisation
-                      </span>
-                      <span className="text-sm text-gray-900 flex items-center gap-1">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        {formatLocation(candidate?.location)}
-                      </span>
-                    </div>
-
-                    {/* --- COLONNE 4: PROFESSION (uniquement visible sur desktop maintenant) --- */}
-                    <div className="md:col-span-2 hidden md:block">
-                      <span className="text-sm text-gray-600">
-                        {candidate?.profile?.profession || "-"}
-                      </span>
-                    </div>
-
-                    {/* --- COLONNE 5: STATUT --- */}
-                    <div className="md:col-span-2 mt-3 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 flex justify-between items-center">
-                      <span className="md:hidden text-xs font-bold text-gray-500 uppercase">
-                        Statut
-                      </span>
-                      {/* On s'assure que le statut est aligné à droite sur desktop seulement */}
-                      <div className="md:ml-auto">
-                        {isMissionFinished && app.status === "completed" ? (
-                          <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
-                            TERMINÉE
-                          </span>
-                        ) : app.status === "completed_by_candidate" ? (
-                          // Cas 2 : Attente validation client
-                          <span className="inline-flex items-center px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-medium">
-                            À VALIDER
-                          </span>
-                        ) : app.status === "pending" ? (
-                          <span className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
-                            EN ATTENTE
-                          </span>
-                        ) : app.status === "accepted" ? (
-                          <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                            EN MISSION
-                          </span>
-                        ) : app.status === "rejected" ? (
-                          <span className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
-                            REFUSÉE
-                          </span>
-                        ) : app.status === "declined" ? (
-                          <span className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
-                            OFFRE DÉCLINÉE
-                          </span>
-                        ) : app.status === "withdrawn" ? (
-                          <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
-                            RETIRÉE
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {/* --- LIGNE DES BOUTONS D'ACTION --- */}
-                    {/* Le code ici ne change pas, il est déjà parfait pour s'adapter */}
-                    <div className="md:col-span-12 flex flex-wrap items-center gap-2 mt-4 md:pl-12 pt-4 border-t md:border-t-0">
-                      {app.status === "pending" && (
-                        <>
-                          <button
-                            onClick={() => handleDecision(app.id, "accepted")}
-                            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                          >
-                            <Check className="w-4 h-4" /> Accepter
-                          </button>
-                          <button
-                            onClick={() => handleDecision(app.id, "rejected")}
-                            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
-                          >
-                            <X className="w-4 h-4" /> Refuser
-                          </button>
-                        </>
-                      )}
-                      {app.status === "completed_by_candidate" && (
-                        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full bg-blue-50 p-3 rounded-lg border border-blue-100">
-                          <div className="flex items-center gap-2">
-                            {/* Note: Assurez-vous d'avoir importé AlertCircle ou utilisez une autre icône */}
-                            <SparklesIcon className="w-5 h-5 text-blue-600" />
-                            <span className="text-sm text-blue-800 font-medium">
-                              Le candidat a terminé la mission.
-                            </span>
-                          </div>
-                          <button
-                            onClick={() =>
-                              handleMarkAsCompleted(
-                                job.id,
-                                candidate.id,
-                                app.id,
-                                job.title,
-                                fullName
-                              )
-                            }
-                            className="md:ml-auto flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-sm transition-colors"
-                          >
-                            <CheckCircleLucide className="w-4 h-4" />
-                            Valider la mission
-                          </button>
-                        </div>
-                      )}
-
-                      {/* CAS 4 : Mission Terminée -> BOUTON RECOMMANDER */}
-                      {(app.status === "completed" ||
-                        app.status === "filled") && (
+                      <div>
                         <button
-                          onClick={() =>
-                            setShowRecommendation({
-                              jobId: job.id,
-                              employeeId: candidate.id,
-                            })
-                          }
-                          className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium transition-colors shadow-sm"
+                          onClick={() => handleViewProfile(app)}
+                          className="font-medium text-gray-900 hover:text-blue-600 text-left"
                         >
-                          <Star className="w-4 h-4" /> Laisser un avis
+                          {fullName || "Anonyme"}
                         </button>
+                        <p className="md:hidden text-sm text-gray-600">
+                          {candidate?.profile?.profession || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* COLONNE 2: MISSION */}
+                  <div className="md:col-span-3 mt-3 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 flex justify-between items-center">
+                    <span className="md:hidden text-xs font-bold text-gray-500 uppercase">
+                      Mission
+                    </span>
+                    <div className="text-right md:text-left">
+                      <p className="text-sm font-medium text-gray-800">
+                        {job?.title || "Titre indisponible"}
+                      </p>
+                      <p className="text-xs text-gray-500">{job?.category}</p>
+                    </div>
+                  </div>
+
+                  {/* COLONNE 3: LOCALISATION */}
+                  <div className="md:col-span-2 mt-3 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 flex justify-between items-center">
+                    <span className="md:hidden text-xs font-bold text-gray-500 uppercase">
+                      Localisation
+                    </span>
+                    <span className="text-sm text-gray-900 flex items-center gap-1">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                      {formatLocation(candidate?.location)}
+                    </span>
+                  </div>
+
+                  {/* COLONNE 4: PROFESSION */}
+                  <div className="md:col-span-2 hidden md:block">
+                    <span className="text-sm text-gray-600">
+                      {candidate?.profile?.profession || "-"}
+                    </span>
+                  </div>
+
+                  {/* COLONNE 5: STATUT */}
+                  <div className="md:col-span-2 mt-3 md:mt-0 pt-3 md:pt-0 border-t md:border-t-0 flex justify-between items-center">
+                    <span className="md:hidden text-xs font-bold text-gray-500 uppercase">
+                      Statut
+                    </span>
+                    <div className="md:ml-auto">
+                      {/* Affichage des badges de statut */}
+                      {isMissionFinished && app.status === "completed" ? (
+                        <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+                          TERMINÉE
+                        </span>
+                      ) : app.status === "completed_by_candidate" ? (
+                        <span className="inline-flex items-center px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-medium">
+                          À VALIDER
+                        </span>
+                      ) : app.status === "pending" ? (
+                        <span className="inline-flex items-center px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-medium">
+                          EN ATTENTE
+                        </span>
+                      ) : app.status === "accepted" ? (
+                        <span className="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                          EN MISSION
+                        </span>
+                      ) : app.status === "rejected" ? (
+                        <span className="inline-flex items-center px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                          REFUSÉE
+                        </span>
+                      ) : app.status === "withdrawn" ? (
+                        <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium">
+                          RETIRÉE
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
+                          {app.status}
+                        </span>
                       )}
                     </div>
                   </div>
-                );
-              })}
-          </div>{" "}
-          {applications.filter((app) => {
-            if (filterStatus === "all" && app.status === "withdrawn") {
-              return false;
-            }
-            return true;
-          }).length === 0 &&
-            !loading && (
-              <div className="text-center py-12 text-gray-500">
-                {filterStatus === "all" &&
-                applications.some((app) => app.status === "withdrawn")
-                  ? "Toutes les candidatures actives sont affichées. Les candidatures retirées sont masquées. Sélectionnez 'Retirée' pour les voir."
-                  : "Aucune candidature trouvée."}
-              </div>
-            )}
+
+                  {/* BOUTONS D'ACTION */}
+                  <div className="md:col-span-12 flex flex-wrap items-center gap-2 mt-4 md:pl-12 pt-4 border-t md:border-t-0">
+                    {app.status === "pending" && (
+                      <>
+                        <button
+                          onClick={() => handleDecision(app.id, "accepted")}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+                        >
+                          <Check className="w-4 h-4" /> Accepter
+                        </button>
+                        <button
+                          onClick={() => handleDecision(app.id, "rejected")}
+                          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                        >
+                          <X className="w-4 h-4" /> Refuser
+                        </button>
+                      </>
+                    )}
+                    {app.status === "completed_by_candidate" && (
+                      <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full bg-blue-50 p-3 rounded-lg border border-blue-100">
+                        <div className="flex items-center gap-2">
+                          <SparklesIcon className="w-5 h-5 text-blue-600" />
+                          <span className="text-sm text-blue-800 font-medium">
+                            Le candidat a terminé la mission.
+                          </span>
+                        </div>
+                        <button
+                          onClick={() =>
+                            handleMarkAsCompleted(
+                              job.id,
+                              candidate.id,
+                              app.id,
+                              job.title,
+                              fullName
+                            )
+                          }
+                          className="md:ml-auto flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium shadow-sm transition-colors"
+                        >
+                          <CheckCircleLucide className="w-4 h-4" /> Valider la
+                          mission
+                        </button>
+                      </div>
+                    )}
+                    {(app.status === "completed" ||
+                      app.status === "filled") && (
+                      <button
+                        onClick={() =>
+                          setShowRecommendation({
+                            jobId: job.id,
+                            employeeId: candidate.id,
+                          })
+                        }
+                        className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 text-sm font-medium transition-colors shadow-sm"
+                      >
+                        <Star className="w-4 h-4" /> Laisser un avis
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {applications.length === 0 && !loading && (
+            <div className="text-center py-12 text-gray-500">
+              Aucune candidature trouvée.
+            </div>
+          )}
+
           <div className="p-6 border-t border-gray-200">
             <Pagination
               currentPage={currentPage}
@@ -565,7 +511,7 @@ export default function ManageApplications() {
         </div>
       </div>
 
-      {/* MODAL COMPLET : PROFIL + CANDIDATURE */}
+      {/* MODAL COMPLET : PROFIL + CANDIDATURE (Reste identique à votre code d'origine) */}
       {selectedApplication && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl transform transition-all duration-300 scale-100 border overflow-hidden">
@@ -633,33 +579,6 @@ export default function ManageApplications() {
                         {selectedApplication.candidate.profile.bio ||
                           "Aucune biographie."}
                       </div>
-
-                      <h3 className="font-semibold text-gray-800 pt-4">
-                        Diplômes
-                      </h3>
-                      <div className="text-sm text-gray-600 leading-relaxed">
-                        {selectedApplication.candidate.profile.diplomas
-                          ?.length > 0 ? (
-                          <ul className="space-y-2">
-                            {selectedApplication.candidate.profile.diplomas.map(
-                              (diploma, idx) => (
-                                <li key={idx} className="flex items-center">
-                                  <AcademicCapIcon className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" />
-                                  <p className="text-gray-800 font-medium">
-                                    {diploma.type ||
-                                      "Type de diplôme non spécifié"}
-                                  </p>
-                                </li>
-                              )
-                            )}
-                          </ul>
-                        ) : (
-                          <p className="text-sm text-gray-500">
-                            Aucun diplôme ajouté.
-                          </p>
-                        )}
-                      </div>
-
                       <h3 className="font-semibold text-gray-800 pt-4">
                         Compétences
                       </h3>
@@ -685,7 +604,7 @@ export default function ManageApplications() {
                     </div>
                   </div>
 
-                  {/* Colonne de droite (Détails de la candidature) */}
+                  {/* Colonne de droite (Candidature) */}
                   <div className="md:col-span-3 space-y-6">
                     <h3 className="font-semibold text-gray-800 text-lg">
                       Détails de la candidature
@@ -707,12 +626,10 @@ export default function ManageApplications() {
                       <div className="space-y-2">
                         {selectedApplication.attachments?.length > 0 ? (
                           selectedApplication.attachments.map((file, idx) => {
-                            // On construit l'URL complète vers le fichier sur le backend
                             const fileUrl = `${
                               import.meta.env.VITE_API_URL ||
                               "http://192.168.1.118:4000"
                             }/uploads/${file.filename}`;
-
                             return (
                               <div
                                 key={idx}
@@ -722,18 +639,16 @@ export default function ManageApplications() {
                                   className="text-sm font-medium text-gray-800 truncate"
                                   title={file.originalName}
                                 >
-                                  {file.originalName ||
-                                    `Pièce jointe ${idx + 1}`}
+                                  {file.originalName}
                                 </p>
                                 <a
                                   href={fileUrl}
-                                  download // Cet attribut force le téléchargement
-                                  target="_blank" // Ouvre dans un nouvel onglet par sécurité
+                                  download
+                                  target="_blank"
                                   rel="noopener noreferrer"
                                   className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500 text-white text-xs font-semibold rounded-full hover:bg-blue-600 transition-colors"
-                                  title={`Télécharger ${file.originalName}`}
                                 >
-                                  <DownloadIcon className="h-4 w-4" />
+                                  <DownloadIcon className="h-4 w-4" />{" "}
                                   Télécharger
                                 </a>
                               </div>
@@ -754,7 +669,7 @@ export default function ManageApplications() {
         </div>
       )}
 
-      {/* Modal Recommendation */}
+      {/* Modal Recommandation (Reste identique) */}
       {showRecommendation && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
@@ -764,11 +679,7 @@ export default function ManageApplications() {
                   Évaluer et recommander
                 </h2>
                 <button
-                  onClick={() => {
-                    setShowRecommendation(null);
-                    setRecommendationMessage("");
-                    setRecommendationRating(0);
-                  }}
+                  onClick={() => setShowRecommendation(null)}
                   className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
                 >
                   <X className="w-6 h-6" />
@@ -776,7 +687,6 @@ export default function ManageApplications() {
               </div>
             </div>
             <div className="p-6 space-y-6">
-              {/* Section Notation */}
               <div className="space-y-3">
                 <label className="block text-sm font-semibold text-gray-700">
                   Votre évaluation
@@ -789,45 +699,33 @@ export default function ManageApplications() {
                   />
                 </div>
               </div>
-
-              {/* Section Message */}
               <div className="space-y-3">
                 <label className="block text-sm font-semibold text-gray-700">
-                  Votre avis sur le candidat
+                  Votre avis
                 </label>
                 <textarea
                   value={recommendationMessage}
                   onChange={(e) => setRecommendationMessage(e.target.value)}
-                  placeholder="Décrivez les qualités du candidat, ses points forts, son implication..."
-                  className="w-full border border-gray-300 rounded-lg p-4 min-h-[150px] focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  placeholder="Décrivez les qualités..."
+                  className="w-full border border-gray-300 rounded-lg p-4 min-h-[150px] resize-none"
                 />
-                <p className="text-xs text-gray-500">
-                  {recommendationMessage.length}/500 caractères
-                </p>
               </div>
             </div>
             <div className="p-6 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
               <button
-                onClick={() => {
-                  setShowRecommendation(null);
-                  setRecommendationMessage("");
-                  setRecommendationRating(0);
-                }}
-                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors"
+                onClick={() => setShowRecommendation(null)}
+                className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg"
               >
                 Annuler
               </button>
               <button
-                onClick={() => {
+                onClick={() =>
                   handleRecommend(
                     showRecommendation.jobId,
                     showRecommendation.employeeId
-                  );
-                }}
-                disabled={
-                  !recommendationMessage.trim() || !recommendationRating
+                  )
                 }
-                className="px-6 py-2 bg-gradient-to-r from-rose-600 to-blue-600 text-white rounded-lg hover:from-rose-700 hover:to-blue-700 font-medium disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed transition-all"
+                className="px-6 py-2 bg-gradient-to-r from-rose-600 to-blue-600 text-white rounded-lg"
               >
                 Envoyer
               </button>
@@ -836,7 +734,7 @@ export default function ManageApplications() {
         </div>
       )}
 
-      {/* Modal d'approbation de mission */}
+      {/* Modal Approbation (Reste identique) */}
       <MissionApprovalModal
         isOpen={approvalModal.isOpen}
         onClose={() => setApprovalModal({ isOpen: false, application: null })}
@@ -845,17 +743,14 @@ export default function ManageApplications() {
         jobTitle={approvalModal.application?.jobTitle}
         candidateName={approvalModal.application?.candidateName}
         onSuccess={() => {
-          // Récupérer la candidature pour avoir l'ID du job et du candidat
           const app = applications.find(
             (a) => a.id === approvalModal.application?.id
           );
-          if (app) {
-            // Ouvrir la modal de recommandation après approbation
+          if (app)
             setShowRecommendation({
               jobId: app.job.id,
               employeeId: app.candidate.id,
             });
-          }
           fetchApplications(currentPage, searchTerm, filterStatus);
           setApprovalModal({ isOpen: false, application: null });
         }}

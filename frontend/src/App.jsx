@@ -49,6 +49,7 @@ import AdminEditJob from "./pages/admin/AdminEditJob";
 import Wallet from "./pages/Wallet";
 import CreateCourse from "./pages/CreateCourse";
 import AdminEditTraining from "./pages/admin/AdminEditTraining";
+import AdminCreateTraining from "./pages/admin/AdminCreateTraining";
 // --- 1. IMPORT DU NOUVEAU COMPOSANT ---
 import TrainerOnboarding from "./pages/TrainerOnboarding";
 import ManageTrainings from "./pages/admin/ManageTrainings";
@@ -56,6 +57,7 @@ import AllTrainings from "./pages/AllTrainings";
 import TrainingDetail from "./pages/TrainingDetail";
 import TrainerPublicProfile from "./pages/TrainerPublicProfile";
 import TrainerWallet from "./pages/TrainerWallet";
+import MyTrainings from "./pages/MyTrainings";
 
 // --- LAYOUTS ET COMPOSANTS ---
 import Header from "./components/Layout/Header";
@@ -65,6 +67,7 @@ import AdminLayout from "./components/Layout/AdminLayout";
 import OfflineBanner from "./components/UI/OfflineBanner";
 import { useTheme } from "./hooks/useTheme";
 import MobileLayout from "./components/UI/MobileLayout"; //Layout pour le menu mobile du dashboard
+import UserLayout from "./components/Layout/UserLayout";
 
 // --- ProtectedRoute (Final) ---
 const ProtectedRoute = ({ allowedRoles }) => {
@@ -137,12 +140,14 @@ function AppRoutes() {
               />
             }
           >
-            <Route element={<MobileLayout />}>
+            <Route element={<UserLayout />}>
+              {/* <Route element={<MobileLayout />}></Route> */}
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/wallet" element={<Wallet />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/trainers/:id" element={<TrainerPublicProfile />} />
+              <Route path="/my-trainings" element={<MyTrainings />} />
 
               {/* Routes Spécifiques Candidat */}
               <Route path="/my-applications" element={<MyApplications />} />
@@ -221,6 +226,10 @@ function AppRoutes() {
             <Route
               path="/admin/trainings/:id/edit"
               element={<AdminEditTraining />}
+            />
+            <Route
+              path="/admin/trainings/create"
+              element={<AdminCreateTraining />}
             />
           </Route>
         </Route>

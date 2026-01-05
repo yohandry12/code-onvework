@@ -2,68 +2,106 @@ import React, { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
-  UserGroupIcon,
+  Squares2X2Icon,
   BriefcaseIcon,
-  StarIcon,
-  SparklesIcon,
-  BellIcon,
-  BanknotesIcon,
+  UserCircleIcon,
+  DocumentTextIcon,
+  WalletIcon,
   AcademicCapIcon,
+  PlusIcon,
+  ChartBarIcon,
+  MagnifyingGlassIcon,
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
-  Squares2X2Icon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 
-const AdminLayout = () => {
-  const { logout, user } = useAuth();
+const UserLayout = () => {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // États
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false); // État pour la réduction
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // Configuration du menu
-  const menuItems = [
-    { path: "/admin/dashboard", label: "Vue d'ensemble", icon: Squares2X2Icon },
-    { path: "/admin/users", label: "Utilisateurs", icon: UserGroupIcon },
-    { path: "/admin/jobs", label: "Offres d'emploi", icon: BriefcaseIcon },
-    { path: "/admin/trainings", label: "Formations", icon: AcademicCapIcon },
-    {
-      path: "/admin/recommandations",
-      label: "Succès & Badges",
-      icon: SparklesIcon,
-    },
-    { path: "/admin/testimonials", label: "Témoignages", icon: StarIcon },
-    { path: "/admin/reports", label: "Signalements", icon: BellIcon },
-    { path: "/admin/finance", label: "Finance & Taux", icon: BanknotesIcon },
-  ];
+  // --- CONFIGURATION DES MENUS PAR RÔLE ---
+  const getMenus = (role) => {
+    const common = [
+      { path: "/dashboard", label: "Tableau de bord", icon: Squares2X2Icon },
+    ];
 
-  // Persistance de l'état collapsed dans le localStorage
+    const candidate = [
+      {
+        path: "/jobs",
+        label: "Trouver une mission",
+        icon: MagnifyingGlassIcon,
+      },
+      {
+        path: "/my-applications",
+        label: "Mes Candidatures",
+        icon: DocumentTextIcon,
+      },
+      { path: "/trainings", label: "Se Former", icon: AcademicCapIcon },
+      { path: "/wallet", label: "Portefeuille", icon: WalletIcon },
+    ];
+
+    const client = [
+      { path: "/jobs/create", label: "Publier une offre", icon: PlusIcon },
+      { path: "/talents", label: "Trouver des Talents", icon: UserCircleIcon },
+      {
+        path: "/manage-applications",
+        label: "Candidatures Reçues",
+        icon: DocumentTextIcon,
+      },
+      { path: "/client/job-history", label: "Historique", icon: ChartBarIcon },
+    ];
+
+    const trainer = [
+      { path: "/my-trainings", label: "Mes Formations", icon: AcademicCapIcon },
+      { path: "/courses/create", label: "Créer un cours", icon: PlusIcon },
+      { path: "/trainer/wallet", label: "Revenus & Wallet", icon: WalletIcon },
+    ];
+
+    const footer = [
+      { path: "/profile", label: "Mon Profil", icon: UserCircleIcon },
+      { path: "/settings", label: "Paramètres", icon: Cog6ToothIcon },
+    ];
+
+    let specificMenu = [];
+    if (role === "candidate") specificMenu = candidate;
+    if (role === "client") specificMenu = client;
+    if (role === "trainer") specificMenu = trainer;
+
+    return [...common, ...specificMenu, ...footer];
+  };
+
+  const menuItems = getMenus(user?.role);
+
+  // Persistance de l'état collapsed
   useEffect(() => {
-    const savedState = localStorage.getItem("adminSidebarCollapsed");
+    const savedState = localStorage.getItem("userSidebarCollapsed");
     if (savedState) setIsSidebarCollapsed(JSON.parse(savedState));
   }, []);
 
   const toggleSidebar = () => {
     const newState = !isSidebarCollapsed;
     setIsSidebarCollapsed(newState);
-    localStorage.setItem("adminSidebarCollapsed", JSON.stringify(newState));
+    localStorage.setItem("userSidebarCollapsed", JSON.stringify(newState));
   };
 
   const handleLogout = () => {
     if (window.confirm("Voulez-vous vraiment vous déconnecter ?")) {
       logout();
-      navigate("/admin/login");
+      navigate("/login");
     }
   };
 
-  // Composant de lien de navigation
+  // Composant Lien
   const NavItem = ({ item, isCollapsed }) => {
-    const isActive = location.pathname.startsWith(item.path);
+    const isActive = location.pathname === item.path; // Correspondance exacte ou startWith selon besoin
 
     return (
       <NavLink
@@ -86,18 +124,16 @@ const AdminLayout = () => {
           }`}
         />
 
-        {/* Label (Caché si collapsed) */}
         {!isCollapsed && (
           <span className="whitespace-nowrap overflow-hidden transition-all duration-300 origin-left">
             {item.label}
           </span>
         )}
 
-        {/* Tooltip au survol si réduit */}
+        {/* Tooltip */}
         {isCollapsed && (
           <div className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none whitespace-nowrap shadow-lg">
             {item.label}
-            {/* Petite flèche */}
             <div className="absolute top-1/2 -left-1 -mt-1 border-4 border-transparent border-r-slate-800"></div>
           </div>
         )}
@@ -106,32 +142,19 @@ const AdminLayout = () => {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans text-slate-800">
+    <div className="flex h-screen bg-[#F8F9FF] overflow-hidden font-sans text-slate-800">
       {/* --- SIDEBAR DESKTOP --- */}
       <aside
         className={`hidden lg:flex flex-col bg-white border-r border-slate-200 h-full shadow-sm z-20 transition-all duration-300 ease-in-out
             ${isSidebarCollapsed ? "w-20" : "w-72"}
         `}
       >
-        {/* Header Sidebar (Logo + Toggle) */}
+        {/* Header Sidebar */}
         <div
           className={`h-20 flex items-center border-b border-slate-100 ${
             isSidebarCollapsed ? "justify-center px-0" : "justify-between px-6"
           }`}
         >
-          {/* Logo */}
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-indigo-200 shadow-md flex-shrink-0">
-              A
-            </div>
-            {!isSidebarCollapsed && (
-              <span className="text-lg font-bold tracking-tight text-slate-800 whitespace-nowrap transition-opacity duration-300">
-                AdminPanel
-              </span>
-            )}
-          </div>
-
-          {/* Bouton Toggle (affiché seulement si étendu pour le design, ou en bas) */}
           {!isSidebarCollapsed && (
             <button
               onClick={toggleSidebar}
@@ -144,12 +167,6 @@ const AdminLayout = () => {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden py-6 px-3 space-y-1 custom-scrollbar">
-          {!isSidebarCollapsed && (
-            <p className="px-3 text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 transition-opacity duration-300">
-              Menu
-            </p>
-          )}
-
           {menuItems.map((item) => (
             <NavItem
               key={item.path}
@@ -159,14 +176,12 @@ const AdminLayout = () => {
           ))}
         </nav>
 
-        {/* Footer Sidebar (User + Logout + Toggle si réduit) */}
+        {/* Footer Sidebar */}
         <div className="p-3 border-t border-slate-100 bg-white">
-          {/* Bouton Toggle en bas si réduit (pour réouvrir) */}
           {isSidebarCollapsed && (
             <button
               onClick={toggleSidebar}
-              className="w-full flex justify-center p-2 mb-4 rounded-lg bg-slate-50 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-              title="Agrandir le menu"
+              className="w-full flex justify-center p-2 mb-4 rounded-lg bg-slate-50 text-slate-400 hover:text-indigo-600"
             >
               <ChevronRightIcon className="w-6 h-6" />
             </button>
@@ -179,36 +194,45 @@ const AdminLayout = () => {
                 : "bg-slate-50 border border-slate-100"
             }`}
           >
-            <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0 cursor-default ring-2 ring-white shadow-sm">
-              {user?.email?.charAt(0).toUpperCase()}
+            <div className="w-9 h-9 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+              {user?.profile?.avatar ? (
+                <img
+                  src={`http://localhost:4000${user.profile.avatar}`}
+                  className="w-full h-full object-cover"
+                  alt="Avatar"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold">
+                  {user?.profile?.firstName?.charAt(0)}
+                </div>
+              )}
             </div>
 
             {!isSidebarCollapsed && (
-              <div className="flex-1 min-w-0 overflow-hidden">
+              <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-slate-700 truncate">
-                  Admin
+                  {user?.profile?.firstName}
                 </p>
-                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                <p className="text-xs text-slate-500 truncate capitalize">
+                  {user?.role}
+                </p>
               </div>
             )}
 
             {!isSidebarCollapsed && (
               <button
                 onClick={handleLogout}
-                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                title="Déconnexion"
+                className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg"
               >
                 <ArrowLeftOnRectangleIcon className="w-5 h-5" />
               </button>
             )}
           </div>
 
-          {/* Bouton Logout si réduit (séparé pour la clarté) */}
           {isSidebarCollapsed && (
             <button
               onClick={handleLogout}
-              className="mt-2 w-full flex justify-center p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-              title="Déconnexion"
+              className="mt-2 w-full flex justify-center p-2 text-slate-400 hover:text-red-600"
             >
               <ArrowLeftOnRectangleIcon className="w-6 h-6" />
             </button>
@@ -216,26 +240,21 @@ const AdminLayout = () => {
         </div>
       </aside>
 
-      {/* --- SIDEBAR MOBILE (Overlay classique, pas de collapse) --- */}
+      {/* --- SIDEBAR MOBILE --- */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           ></div>
-          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl p-4 flex flex-col transform transition-transform duration-300">
+          <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-2xl p-4 flex flex-col">
             <div className="flex justify-between items-center mb-6 px-2">
-              <div className="flex items-center gap-2 text-indigo-600 font-bold text-xl">
-                <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white">
-                  A
-                </div>
-                Admin
-              </div>
+              <span className="text-xl font-bold text-indigo-900">Menu</span>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"
+                className="p-2 bg-slate-100 rounded-full"
               >
-                <XMarkIcon className="w-6 h-6 text-slate-600" />
+                <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
             <nav className="space-y-1 flex-1">
@@ -246,7 +265,7 @@ const AdminLayout = () => {
             <div className="mt-auto border-t border-slate-100 pt-4">
               <button
                 onClick={handleLogout}
-                className="flex items-center justify-center gap-2 w-full px-4 py-3 text-red-600 bg-red-50 hover:bg-red-100 rounded-xl font-medium transition-colors"
+                className="flex items-center gap-2 w-full px-4 py-3 text-red-600 bg-red-50 rounded-xl font-medium"
               >
                 <ArrowLeftOnRectangleIcon className="w-5 h-5" /> Déconnexion
               </button>
@@ -255,32 +274,24 @@ const AdminLayout = () => {
         </div>
       )}
 
-      {/* --- CONTENU PRINCIPAL --- */}
+      {/* --- CONTENU --- */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
-        {/* Header Mobile / Topbar */}
-        <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20 shadow-sm lg:shadow-none">
+        <header className="h-16  backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-20">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              className="lg:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
             >
               <Bars3Icon className="w-6 h-6" />
             </button>
-            <h2 className="text-lg font-bold text-slate-800 capitalize tracking-tight">
-              {menuItems.find((i) => location.pathname.startsWith(i.path))
-                ?.label || "Tableau de bord"}
+            <h2 className="text-lg font-bold text-slate-800 capitalize">
+              {menuItems.find((i) => location.pathname === i.path)?.label ||
+                "Espace Membre"}
             </h2>
-          </div>
-          {/* Zone droite (Notifications, Profil rapide...) */}
-          <div className="flex items-center gap-4">
-            <div className="h-9 w-9 bg-indigo-600 rounded-full lg:hidden flex items-center justify-center text-white text-sm font-bold shadow-md shadow-indigo-200">
-              {user?.email?.charAt(0).toUpperCase()}
-            </div>
           </div>
         </header>
 
-        {/* Zone de contenu scrollable */}
-        <main className="flex-1 overflow-y-auto bg-slate-50 p-4 lg:p-8 custom-scrollbar">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 custom-scrollbar">
           <div className="max-w-7xl mx-auto animate-in fade-in duration-500">
             <Outlet />
           </div>
@@ -290,4 +301,4 @@ const AdminLayout = () => {
   );
 };
 
-export default AdminLayout;
+export default UserLayout;

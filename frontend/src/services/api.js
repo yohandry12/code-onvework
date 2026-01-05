@@ -2,6 +2,7 @@ import axios from "axios";
 
 // URL de base de l'API
 const API_BASE_URL =
+  // import.meta.env.VITE_API_URL || "http://localhost:4000/api";
   import.meta.env.VITE_API_URL || "http://192.168.1.119:4000/api";
 
 // Création de l'instance Axios
@@ -133,6 +134,11 @@ export const apiService = {
       const query = new URLSearchParams(params).toString();
       return apiClient.get(`/jobs/my-jobs?${query}`);
     },
+
+    getMyApplications: (params = {}) => {
+      const query = new URLSearchParams(params).toString();
+      return apiClient.get(`/jobs/my-applications?${query}`);
+    },
     getMyJobHistory: (params = {}) => {
       const query = new URLSearchParams(params).toString();
       return apiClient.get(`/jobs/my-jobs/history?${query}`);
@@ -229,6 +235,7 @@ export const apiService = {
 
     adminUpdatePoints: (userId, points, action) =>
       apiClient.patch(`/admin/users/${userId}/points`, { points, action }),
+    getWalletHistory: () => apiClient.get("/users/wallet/history"),
   },
 
   // API des notifications

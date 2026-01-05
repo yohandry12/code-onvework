@@ -46,6 +46,23 @@ module.exports = (sequelize) => {
       thumbnail: { type: DataTypes.STRING }, // Image de couverture
       trailerUrl: { type: DataTypes.STRING, field: "trailer_url" }, // Vidéo de présentation
 
+      // --- AJOUTER CES NOUVEAUX CHAMPS ICI ---
+      trainingType: {
+        type: DataTypes.ENUM("online", "onsite", "hybrid"),
+        defaultValue: "online",
+        field: "training_type",
+      },
+      startDate: {
+        type: DataTypes.DATEONLY, // Juste la date, pas l'heure
+        field: "start_date",
+      },
+      location: {
+        type: DataTypes.STRING,
+      },
+      schedule: {
+        type: DataTypes.STRING, // Ex: "Lundi et Mardi 18h-20h"
+      },
+
       // --- F. Gestion Prix & Paiement ---
       price: {
         type: DataTypes.DECIMAL(10, 2),
@@ -75,7 +92,14 @@ module.exports = (sequelize) => {
       },
 
       status: {
-        type: DataTypes.ENUM("draft","pending", "published", "archived", "review", "rejected"),
+        type: DataTypes.ENUM(
+          "draft",
+          "pending",
+          "published",
+          "archived",
+          "review",
+          "rejected"
+        ),
         defaultValue: "draft",
       },
 

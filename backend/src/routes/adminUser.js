@@ -273,25 +273,16 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const user = await User.findByPk(id, {
-      attributes: [
-        "id",
-        "email",
-        "role",
-        "trainingPoints",
-        "isActive",
-        "createdAt",
-        "lastLogin",
-      ],
+      attributes: ["id", "email", "role", "isActive", "createdAt", "lastLogin"],
       include: [
         {
           model: CandidateProfile,
           as: "candidateProfile",
-          // On prend tous les attributs du profil
+          // Pas d'attributs spécifiques = tout récupérer (y compris trainingPoints)
         },
         {
           model: ClientProfile,
           as: "clientProfile",
-          // On prend tous les attributs du profil
         },
         { model: TrainerProfile, as: "trainerProfile" },
       ],
@@ -305,11 +296,16 @@ router.get("/:id", async (req, res) => {
 
     // Formatter la réponse comme pour la liste, pour simplifier le front
     const formattedUser = user.get({ plain: true });
+
+    // Fusion intelligente du profil
     formattedUser.profile =
       formattedUser.candidateProfile ||
       formattedUser.clientProfile ||
       formattedUser.trainerProfile ||
       {};
+
+    // Si c'est un candidat, on s'assure que trainingPoints est accessible au bon niveau si besoin
+    // Mais votre frontend semble le chercher dans user.profile.trainingPoints, ce qui est correct avec la fusion ci-dessus.
 
     delete formattedUser.candidateProfile;
     delete formattedUser.clientProfile;

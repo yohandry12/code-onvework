@@ -14,7 +14,10 @@ const { Op } = require("sequelize");
 const { authenticateToken, requireRole } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
 const upload = require("../middleware/upload");
-const { sendJobProposalEmail } = require("../services/mailService");
+const {
+  sendJobProposalEmail,
+  sendJobCreatedEmail,
+} = require("../services/mailService");
 
 module.exports = function (io) {
   const router = express.Router();
@@ -304,6 +307,8 @@ module.exports = function (io) {
           );
         }
 
+        sendJobCreatedEmail(currentUser.email, ownerName, ownerCompany, title);
+
         res.status(201).json({ success: true, job: newJob });
       } catch (error) {
         // Sécurité : Gestion des erreurs de validation Sequelize
@@ -319,6 +324,120 @@ module.exports = function (io) {
           return res.status(400).json({ success: false, error: msg });
         }
         logger.error("Erreur création mission:", error);
+        res.status(500).json({ success: false, error: "Erreur serveur" });
+      }
+    }
+  );
+
+  // --- GET /api/jobs/my-applications - Récupérer les CANDIDATURES paginées + RECHERCHE ---
+  router.get(
+    "/my-applications",
+    authenticateToken,
+    requireRole("client", "admin"),
+    async (req, res) => {
+      try {
+        const clientId = req.user.id;
+        const { page = 1, limit = 10, search, status } = req.query;
+
+        const pageNum = parseInt(page, 10);
+        const limitNum = parseInt(limit, 10);
+        const offset = (pageNum - 1) * limitNum;
+
+        // 1. Filtrer les candidatures pour ce client
+        const whereClause = { clientId };
+
+        // 2. Filtrage par statut
+        if (status && status !== "all") {
+          whereClause.status = status;
+        } else if (status === "all") {
+          whereClause.status = { [Op.ne]: "withdrawn" };
+        }
+
+        // 3. Préparation de la recherche (Nom, Prénom, Profession)
+        let candidateProfileWhere = {};
+        let isSearchActive = false;
+
+        if (search) {
+          isSearchActive = true;
+          const q = `%${search}%`;
+
+          candidateProfileWhere = {
+            [Op.or]: [
+              // Recherche sur le Prénom
+              { firstName: { [Op.like]: q } },
+              // Recherche sur le Nom
+              { lastName: { [Op.like]: q } },
+              // Recherche sur la Profession
+              { profession: { [Op.like]: q } },
+              // (Optionnel) Recherche sur le titre du Job aussi ?
+              // Si oui, il faudrait faire une requête plus complexe.
+              // Ici on se concentre sur le Candidat comme demandé.
+            ],
+          };
+        }
+
+        // 4. Configuration des inclusions
+        const includeOptions = [
+          {
+            model: Job,
+            as: "job",
+            attributes: ["id", "title", "status", "category"],
+          },
+          {
+            model: User,
+            as: "candidate",
+            attributes: ["id", "email"],
+            // IMPORTANT : Si une recherche est active, 'required: true' force l'INNER JOIN
+            // Cela signifie : "Ne garde cette candidature QUE si le candidat correspond à la recherche"
+            required: isSearchActive,
+            include: [
+              {
+                model: CandidateProfile,
+                as: "candidateProfile",
+                where: isSearchActive ? candidateProfileWhere : undefined,
+                required: isSearchActive, // Filtre effectif ici
+              },
+            ],
+          },
+        ];
+
+        // 5. Exécution de la requête
+        const { count, rows } = await Application.findAndCountAll({
+          where: whereClause,
+          include: includeOptions,
+          limit: limitNum,
+          offset: offset,
+          order: [["createdAt", "DESC"]],
+          distinct: true, // Important pour que le 'count' compte les applications, pas les lignes de jointure
+        });
+
+        // 6. Formatage
+        const applications = rows.map((app) => {
+          const plainApp = app.get({ plain: true });
+
+          if (plainApp.candidate) {
+            plainApp.candidate = {
+              id: plainApp.candidate.id,
+              email: plainApp.candidate.email,
+              profile: plainApp.candidate.candidateProfile,
+              ...plainApp.candidate.candidateProfile,
+            };
+            delete plainApp.candidate.candidateProfile;
+          }
+          return plainApp;
+        });
+
+        res.json({
+          success: true,
+          applications: applications,
+          pagination: {
+            currentPage: pageNum,
+            totalPages: Math.ceil(count / limitNum),
+            totalResults: count,
+          },
+        });
+      } catch (error) {
+        logger.error("Erreur récupération my-applications:", error);
         res.status(500).json({ success: false, error: "Erreur serveur" });
       }
     }
@@ -1180,6 +1299,23 @@ module.exports = function (io) {
             rating: parseInt(rating, 10),
           },
           { transaction: t }
+        );
+
+        // --- DEBUT AJOUT : MISE À JOUR DE LA MOYENNE ---
+
+        // 1. Calculer la moyenne des recommandations de ce candidat
+        const stats = await Recommendation.findAll({
+          where: { employeeId },
+          attributes: [[sequelize.fn("AVG", sequelize.col("rating")), "avg"]],
+          transaction: t,
+        });
+
+        const newAverage = parseFloat(stats[0].dataValues.avg || 0).toFixed(1);
+
+        // 2. Mettre à jour le profil
+        await CandidateProfile.update(
+          { averageRating: newAverage },
+          { where: { userId: employeeId }, transaction: t }
         );
 
         // 5. Mettre à jour le badge (le comptage est maintenant ultra-rapide)

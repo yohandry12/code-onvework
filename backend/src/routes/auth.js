@@ -12,6 +12,7 @@ const { logger } = require("../utils/logger");
 const upload = require("../middleware/upload");
 const fs = require("fs");
 const path = require("path");
+const { sendWelcomeEmail } = require("../services/mailService");
 
 const router = express.Router();
 
@@ -137,6 +138,8 @@ router.post("/register", async (req, res) => {
         : role === "trainer"
         ? "trainerProfile"
         : undefined;
+
+    sendWelcomeEmail(user.email, firstName, role);
 
     const fullUser = await User.findByPk(user.id, {
       include: includeModel,

@@ -1,21 +1,37 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
 import { apiService } from "../../services/api";
-
-// Importer les icônes nécessaires
 import {
   UserGroupIcon,
   BriefcaseIcon,
   DocumentTextIcon,
   CheckCircleIcon,
-  ArrowTrendingUpIcon as TrendingUpIcon,
-  StarIcon,
-  ChartBarIcon,
-  BellIcon,
-  SparklesIcon,
-  BanknotesIcon,
-  AcademicCapIcon,
+  ArrowTrendingUpIcon, // Utilisé pour la croissance
 } from "@heroicons/react/24/outline";
+
+// Composant Carte Statistique Standard
+const StatCard = ({ title, value, icon: Icon, color }) => {
+  const colors = {
+    blue: "bg-blue-50 text-blue-600",
+    green: "bg-emerald-50 text-emerald-600",
+    purple: "bg-purple-50 text-purple-600",
+    indigo: "bg-indigo-50 text-indigo-600",
+    orange: "bg-orange-50 text-orange-600",
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
+          <h3 className="text-3xl font-extrabold text-slate-800">{value}</h3>
+        </div>
+        <div className={`p-3 rounded-xl ${colors[color] || colors.blue}`}>
+          <Icon className="w-6 h-6" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
@@ -41,165 +57,92 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
+  // Calcul pour la couleur de croissance
+  const isPositiveGrowth = (stats?.monthlyGrowth || 0) >= 0;
+
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">
-        Dashboard Administrateur
-      </h1>
-      <div className="space-y-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <UserGroupIcon className="h-8 w-8 text-blue-500 mr-4" />
-              <div>
-                <p className="text-sm font-medium text-gray-500">
-                  Utilisateurs
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats?.totalUsers}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <BriefcaseIcon className="h-8 w-8 text-green-500 mr-4" />
-              <div>
-                <p className="text-sm font-medium text-gray-500">
-                  Offres d'emploi
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats?.totalJobs}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <DocumentTextIcon className="h-8 w-8 text-purple-500 mr-4" />
-              <div>
-                <p className="text-sm font-medium text-gray-500">
-                  Candidatures
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats?.totalApplications}
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <CheckCircleIcon className="h-8 w-8 text-indigo-500 mr-4" />
-              <div>
-                <p className="text-sm font-medium text-gray-500">
-                  Actifs / 24h
-                </p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats?.activeUsers}
-                </p>
-              </div>
-            </div>
-          </div>
-          {/* Carte Croissance */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              {/* Changement d'icône et de couleur selon si c'est positif ou négatif */}
-              <TrendingUpIcon
-                className={`h-8 w-8 mr-4 ${
-                  (stats?.monthlyGrowth || 0) >= 0
-                    ? "text-green-500"
-                    : "text-red-500"
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-slate-900">Vue d'ensemble</h1>
+        <p className="text-slate-500">
+          Bienvenue sur votre panneau d'administration.
+        </p>
+      </div>
+
+      {/* Grille de Statistiques (5 colonnes pour inclure la croissance) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <StatCard
+          title="Utilisateurs Totaux"
+          value={stats?.totalUsers}
+          icon={UserGroupIcon}
+          color="blue"
+        />
+        <StatCard
+          title="Offres Publiées"
+          value={stats?.totalJobs}
+          icon={BriefcaseIcon}
+          color="green"
+        />
+        <StatCard
+          title="Candidatures"
+          value={stats?.totalApplications}
+          icon={DocumentTextIcon}
+          color="purple"
+        />
+        <StatCard
+          title="Utilisateurs Actifs"
+          value={stats?.activeUsers}
+          icon={CheckCircleIcon}
+          color="indigo"
+        />
+
+        {/* --- CARTE CROISSANCE PERSONNALISÉE --- */}
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium text-slate-500 mb-1">
+                Croissance
+              </p>
+              <h3
+                className={`text-3xl font-extrabold ${
+                  isPositiveGrowth ? "text-emerald-600" : "text-red-600"
                 }`}
+              >
+                {stats?.monthlyGrowth > 0 ? "+" : ""}
+                {stats?.monthlyGrowth || 0}%
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                d'utilisateurs ce mois
+              </p>
+            </div>
+            <div
+              className={`p-3 rounded-xl ${
+                isPositiveGrowth
+                  ? "bg-emerald-50 text-emerald-600"
+                  : "bg-red-50 text-red-600"
+              }`}
+            >
+              <ArrowTrendingUpIcon
+                className={`w-6 h-6 ${!isPositiveGrowth ? "rotate-180" : ""}`}
               />
-              <div>
-                <p className="text-sm font-medium text-gray-500">Croissance</p>
-                <p
-                  className={`text-2xl font-bold ${
-                    (stats?.monthlyGrowth || 0) >= 0
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  {/* Condition pour afficher le + seulement si positif */}
-                  {stats?.monthlyGrowth > 0 ? "+" : ""}
-                  {stats?.monthlyGrowth || 0}%
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  d'utilisateurs ce mois
-                </p>
-              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Actions d'administration */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Administration
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-            <Link
-              to="/admin/users"
-              className="flex items-center p-4 border-2 border-dashed rounded-lg hover:border-blue-400 hover:bg-blue-50"
-            >
-              <UserGroupIcon className="h-6 w-6 text-blue-500 mr-3" />
-              <span>Gérer utilisateurs</span>
-            </Link>
-            <Link
-              to="/admin/testimonials"
-              className="flex items-center p-4 border-2 border-dashed rounded-lg hover:border-yellow-400 hover:bg-yellow-50"
-            >
-              <StarIcon className="h-6 w-6 text-yellow-500 mr-3" />
-              <span>Gérer les témoignages</span>
-            </Link>
-            <Link
-              to="/admin/recommandations"
-              className="flex items-center p-4 border-2 border-dashed rounded-lg hover:border-purple-400 hover:bg-purple-50"
-            >
-              <SparklesIcon className="h-6 w-6 text-purple-500 mr-3" />
-              <span>Timeline des Succès</span>
-            </Link>
-            <Link
-              to="/admin/reports"
-              className="flex items-center p-4 border-2 border-dashed rounded-lg hover:border-red-400 hover:bg-red-50"
-            >
-              <BellIcon className="h-6 w-6 text-red-500 mr-3" />
-              <span>Signalements</span>
-            </Link>
-
-            <Link
-              to="/admin/jobs"
-              className="flex items-center p-4 border-2 border-dashed rounded-lg hover:border-red-400 hover:bg-red-50"
-            >
-              <BriefcaseIcon className="h-6 w-6 text-red-500 mr-3" />
-              <span>Gérer les offres d'emploi</span>
-            </Link>
-
-            <Link
-              to="/admin/finance"
-              className="flex items-center p-4 border-2 border-dashed rounded-lg hover:border-green-400 hover:bg-green-50"
-            >
-              <BanknotesIcon className="h-6 w-6 text-green-600 mr-3" />
-              <span>Taux Financiers</span>
-            </Link>
-
-            <Link
-              to="/admin/trainings"
-              className="flex items-center p-4 border-2 border-dashed rounded-lg hover:border-indigo-400 hover:bg-indigo-50"
-            >
-              <AcademicCapIcon className="h-6 w-6 text-indigo-500 mr-3" />
-              <span>Gérer les Formations</span>
-            </Link>
-          </div>
+      {/* Section Graphique ou Tableau Récents (Placeholder pour futur dev) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm min-h-[300px] flex items-center justify-center text-slate-400">
+          <p>Graphique d'activité (À venir)</p>
+        </div>
+        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm min-h-[300px] flex items-center justify-center text-slate-400">
+          <p>Derniers inscrits (À venir)</p>
         </div>
       </div>
     </div>
